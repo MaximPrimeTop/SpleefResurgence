@@ -97,6 +97,7 @@ namespace SpleefResurgence
                     Commands.ChatCommands.RemoveAll(c => c.Name == cmd.Name);
             }
         }
+        public static bool isCommanding = false;
 
         public static async void CommandLogic(TSPlayer player, string name, string permission, List<string> CmdList, CommandArgs args)
         {
@@ -133,11 +134,6 @@ namespace SpleefResurgence
                             CmdList.Add(NewCmd);
                             PluginSettings.Save();
                         }
-                    }
-                    break;
-                case "padd":
-                    {
-
                     }
                     break;
                 case "list":
@@ -194,32 +190,42 @@ namespace SpleefResurgence
                         PluginSettings.Save();
                     }
                     break;
+                case "stop":
+                    {
+                        isCommanding = false;
+                    }
+                    break;
                 default:
                     {
-                        foreach (string command in CmdList)
+                        isCommanding = true;
+                        int i = 0;
+                        while (isCommanding && i < CmdList.Count)
                         {
-                            string[] stuff = command.Split(' ');
-                            if (stuff[0] == "wait")
+                            string command = CmdList[i];
                             {
+                                string[] stuff = command.Split(' ');
+                                if (stuff[0] == "wait")
+                                {
                                     await Task.Delay(Convert.ToInt32(command[5..]) * 1000);
-                            }
-                            else if (stuff[0] == "lavarise")
-                            {
-                                int x1 = Convert.ToInt32(stuff[1]);
-                                int y1 = Convert.ToInt32(stuff[2]);
-                                int x2 = Convert.ToInt32(stuff[3]);
-                                int y2 = Convert.ToInt32(stuff[4]);
-                                int waittime = Convert.ToInt32(stuff[5]);
+                                }
+                                else if (stuff[0] == "lavarise")
+                                {
+                                    int x1 = Convert.ToInt32(stuff[1]);
+                                    int y1 = Convert.ToInt32(stuff[2]);
+                                    int x2 = Convert.ToInt32(stuff[3]);
+                                    int y2 = Convert.ToInt32(stuff[4]);
+                                    int waittime = Convert.ToInt32(stuff[5]);
 
-                                Commands.HandleCommand(TSPlayer.Server, $"//p1 {x1} {y1}");
-                                Commands.HandleCommand(TSPlayer.Server, $"//p2 {x2} {y2}");
-                                Commands.HandleCommand(TSPlayer.Server, "//cut");
-                                Commands.HandleCommand(TSPlayer.Server, "//fill lava");
-                                await Task.Delay(waittime * 1000);
-                            }
-                            else
-                            {
-                                Commands.HandleCommand(TSPlayer.Server, command);
+                                    Commands.HandleCommand(TSPlayer.Server, $"//p1 {x1} {y1}");
+                                    Commands.HandleCommand(TSPlayer.Server, $"//p2 {x2} {y2}");
+                                    Commands.HandleCommand(TSPlayer.Server, "//cut");
+                                    Commands.HandleCommand(TSPlayer.Server, "//fill lava");
+                                    await Task.Delay(waittime * 1000);
+                                }
+                                else
+                                {
+                                    Commands.HandleCommand(TSPlayer.Server, command);
+                                }
                             }
                         }
                     }

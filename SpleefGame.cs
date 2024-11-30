@@ -100,7 +100,7 @@ namespace SpleefResurgence
                     {
                         var plr = TSPlayer.FindByNameOrID(player.Key)[0];
                         plr.Teleport(tpx, tpy);
-                        plr.SetBuff(BuffID.Webbed, 60);
+                        plr.SetBuff(BuffID.Webbed, 100);
                     }
                     TSPlayer.All.SendMessage("Round started", Color.DarkSeaGreen);
                     ServerApi.Hooks.NetGetData.Register(pluginInstance, OnGetData);
@@ -127,7 +127,6 @@ namespace SpleefResurgence
                             counter++;
                             if (counter == NumOfPlayers-1)
                             {
-                                TSPlayer.All.SendMessage($"One player left, killing him rq", Color.AliceBlue);
                                 Commands.HandleCommand(TSPlayer.Server, CommandToEndRound);
                             }
                             if (counter == NumOfPlayers)
@@ -138,6 +137,7 @@ namespace SpleefResurgence
                                 {
                                     TSPlayer.All.SendMessage($"{plrr.Key} : {plrr.Value}", Color.Coral);
                                 }
+                                CustomCommandHandler.isCommanding = false;
                                 ServerApi.Hooks.NetGetData.Deregister(pluginInstance, OnGetData);
                             }
                         }
