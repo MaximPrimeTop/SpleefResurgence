@@ -137,7 +137,6 @@ namespace SpleefResurgence
                                 {
                                     TSPlayer.All.SendMessage($"{plrr.Key} : {plrr.Value}", Color.Coral);
                                 }
-                                Commands.HandleCommand(TSPlayer.Server, $"{CommandToStartRound} stop");
                                 ServerApi.Hooks.NetGetData.Deregister(pluginInstance, OnGetData);
                             }
                         }
