@@ -15,6 +15,8 @@ namespace SpleefResurgence
         public static PluginSettings Config => PluginSettings.Config;
         private readonly CustomCommandHandler commandHandler;
         private readonly TileTracker tileTracker;
+        private readonly SpleefGame spleefGame;
+        //private readonly HookSpleef hookSpleef;
 
         public override string Author => "MaximPrime";
         public override string Name => "Spleef Resurgence Plugin";
@@ -25,6 +27,8 @@ namespace SpleefResurgence
         {
             commandHandler = new CustomCommandHandler();
             tileTracker = new TileTracker(this);
+            spleefGame = new SpleefGame(this);
+            //hookSpleef = new HookSpleef(this);
         }
         public override void Initialize()
         {
@@ -34,6 +38,10 @@ namespace SpleefResurgence
             Commands.ChatCommands.Add(new Command("spleef.customcommand", commandHandler.RemoveCustomCommand, "delcommand"));
             Commands.ChatCommands.Add(new Command("spleef.customcommand", commandHandler.ListCustomCommand, "listcommand"));
             
+            Commands.ChatCommands.Add(new Command("spleef.game", spleefGame.TheGaming, "game"));
+            
+            //Commands.ChatCommands.Add(new Command("spleef.hookspleef", hookSpleef.AddPos, "addpos"));
+
             Commands.ChatCommands.Add(new Command("spleef.tiletrack", tileTracker.ToggleTileTracking, "tilepos"));
 
             GeneralHooks.ReloadEvent += OnServerReload;

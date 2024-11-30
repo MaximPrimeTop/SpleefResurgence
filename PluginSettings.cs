@@ -7,14 +7,19 @@ namespace SpleefResurgence
     {
         public string Name { get; set; }
         public string Permission { get; set; }
+        [JsonProperty("Command execution")]
         public List<string> CommandList { get; set; }
     }
     public class PluginSettings
     {
         private static readonly string filePath = Path.Combine(TShock.SavePath, "spleef.json");
         public static PluginSettings Config { get; set; } = new();
-
-        public List<DynamicCommand> AllCommands { get; set; } = new List<DynamicCommand>();
+        
+        [JsonProperty("Custom commands")]
+        public List<DynamicCommand> AllCommands { get; set; } = new();
+        
+        //[JsonProperty("Positions of the hook spleef arena")]
+        //public List<int[]> HookPos { get; set; } = new();
 
         public static void Save()
         {

@@ -98,7 +98,7 @@ namespace SpleefResurgence
             }
         }
 
-        public static void CommandLogic(TSPlayer player, string name, string permission, List<string> CmdList, CommandArgs args)
+        public static async void CommandLogic(TSPlayer player, string name, string permission, List<string> CmdList, CommandArgs args)
         {
             var count = args.Parameters.Count;
 
@@ -201,8 +201,7 @@ namespace SpleefResurgence
                             string[] stuff = command.Split(' ');
                             if (stuff[0] == "wait")
                             {
-                                var t = Task.Delay(Convert.ToInt32(command[5..]) * 1000);
-                                t.Wait();
+                                    await Task.Delay(Convert.ToInt32(command[5..]) * 1000);
                             }
                             else if (stuff[0] == "lavarise")
                             {
@@ -216,8 +215,7 @@ namespace SpleefResurgence
                                 Commands.HandleCommand(TSPlayer.Server, $"//p2 {x2} {y2}");
                                 Commands.HandleCommand(TSPlayer.Server, "//cut");
                                 Commands.HandleCommand(TSPlayer.Server, "//fill lava");
-                                var t = Task.Delay(waittime * 1000);
-                                t.Wait();
+                                await Task.Delay(waittime * 1000);
                             }
                             else
                             {
