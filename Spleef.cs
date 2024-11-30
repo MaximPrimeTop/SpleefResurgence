@@ -21,7 +21,7 @@ namespace SpleefResurgence
         public override string Author => "MaximPrime";
         public override string Name => "Spleef Resurgence Plugin";
         public override string Description => "please work finally like what the fuck.";
-        public override Version Version => new(1, 2);
+        public override Version Version => new(1, 3);
 
         public Spleef(Main game) : base(game)
         {
