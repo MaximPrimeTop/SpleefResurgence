@@ -97,7 +97,7 @@ namespace SpleefResurgence
                     Commands.ChatCommands.RemoveAll(c => c.Name == cmd.Name);
             }
         }
-        private static bool isCommanding = false;
+        public static bool isCommanding = false;
 
         public static async void CommandLogic(TSPlayer player, string name, string permission, List<string> CmdList, CommandArgs args)
         {

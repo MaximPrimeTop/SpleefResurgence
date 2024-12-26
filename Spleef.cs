@@ -15,19 +15,21 @@ namespace SpleefResurgence
         public static PluginSettings Config => PluginSettings.Config;
         private readonly CustomCommandHandler commandHandler;
         private readonly TileTracker tileTracker;
+        //private readonly InventoryEdit inventoryEdit;
         private readonly SpleefGame spleefGame;
         //private readonly HookSpleef hookSpleef;
 
         public override string Author => "MaximPrime";
         public override string Name => "Spleef Resurgence Plugin";
         public override string Description => "please work finally like what the fuck.";
-        public override Version Version => new(1, 3);
+        public override Version Version => new(1, 4, 1);
 
         public Spleef(Main game) : base(game)
         {
             commandHandler = new CustomCommandHandler();
             tileTracker = new TileTracker(this);
-            spleefGame = new SpleefGame(this);
+            //inventoryEdit = new InventoryEdit();
+            spleefGame = new SpleefGame(this/*, inventoryEdit*/);
             //hookSpleef = new HookSpleef(this);
         }
         public override void Initialize()
