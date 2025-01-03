@@ -162,7 +162,7 @@ namespace SpleefResurgence
                             break;
                         }
 
-                        int cmdi1 = Convert.ToInt32(args.Parameters.ElementAtOrDefault(1)) - 1;
+                        int cmdi1 = Convert.ToInt32(args.Parameters[1]) - 1;
                         if (cmdi1 < 0 || cmdi1 > CmdList.Count - 1)
                         {
                             player.SendErrorMessage("Invalid syntax! /{0} del <numbah> [bigger numbah]", name);
@@ -170,7 +170,7 @@ namespace SpleefResurgence
                         }
                         if (count == 3)
                         {
-                            int cmdi2 = Convert.ToInt32(args.Parameters.ElementAtOrDefault(2)) - 1;
+                            int cmdi2 = Convert.ToInt32(args.Parameters[2]) - 1;
                             if (cmdi2 < cmdi1 || cmdi2 > CmdList.Count - 1)
                             {
                                 player.SendErrorMessage("Invalid syntax! /{0} del <numbah> [bigger numbah]", name);
@@ -224,6 +224,50 @@ namespace SpleefResurgence
                                 }
                                 else
                                 {
+                                    if (args.Parameters.Count == 0)
+                                    {
+                                        var targetPlayer = player;
+                                        command = command.Replace("[PLAYERNAME]", $"\"{targetPlayer.Name}\"");
+                                    }
+                                    else if (args.Parameters.Count == 1)
+                                    {
+                                        string playerName = "";
+                                        for (int j = 0; j < args.Parameters.Count; j++)
+                                        {
+                                            playerName = playerName + args.Parameters[j];
+                                        }
+                                        var players = TSPlayer.FindByNameOrID(playerName);
+                                        if (players == null || players.Count == 0)
+                                        {
+                                            player.SendErrorMessage($"{args.Parameters[0]} is not a valid player or subcommand");
+                                            return;
+                                        }
+                                        var targetPlayer = players[0];
+                                        command = command.Replace("[PLAYERNAME]", $"\"{targetPlayer.Name}\"");
+                                    }
+                                    else if (args.Parameters.Count == 2)
+                                    {
+                                        var players = TSPlayer.FindByNameOrID(args.Parameters[0]);
+                                        if (players == null || players.Count == 0)
+                                        {
+                                            player.SendErrorMessage($"{args.Parameters[0]} is not a valid player or subcommand");
+                                            return;
+                                        }
+                                        var targetPlayer = players[0];
+
+                                        command = command.Replace("[PLAYERNAME]", $"\"{targetPlayer.Name}\"");
+                                        command = command.Replace("[PLAYERNAME1]", $"\"{targetPlayer.Name}\"");
+
+                                        players = TSPlayer.FindByNameOrID(args.Parameters[1]);
+                                        if (players == null || players.Count == 0)
+                                        {
+                                            player.SendErrorMessage($"{args.Parameters[0]} is not a valid player or subcommand");
+                                            return;
+                                        }
+                                        targetPlayer = players[0];
+
+                                        command = command.Replace("[PLAYERNAME2]", $"\"{targetPlayer.Name}\"");
+                                    }
                                     Commands.HandleCommand(TSPlayer.Server, command);
                                 }
                             }

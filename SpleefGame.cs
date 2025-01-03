@@ -68,7 +68,7 @@ namespace SpleefResurgence
                     Vector2 position = plr.TPlayer.position;
                     plr.GiveItem(540, 50);
                 }
-                TSPlayer.All.SendMessage("[i:540] Boulders have been give out! [i:540]", Color.DeepPink);
+                TSPlayer.All.SendMessage("[i:540] Boulders have been given out! [i:540]", Color.DeepPink);
             }
 
             if (GameType == "2" || GameType == "cloud")
@@ -81,13 +81,84 @@ namespace SpleefResurgence
                 }
             }
 
-            if (GameType == "3" || GameType == "portal")
+            if (GameType == "3" || GameType == "tsunami")
+            {
+                TSPlayer.All.SendMessage("[i:3201] Tsunami in a bottle round! [i:3201]", Color.DeepSkyBlue);
+                foreach (KeyValuePair<string, int[]> player in PlayerInfo)
+                {
+                    var plr = TSPlayer.FindByNameOrID(player.Key)[0];
+                    plr.GiveItem(3201, 1);
+                }
+            }
+
+            if (GameType == "4" || GameType == "blizzard")
+            {
+                TSPlayer.All.SendMessage("[i:987] Blizzard in a bottle round! [i:987]", Color.White);
+                foreach (KeyValuePair<string, int[]> player in PlayerInfo)
+                {
+                    var plr = TSPlayer.FindByNameOrID(player.Key)[0];
+                    plr.GiveItem(987, 1);
+                }
+            }
+
+            if (GameType == "5" || GameType == "portal")
             {
                 TSPlayer.All.SendMessage("[i:3384] Portal round! [i:3384]", Color.White);
                 foreach (KeyValuePair<string, int[]> player in PlayerInfo)
                 {
                     var plr = TSPlayer.FindByNameOrID(player.Key)[0];
                     plr.GiveItem(3384, 1);
+                }
+            }
+
+            if (GameType == "6" || GameType == "bomb fish")
+            {
+                TSPlayer.All.SendMessage("[i:3196] Bomb fish round! [i:3196]", Color.DarkGray);
+                foreach (KeyValuePair<string, int[]> player in PlayerInfo)
+                {
+                    var plr = TSPlayer.FindByNameOrID(player.Key)[0];
+                    plr.GiveItem(3196, 15);
+                }
+            }
+
+            if (GameType == "7" || GameType == "rocket")
+            {
+                TSPlayer.All.SendMessage("[i:759] Rocket round! [i:759]", Color.Orange);
+                foreach (KeyValuePair<string, int[]> player in PlayerInfo)
+                {
+                    var plr = TSPlayer.FindByNameOrID(player.Key)[0];
+                    plr.GiveItem(759, 1);
+                    plr.GiveItem(772, 100);
+                }
+            }
+
+            if (GameType == "8" || GameType == "ice rod")
+            {
+                TSPlayer.All.SendMessage("[i:496] Ice rod round! [i:496]", Color.DeepSkyBlue);
+                foreach (KeyValuePair<string, int[]> player in PlayerInfo)
+                {
+                    var plr = TSPlayer.FindByNameOrID(player.Key)[0];
+                    plr.GiveItem(496, 1);
+                }
+            }
+
+            if (GameType == "9" || GameType == "soc")
+            {
+                TSPlayer.All.SendMessage("[i:3097] Shield of Cthulhu round! [i:3097]", Color.Red);
+                foreach (KeyValuePair<string, int[]> player in PlayerInfo)
+                {
+                    var plr = TSPlayer.FindByNameOrID(player.Key)[0];
+                    plr.GiveItem(3097, 1);
+                }
+            }
+
+            if (GameType == "10" || GameType == "slime")
+            {
+                TSPlayer.All.SendMessage("[i:2430] Slime saddle round! [i:2430]", Color.DeepSkyBlue);
+                foreach (KeyValuePair<string, int[]> player in PlayerInfo)
+                {
+                    var plr = TSPlayer.FindByNameOrID(player.Key)[0];
+                    plr.GiveItem(2430, 1);
                 }
             }
         }
