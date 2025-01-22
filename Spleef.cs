@@ -13,11 +13,11 @@ namespace SpleefResurgence
     public class Spleef : TerrariaPlugin
     {
         public static PluginSettings Config => PluginSettings.Config;
+        private SpleefCoin spleefCoin;
         private readonly CustomCommandHandler commandHandler;
         private readonly TileTracker tileTracker;
         //private readonly InventoryEdit inventoryEdit;
         private readonly SpleefGame spleefGame;
-        //private readonly HookSpleef hookSpleef;
 
         public override string Author => "MaximPrime";
         public override string Name => "Spleef Resurgence Plugin";
@@ -26,11 +26,11 @@ namespace SpleefResurgence
 
         public Spleef(Main game) : base(game)
         {
+            spleefCoin = new SpleefCoin();
             commandHandler = new CustomCommandHandler();
             tileTracker = new TileTracker(this);
             //inventoryEdit = new InventoryEdit();
             spleefGame = new SpleefGame(this/*, inventoryEdit*/);
-            //hookSpleef = new HookSpleef(this);
         }
         public override void Initialize()
         {
@@ -41,14 +41,25 @@ namespace SpleefResurgence
             Commands.ChatCommands.Add(new Command("spleef.customcommand", commandHandler.ListCustomCommand, "listcommand"));
             
             Commands.ChatCommands.Add(new Command("spleef.game", spleefGame.TheGaming, "game"));
-            
-            //Commands.ChatCommands.Add(new Command("spleef.hookspleef", hookSpleef.AddPos, "addpos"));
 
             Commands.ChatCommands.Add(new Command("spleef.tiletrack", tileTracker.ToggleTileTracking, "tilepos"));
+            Commands.ChatCommands.Add(new Command("spleef.coolsay", Coolsay, "coolsay"));
+
+            Commands.ChatCommands.Add(new Command("spleef.coin.admin", spleefCoin.AddCoins, "addcoin"));
+            Commands.ChatCommands.Add(new Command("spleef.coin.user", spleefCoin.GetCoins, "coin"));
+            Commands.ChatCommands.Add(new Command("spleef.coin.user", spleefCoin.GetLeaderboard, "leaderboard"));
 
             GeneralHooks.ReloadEvent += OnServerReload;
             ServerApi.Hooks.GamePostInitialize.Register(this, OnWorldLoad);
             ServerApi.Hooks.GameUpdate.Register(this, OnWorldUpdate);
+
+            spleefCoin.MigrateUsersToSpleefDatabase();
+        }
+
+        private void Coolsay(CommandArgs args)
+        {
+            string message = string.Join(" ", args.Parameters);
+            TShock.Utils.Broadcast(message, 255, 255, 255);
         }
 
         private void OnWorldUpdate(EventArgs args)

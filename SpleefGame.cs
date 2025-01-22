@@ -31,6 +31,8 @@ namespace SpleefResurgence
         private int NumOfPlayers;
         private int RoundCounter = 0;
 
+        private string statusMessage;
+
         private Dictionary<string, int[]> PlayerInfo = new(); // 0 - score, 1 - tpx, 2 - tpy 3 - alive/dead 1/0
 
         private async void StartRound(CommandArgs args, string GameType)
@@ -53,9 +55,12 @@ namespace SpleefResurgence
             TSPlayer.All.SendMessage($"Round {RoundCounter} started", Color.DarkSeaGreen);
             ServerApi.Hooks.NetGetData.Register(pluginInstance, OnGetData);
 
+            statusMessage = $"\"Round: {RoundCounter}";
+
             if (GameType == "0" || GameType == "normal")
             {
-                TSPlayer.All.SendMessage("[i:776] normal round! [i:776]", Color.Cyan);
+                TSPlayer.All.SendMessage("[i:776] Normal round! [i:776]", Color.Cyan);
+                statusMessage = statusMessage + "\n[i:776] [c/00ffff:Normal round] [i:776]";
             }
 
             if (GameType == "1" || GameType == "boulder")
@@ -117,7 +122,7 @@ namespace SpleefResurgence
                 foreach (KeyValuePair<string, int[]> player in PlayerInfo)
                 {
                     var plr = TSPlayer.FindByNameOrID(player.Key)[0];
-                    plr.GiveItem(3196, 15);
+                    plr.GiveItem(3196, 50);
                 }
             }
 
@@ -128,7 +133,7 @@ namespace SpleefResurgence
                 {
                     var plr = TSPlayer.FindByNameOrID(player.Key)[0];
                     plr.GiveItem(759, 1);
-                    plr.GiveItem(772, 100);
+                    plr.GiveItem(772, 15);
                 }
             }
 
@@ -161,6 +166,59 @@ namespace SpleefResurgence
                     plr.GiveItem(2430, 1);
                 }
             }
+
+            if (GameType == "11" || GameType == "gravedigger")
+            {
+                TSPlayer.All.SendMessage("[i:4711] Gravedigger round! [i:4711]", Color.Gray);
+                foreach (KeyValuePair<string, int[]> player in PlayerInfo)
+                {
+                    var plr = TSPlayer.FindByNameOrID(player.Key)[0];
+                    plr.GiveItem(4711, 1);
+                }
+            }
+
+            if (GameType == "12" || GameType == "bouncy")
+            {
+                TSPlayer.All.SendMessage("[i:5383] Bouncy boulder round! [i:5383]", Color.LightPink);
+                await Task.Delay(20000);
+                foreach (KeyValuePair<string, int[]> player in PlayerInfo)
+                {
+                    var plr = TSPlayer.FindByNameOrID(player.Key)[0];
+                    Vector2 position = plr.TPlayer.position;
+                    plr.GiveItem(5383, 5);
+                }
+                TSPlayer.All.SendMessage("[i:5383] Boulders have been given out! [i:5383]", Color.DeepPink);
+            }
+
+            if (GameType == "13" || GameType == "cactus")
+            {
+                TSPlayer.All.SendMessage("[i:4390] Rolling cactus round! [i:4390]", Color.Green);
+                await Task.Delay(20000);
+                foreach (KeyValuePair<string, int[]> player in PlayerInfo)
+                {
+                    var plr = TSPlayer.FindByNameOrID(player.Key)[0];
+                    Vector2 position = plr.TPlayer.position;
+                    plr.GiveItem(4390, 15);
+                }
+                TSPlayer.All.SendMessage("[i:4390] Boulders have been given out! [i:4390]", Color.DeepPink);
+            }
+            /*
+            var sortedPlayerInfo = PlayerInfo
+                                    .OrderByDescending(entry => entry.Value[0])
+                                    .ToList();
+
+            foreach (KeyValuePair<string, int[]> plr in sortedPlayerInfo)
+            {
+                statusMessage = statusMessage + $"\n[c/ff7f50:{plr.Key} : {plr.Value[0]}]";
+            }
+
+            foreach (TSPlayer player in TShock.Players)
+            {
+                if (player != null && player.Active)
+                    player.SendData(PacketTypes.Status, statusMessage, number2: 1);
+
+            }
+            */
         }
 
         public void TheGaming(CommandArgs args)

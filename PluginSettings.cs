@@ -17,9 +17,6 @@ namespace SpleefResurgence
         
         [JsonProperty("Custom commands")]
         public List<DynamicCommand> AllCommands { get; set; } = new();
-        
-        //[JsonProperty("Positions of the hook spleef arena")]
-        //public List<int[]> HookPos { get; set; } = new();
 
         public static void Save()
         {
