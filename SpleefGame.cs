@@ -17,11 +17,13 @@ namespace SpleefResurgence
     {
         private readonly Spleef pluginInstance;
         //private readonly InventoryEdit inventoryEdit;
+        private readonly SpleefCoin spleefCoin;
 
-        public SpleefGame(Spleef plugin/*, InventoryEdit inventoryEdit*/)
+        public SpleefGame(Spleef plugin, SpleefCoin spleefCoin/*, InventoryEdit inventoryEdit*/)
         {
             this.pluginInstance = plugin;
             //this.inventoryEdit = inventoryEdit;
+            this.spleefCoin = spleefCoin;
         }
 
         private bool isGaming = false;
@@ -242,6 +244,7 @@ namespace SpleefResurgence
                                 .ToList();
                     foreach (KeyValuePair<string, int[]> plr in sortedPlayerInfo)
                     {
+                        spleefCoin.AddCoins(plr.Key, plr.Value[0]);
                         TSPlayer.All.SendMessage($"{plr.Key} : {plr.Value[0]}", Color.Coral);
                     }
                     PlayerInfo.Clear();

@@ -45,11 +45,8 @@ namespace SpleefResurgence
             var rowInserted = command.ExecuteNonQuery();
         }
 
-        public void AddCoins(CommandArgs args)
+        public void AddCoins(string username, int amount)
         {
-            string username = args.Parameters[0];
-            int amount = Convert.ToInt32(args.Parameters[1]);
-
             var sql = $"UPDATE PlayerCoins SET Coins = Coins + @amount WHERE Username = @username";
 
             using var connection = new SqliteConnection($"Data Source={DbPath}"); 
@@ -59,27 +56,36 @@ namespace SpleefResurgence
             command.Parameters.AddWithValue("@amount", amount);
             command.Parameters.AddWithValue("@username", username);
             command.ExecuteNonQuery();
-            args.Player.SendSuccessMessage($"nice +{amount} spleef coin to {username}");
-            var plr = TSPlayer.FindByNameOrID(username);
+            TShock.Log.ConsoleInfo($"Gave {username} {amount} Spleef Coins!");
             var players = TSPlayer.FindByNameOrID(username);
             if (players == null || players.Count == 0)
             {
-                args.Player.SendInfoMessage($"{username} isn't online atm");
+                TShock.Log.ConsoleInfo($"{username} isn't online atm");
             }
             else
             {
                 var player = players[0];
-                player.SendMessage($"You just got {amount} Spleef Coins!", Color.Orange);
+                if (amount == 1)
+                    player.SendMessage($"You just got {amount} Spleef Coin!", Color.Orange);
+                else if (amount == 0)
+                    player.SendMessage($"Hmmm you were just given {amount} Spleef Coins, someone's doing a silly", Color.Orange);
+                else if (amount < 0)
+                    player.SendMessage($"You just lost {-amount} Spleef Coins. :(", Color.Orange);
+                else
+                    player.SendMessage($"You just got {amount} Spleef Coin!", Color.Orange);
             }
         }
 
-        public void GetCoins(CommandArgs args)
+        public void AddCoinsCommand(CommandArgs args)
         {
-            string username;
-            if (args.Parameters.Count == 1)
-                username = args.Parameters[0];
-            else
-                username = args.Player.Account.Name;
+            string username = args.Parameters[0];
+            int amount = Convert.ToInt32(args.Parameters[1]);
+            AddCoins(username, amount);
+            args.Player.SendSuccessMessage($"Gave {username} {amount} Spleef Coins!");
+        }
+
+        public int GetCoins(string username)
+        {
             var sql = "SELECT * FROM PlayerCoins WHERE Username = @username";
             using var connection = new SqliteConnection($"Data Source={DbPath}");
             connection.Open();
@@ -92,25 +98,65 @@ namespace SpleefResurgence
             {
                 while (reader.Read())
                 {
-                        var Username = reader.GetString(0);
-                        var Coins = reader.GetInt32(1);
-                        args.Player.SendInfoMessage($"{Username}: {Coins}");
+                    var coins = reader.GetInt32(1);
+                    TShock.Log.ConsoleInfo($"{username} has {coins} Spleef Coins.");
+                    return coins;                      
                 }
             }
+            return -1;
+
+        }
+
+        public void GetCoinsCommand(CommandArgs args)
+        {
+            string username;
+            if (args.Parameters.Count == 1)
+                username = args.Parameters[0];
             else
-            {
-                args.Player.SendErrorMessage("worgn");
-            }
+                username = args.Player.Account.Name;
+            int coins = GetCoins(username);
+            if (coins == -1)
+                args.Player.SendErrorMessage($"{username} either has {coins} Spleef Coins or this is an error.");
+            else
+                args.Player.SendInfoMessage($"{username} has {coins} Spleef Coins.");
         }
 
         public void GetLeaderboard (CommandArgs args)
         {
-            var sql = "SELECT Username FROM PlayerCoins ORDER BY Coins DESC LIMIT 10";
-            using var connection = new SqliteConnection($"Data Source={DbPath}");
-            connection.Open();
+            args.Player.SendMessage($"Spleef Coin leaderboard:", Color.Orange);
+            int i = 1;
+            if (args.Parameters.Count == 1 && args.Parameters[0] == "all")
+            {
+                var sql = "SELECT * FROM PlayerCoins ORDER BY Coins DESC";
+                using var connection = new SqliteConnection($"Data Source={DbPath}");
+                connection.Open();
 
-            using var command = new SqliteCommand(sql, connection);
-            command.ExecuteNonQuery();
+                using var command = new SqliteCommand(sql, connection);
+                using var reader = command.ExecuteReader();
+                while (reader.Read())
+                {
+                    var Username = reader.GetString(0);
+                    var Coins = reader.GetInt32(1);
+                    args.Player.SendInfoMessage($"{i}) {Username}: {Coins}");
+                    i++;
+                }
+            }
+            else
+            {
+                var sql = "SELECT * FROM PlayerCoins ORDER BY Coins DESC LIMIT 10";
+                using var connection = new SqliteConnection($"Data Source={DbPath}");
+                connection.Open();
+
+                using var command = new SqliteCommand(sql, connection);
+                using var reader = command.ExecuteReader();
+                while (reader.Read())
+                {
+                    var Username = reader.GetString(0);
+                    var Coins = reader.GetInt32(1);
+                    args.Player.SendInfoMessage($"{i}) {Username}: {Coins}");
+                    i++;
+                }
+            }
         }
 
         public void MigrateUsersToSpleefDatabase()

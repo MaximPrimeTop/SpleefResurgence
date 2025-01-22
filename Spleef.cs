@@ -30,24 +30,24 @@ namespace SpleefResurgence
             commandHandler = new CustomCommandHandler();
             tileTracker = new TileTracker(this);
             //inventoryEdit = new InventoryEdit();
-            spleefGame = new SpleefGame(this/*, inventoryEdit*/);
+            spleefGame = new SpleefGame(this, spleefCoin/*, inventoryEdit*/);
         }
         public override void Initialize()
         {
             PluginSettings.Load();
             CustomCommandHandler.RegisterCommands();
-            Commands.ChatCommands.Add(new Command("spleef.customcommand", commandHandler.AddCustomCommand, "addcommand"));
-            Commands.ChatCommands.Add(new Command("spleef.customcommand", commandHandler.RemoveCustomCommand, "delcommand"));
-            Commands.ChatCommands.Add(new Command("spleef.customcommand", commandHandler.ListCustomCommand, "listcommand"));
+            Commands.ChatCommands.Add(new Command("spleef.customcommand", commandHandler.AddCustomCommand, "addcommand", "addc"));
+            Commands.ChatCommands.Add(new Command("spleef.customcommand", commandHandler.RemoveCustomCommand, "delcommand", "delc"));
+            Commands.ChatCommands.Add(new Command("spleef.customcommand", commandHandler.ListCustomCommand, "listcommand", "listc"));
             
             Commands.ChatCommands.Add(new Command("spleef.game", spleefGame.TheGaming, "game"));
 
             Commands.ChatCommands.Add(new Command("spleef.tiletrack", tileTracker.ToggleTileTracking, "tilepos"));
             Commands.ChatCommands.Add(new Command("spleef.coolsay", Coolsay, "coolsay"));
 
-            Commands.ChatCommands.Add(new Command("spleef.coin.admin", spleefCoin.AddCoins, "addcoin"));
-            Commands.ChatCommands.Add(new Command("spleef.coin.user", spleefCoin.GetCoins, "coin"));
-            Commands.ChatCommands.Add(new Command("spleef.coin.user", spleefCoin.GetLeaderboard, "leaderboard"));
+            Commands.ChatCommands.Add(new Command("spleef.coin.admin", spleefCoin.AddCoinsCommand, "addcoin"));
+            Commands.ChatCommands.Add(new Command("spleef.coin.user", spleefCoin.GetCoinsCommand, "coin"));
+            Commands.ChatCommands.Add(new Command("spleef.coin.user", spleefCoin.GetLeaderboard, "leaderboard", "lb"));
 
             GeneralHooks.ReloadEvent += OnServerReload;
             ServerApi.Hooks.GamePostInitialize.Register(this, OnWorldLoad);
