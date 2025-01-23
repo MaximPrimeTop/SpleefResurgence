@@ -147,8 +147,8 @@ namespace SpleefResurgence
                 if (args.Parameters.Count == 1)
                     page = Convert.ToInt32(args.Parameters[0]);
 
-                i = page * 10;
-                var sql = $"SELECT * FROM PlayerCoins ORDER BY Coins DESC LIMIT {(page-1)*10-1}, 10";
+                i = (page - 1) * 10 + 1;
+                var sql = $"SELECT * FROM PlayerCoins ORDER BY Coins DESC LIMIT {(page-1)*10}, 10";
                 using var connection = new SqliteConnection($"Data Source={DbPath}");
                 connection.Open();
 
