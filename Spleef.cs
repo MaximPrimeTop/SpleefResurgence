@@ -46,7 +46,7 @@ namespace SpleefResurgence
             Commands.ChatCommands.Add(new Command("spleef.coolsay", Coolsay, "coolsay"));
 
             Commands.ChatCommands.Add(new Command("spleef.coin.admin", spleefCoin.AddCoinsCommand, "addcoin"));
-            Commands.ChatCommands.Add(new Command("spleef.coin.user", spleefCoin.GetCoinsCommand, "coin"));
+            Commands.ChatCommands.Add(new Command("spleef.coin.user", spleefCoin.GetCoinsCommand, "coin", "c"));
             Commands.ChatCommands.Add(new Command("spleef.coin.user", spleefCoin.GetLeaderboard, "leaderboard", "lb"));
             Commands.ChatCommands.Add(new Command("spleef.coin.user", spleefCoin.TransferCoinsCommand, "transfer"));
 
