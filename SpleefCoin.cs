@@ -121,7 +121,7 @@ namespace SpleefResurgence
                 args.Player.SendInfoMessage($"{username} has {coins} Spleef Coins.");
         }
 
-        public void GetLeaderboard (CommandArgs args)
+        public void GetLeaderboard(CommandArgs args)
         {
             args.Player.SendMessage($"Spleef Coin leaderboard:", Color.Orange);
             int i = 1;
@@ -143,7 +143,12 @@ namespace SpleefResurgence
             }
             else
             {
-                var sql = "SELECT * FROM PlayerCoins ORDER BY Coins DESC LIMIT 10";
+                int page = 1;
+                if (args.Parameters.Count == 1)
+                    page = Convert.ToInt32(args.Parameters[0]);
+
+                i = page * 10;
+                var sql = $"SELECT * FROM PlayerCoins ORDER BY Coins DESC LIMIT {(page-1)*10-1}, 10";
                 using var connection = new SqliteConnection($"Data Source={DbPath}");
                 connection.Open();
 
@@ -159,7 +164,37 @@ namespace SpleefResurgence
             }
         }
 
-        public void MigrateUsersToSpleefDatabase()
+        public void TransferCoins (string sender, string receiver, int coins)
+        {
+            if (coins > 0 && GetCoins(sender) >= coins)
+            {
+                AddCoins(sender, -coins);
+                AddCoins(receiver, coins);
+
+                TShock.Log.ConsoleInfo($"{sender} transferred {coins} Spleef Coins to {receiver}!");
+            }
+        }
+
+        public void TransferCoinsCommand(CommandArgs args)
+        {
+            string sender = args.Player.Account.Name;
+            string receiver = args.Parameters[0];
+            int coins = Convert.ToInt32(args.Parameters[1]);
+
+            if (coins <= 0) 
+            {
+                args.Player.SendErrorMessage($"you can't transfer negative or 0 coins silly");
+                return;
+            }
+            if (GetCoins(sender) < coins)
+            {
+                args.Player.SendErrorMessage($"You do not have enough Spleef Coins");
+                return;
+            }
+            TransferCoins(sender, receiver, coins);
+        }
+
+        public static void MigrateUsersToSpleefDatabase()
         {
             string tshockDbPath = Path.Combine(TShock.SavePath, "tshock.sqlite");
             string spleefDbPath = Path.Combine(TShock.SavePath, "SpleefCoin.sqlite");
@@ -172,29 +207,26 @@ namespace SpleefResurgence
                 {
                     tshockConnection.Open();
 
-                    using (var selectCommand = new SqliteCommand(selectQuery, tshockConnection))
-                    using (var reader = selectCommand.ExecuteReader())
+                    using var selectCommand = new SqliteCommand(selectQuery, tshockConnection);
+
+                    using var reader = selectCommand.ExecuteReader();
+
+                    using var spleefConnection = new SqliteConnection($"Data Source={spleefDbPath}");
+                    spleefConnection.Open();
+
+                    while (reader.Read())
                     {
-                        using (var spleefConnection = new SqliteConnection($"Data Source={spleefDbPath}"))
-                        {
-                            spleefConnection.Open();
+                        string username = reader["Username"].ToString();
 
-                            while (reader.Read())
-                            {
-                                string username = reader["Username"].ToString();
-
-                                // Insert the username into the Spleef Coins database
-                                string insertQuery = @"
+                        // Insert the username into the Spleef Coins database
+                        string insertQuery = @"
                                 INSERT OR IGNORE INTO PlayerCoins (Username, Coins) VALUES (@Username, 0);
                             ";
 
-                                using (var insertCommand = new SqliteCommand(insertQuery, spleefConnection))
-                                {
-                                    insertCommand.Parameters.AddWithValue("@Username", username);
-                                    insertCommand.ExecuteNonQuery();
-                                }
-                            }
-                        }
+                        using var insertCommand = new SqliteCommand(insertQuery, spleefConnection);
+
+                        insertCommand.Parameters.AddWithValue("@Username", username);
+                        insertCommand.ExecuteNonQuery();
                     }
                 }
 

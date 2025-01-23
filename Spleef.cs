@@ -48,12 +48,20 @@ namespace SpleefResurgence
             Commands.ChatCommands.Add(new Command("spleef.coin.admin", spleefCoin.AddCoinsCommand, "addcoin"));
             Commands.ChatCommands.Add(new Command("spleef.coin.user", spleefCoin.GetCoinsCommand, "coin"));
             Commands.ChatCommands.Add(new Command("spleef.coin.user", spleefCoin.GetLeaderboard, "leaderboard", "lb"));
+            Commands.ChatCommands.Add(new Command("spleef.coin.user", spleefCoin.TransferCoinsCommand, "transfer"));
+
+            Commands.ChatCommands.Add(new Command("spleef.coin.user", PenguinPoints, "pp"));
 
             GeneralHooks.ReloadEvent += OnServerReload;
             ServerApi.Hooks.GamePostInitialize.Register(this, OnWorldLoad);
             ServerApi.Hooks.GameUpdate.Register(this, OnWorldUpdate);
 
-            spleefCoin.MigrateUsersToSpleefDatabase();
+            SpleefCoin.MigrateUsersToSpleefDatabase();
+        }
+
+        private void PenguinPoints(CommandArgs args)
+        {
+            TSPlayer.All.SendMessage($"{args.Player.Name} just tried using /pp!!! Laugh at this user", Color.OrangeRed);
         }
 
         private void Coolsay(CommandArgs args)
@@ -95,6 +103,7 @@ namespace SpleefResurgence
                 CustomCommandHandler.DeRegisterCommands();
                 PluginSettings.Load();
                 CustomCommandHandler.RegisterCommands();
+                SpleefCoin.MigrateUsersToSpleefDatabase();
                 playerReloading.SendSuccessMessage("[SpleefPlugin] Config reloaded!");
             }
             catch (Exception ex)

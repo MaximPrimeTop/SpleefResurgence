@@ -35,6 +35,8 @@ namespace SpleefResurgence
 
         private string statusMessage;
 
+        private Random rnd = new Random();
+
         private Dictionary<string, int[]> PlayerInfo = new(); // 0 - score, 1 - tpx, 2 - tpy 3 - alive/dead 1/0
 
         private async void StartRound(CommandArgs args, string GameType)
@@ -59,10 +61,15 @@ namespace SpleefResurgence
 
             statusMessage = $"\"Round: {RoundCounter}";
 
+            if (GameType == "random" || GameType == "r")
+            {
+                GameType = Convert.ToString(rnd.Next(14));
+            }
+
             if (GameType == "0" || GameType == "normal")
             {
                 TSPlayer.All.SendMessage("[i:776] Normal round! [i:776]", Color.Cyan);
-                statusMessage = statusMessage + "\n[i:776] [c/00ffff:Normal round] [i:776]";
+                statusMessage += "\n[i:776] [c/00ffff:Normal round] [i:776]";
             }
 
             if (GameType == "1" || GameType == "boulder")
@@ -128,9 +135,9 @@ namespace SpleefResurgence
                 }
             }
 
-            if (GameType == "7" || GameType == "rocket")
+            if (GameType == "7" || GameType == "rocket15")
             {
-                TSPlayer.All.SendMessage("[i:759] Rocket round! [i:759]", Color.Orange);
+                TSPlayer.All.SendMessage("[i:759] Rocket round! (15 rockets) [i:759]", Color.Orange);
                 foreach (KeyValuePair<string, int[]> player in PlayerInfo)
                 {
                     var plr = TSPlayer.FindByNameOrID(player.Key)[0];
@@ -204,6 +211,17 @@ namespace SpleefResurgence
                 }
                 TSPlayer.All.SendMessage("[i:4390] Boulders have been given out! [i:4390]", Color.DeepPink);
             }
+
+            if (GameType == "14" || GameType == "rocket100")
+            {
+                TSPlayer.All.SendMessage("[i:759] Rocket round! (100 rockets) [i:759]", Color.Orange);
+                foreach (KeyValuePair<string, int[]> player in PlayerInfo)
+                {
+                    var plr = TSPlayer.FindByNameOrID(player.Key)[0];
+                    plr.GiveItem(759, 1);
+                    plr.GiveItem(772, 100);
+                }
+            }
             /*
             var sortedPlayerInfo = PlayerInfo
                                     .OrderByDescending(entry => entry.Value[0])
@@ -244,7 +262,8 @@ namespace SpleefResurgence
                                 .ToList();
                     foreach (KeyValuePair<string, int[]> plr in sortedPlayerInfo)
                     {
-                        spleefCoin.AddCoins(plr.Key, plr.Value[0]);
+                        var plrr = TSPlayer.FindByNameOrID(plr.Key)[0];
+                        spleefCoin.AddCoins(plrr.Account.Name, plr.Value[0]);
                         TSPlayer.All.SendMessage($"{plr.Key} : {plr.Value[0]}", Color.Coral);
                     }
                     PlayerInfo.Clear();
