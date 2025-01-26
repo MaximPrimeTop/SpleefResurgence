@@ -10,6 +10,7 @@ using Terraria.ID;
 using TerrariaApi.Server;
 using TShockAPI;
 using Terraria.Audio;
+using IL.Terraria.GameContent.ItemDropRules;
 
 namespace SpleefResurgence
 {
@@ -39,18 +40,27 @@ namespace SpleefResurgence
 
         private Dictionary<string, int[]> PlayerInfo = new(); // 0 - score, 1 - tpx, 2 - tpy 3 - alive/dead 1/0
 
+        bool isPlayerOnline(string playername)
+        {
+            var players = TSPlayer.FindByNameOrID(playername);
+            if (players == null || players.Count == 0)
+            {
+                return false;
+            }
+            return true;
+        }
+
         private async void StartRound(CommandArgs args, string GameType)
         {
             foreach (KeyValuePair<string, int[]> player in PlayerInfo)
             {
-                var players = TSPlayer.FindByNameOrID(player.Key);
-                if (players == null || players.Count == 0)
+                if (!isPlayerOnline(player.Key))
                 {
                     args.Player.SendErrorMessage($"yo bro this {player.Key} he doesn't exist or some shit, idk bro either wait fro him to join back or restart the game tbh cus duh this guy is not here");
                     return;
                 }
+                var plr = TSPlayer.FindByNameOrID(player.Key)[0];
                 player.Value[3] = 1;
-                var plr = players[0];
                 plr.Teleport(player.Value[1], player.Value[2]);
                 plr.SetBuff(BuffID.Webbed, 100);
             }
@@ -63,7 +73,7 @@ namespace SpleefResurgence
 
             if (GameType == "random" || GameType == "r")
             {
-                GameType = Convert.ToString(rnd.Next(14));
+                GameType = Convert.ToString(rnd.Next(15));
             }
 
             if (GameType == "0" || GameType == "normal")
@@ -257,14 +267,24 @@ namespace SpleefResurgence
                 }
                 else if (args.Parameters[0] == "stop" && isGaming)
                 {
+                    SpleefCoin.MigrateUsersToSpleefDatabase();
                     var sortedPlayerInfo = PlayerInfo
                                 .OrderByDescending(entry => entry.Value[0])
                                 .ToList();
-                    foreach (KeyValuePair<string, int[]> plr in sortedPlayerInfo)
+                    foreach (KeyValuePair<string, int[]> player in sortedPlayerInfo)
                     {
-                        var plrr = TSPlayer.FindByNameOrID(plr.Key)[0];
-                        spleefCoin.AddCoins(plrr.Account.Name, plr.Value[0]);
-                        TSPlayer.All.SendMessage($"{plr.Key} : {plr.Value[0]}", Color.Coral);
+                        var players = TSPlayer.FindByNameOrID(player.Key);
+                        if (isPlayerOnline(player.Key))
+                        {
+                            var plr = TSPlayer.FindByNameOrID(player.Key)[0];
+                            spleefCoin.AddCoins(plr.Account.Name, player.Value[0]);
+                            plr.SendMessage($"Sent {player.Value[0]} Spleef Coin to your account {plr.Account.Name}", Color.Purple);
+                        }
+                        else
+                        {
+                            spleefCoin.AddCoins(player.Key, player.Value[0]);
+                        }
+                        TSPlayer.All.SendMessage($"{player.Key} : {player.Value[0]}", Color.Coral);
                     }
                     PlayerInfo.Clear();
                     isGaming = false;
@@ -291,13 +311,11 @@ namespace SpleefResurgence
 
             else if (args.Parameters.Count == 3 && args.Parameters[0] == "edit" && isGaming) // /game edit player +score
             {
-                var players = TSPlayer.FindByNameOrID(args.Parameters[1]);
-                if (players == null || players.Count == 0)
+                if (!isPlayerOnline(args.Parameters[1]))
                 {
                     args.Player.SendErrorMessage("this guy does not exist bro");
                     return;
                 }
-
                 var PlayerToEdit = TSPlayer.FindByNameOrID(args.Parameters[1])[0];
                 int Value = Convert.ToInt32(args.Parameters[2]);
                 
