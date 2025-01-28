@@ -13,42 +13,61 @@ namespace SpleefResurgence
     public class Spleef : TerrariaPlugin
     {
         public static PluginSettings Config => PluginSettings.Config;
+        private SpleefCoin spleefCoin;
         private readonly CustomCommandHandler commandHandler;
         private readonly TileTracker tileTracker;
         //private readonly InventoryEdit inventoryEdit;
         private readonly SpleefGame spleefGame;
-        //private readonly HookSpleef hookSpleef;
 
         public override string Author => "MaximPrime";
         public override string Name => "Spleef Resurgence Plugin";
         public override string Description => "ok i think it works yipee.";
-        public override Version Version => new(1, 4, 2);
+        public override Version Version => new(1, 5, 2, 1);
 
         public Spleef(Main game) : base(game)
         {
+            spleefCoin = new SpleefCoin();
             commandHandler = new CustomCommandHandler();
             tileTracker = new TileTracker(this);
             //inventoryEdit = new InventoryEdit();
-            spleefGame = new SpleefGame(this/*, inventoryEdit*/);
-            //hookSpleef = new HookSpleef(this);
+            spleefGame = new SpleefGame(this, spleefCoin/*, inventoryEdit*/);
         }
         public override void Initialize()
         {
             PluginSettings.Load();
             CustomCommandHandler.RegisterCommands();
-            Commands.ChatCommands.Add(new Command("spleef.customcommand", commandHandler.AddCustomCommand, "addcommand"));
-            Commands.ChatCommands.Add(new Command("spleef.customcommand", commandHandler.RemoveCustomCommand, "delcommand"));
-            Commands.ChatCommands.Add(new Command("spleef.customcommand", commandHandler.ListCustomCommand, "listcommand"));
+            Commands.ChatCommands.Add(new Command("spleef.customcommand", commandHandler.AddCustomCommand, "addcommand", "addc"));
+            Commands.ChatCommands.Add(new Command("spleef.customcommand", commandHandler.RemoveCustomCommand, "delcommand", "delc"));
+            Commands.ChatCommands.Add(new Command("spleef.customcommand", commandHandler.ListCustomCommand, "listcommand", "listc"));
             
             Commands.ChatCommands.Add(new Command("spleef.game", spleefGame.TheGaming, "game"));
-            
-            //Commands.ChatCommands.Add(new Command("spleef.hookspleef", hookSpleef.AddPos, "addpos"));
 
             Commands.ChatCommands.Add(new Command("spleef.tiletrack", tileTracker.ToggleTileTracking, "tilepos"));
+            Commands.ChatCommands.Add(new Command("spleef.coolsay", Coolsay, "coolsay"));
+
+            Commands.ChatCommands.Add(new Command("spleef.coin.admin", spleefCoin.AddCoinsCommand, "addcoin"));
+            Commands.ChatCommands.Add(new Command("spleef.coin.user", spleefCoin.GetCoinsCommand, "coin", "c"));
+            Commands.ChatCommands.Add(new Command("spleef.coin.user", spleefCoin.GetLeaderboard, "leaderboard", "lb"));
+            Commands.ChatCommands.Add(new Command("spleef.coin.user", spleefCoin.TransferCoinsCommand, "transfer"));
+
+            Commands.ChatCommands.Add(new Command("spleef.coin.user", PenguinPoints, "pp"));
 
             GeneralHooks.ReloadEvent += OnServerReload;
             ServerApi.Hooks.GamePostInitialize.Register(this, OnWorldLoad);
             ServerApi.Hooks.GameUpdate.Register(this, OnWorldUpdate);
+
+            SpleefCoin.MigrateUsersToSpleefDatabase();
+        }
+
+        private void PenguinPoints(CommandArgs args)
+        {
+            TSPlayer.All.SendMessage($"{args.Player.Name} just tried using /pp!!! Laugh at this user", Color.OrangeRed);
+        }
+
+        private void Coolsay(CommandArgs args)
+        {
+            string message = string.Join(" ", args.Parameters);
+            TShock.Utils.Broadcast(message, 255, 255, 255);
         }
 
         private void OnWorldUpdate(EventArgs args)
@@ -84,6 +103,7 @@ namespace SpleefResurgence
                 CustomCommandHandler.DeRegisterCommands();
                 PluginSettings.Load();
                 CustomCommandHandler.RegisterCommands();
+                SpleefCoin.MigrateUsersToSpleefDatabase();
                 playerReloading.SendSuccessMessage("[SpleefPlugin] Config reloaded!");
             }
             catch (Exception ex)
