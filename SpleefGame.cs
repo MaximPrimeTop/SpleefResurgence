@@ -87,7 +87,7 @@ namespace SpleefResurgence
                 {
                     var plr = TSPlayer.FindByNameOrID(player.Key)[0];
                     Vector2 position = plr.TPlayer.position;
-                    plr.GiveItem(4390, 15);
+                    plr.GiveItem(4390, 25);
                 }
                 TSPlayer.All.SendMessage("[i:4390] Boulders have been given out! [i:4390]", Color.DeepPink);
             }
