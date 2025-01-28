@@ -45,7 +45,30 @@ namespace SpleefResurgence
             var rowInserted = command.ExecuteNonQuery();
         }
 
-        public void AddCoins(string username, int amount)
+        public bool isUserInTable(string username)
+        {
+            var sql = "SELECT * FROM PlayerCoins WHERE Username = @username";
+            using var connection = new SqliteConnection($"Data Source={DbPath}");
+            connection.Open();
+
+            using var command = new SqliteCommand(sql, connection);
+            command.Parameters.AddWithValue("@username", username);
+
+            using var reader = command.ExecuteReader();
+            if (reader.HasRows)
+            {
+                while (reader.Read())
+                {
+                    var coins = reader.GetInt32(1);
+                    TShock.Log.ConsoleInfo($"{username} exists in the table and has {coins} Spleef Coins.");
+                    return true;
+                }
+            }
+            TShock.Log.ConsoleInfo($"{username} does not exist in the table.");
+            return false;
+        }
+
+        public void AddCoins(string username, int amount, bool isSilent)
         {
             var sql = $"UPDATE PlayerCoins SET Coins = Coins + @amount WHERE Username = @username";
 
@@ -62,7 +85,7 @@ namespace SpleefResurgence
             {
                 TShock.Log.ConsoleInfo($"{username} isn't online atm");
             }
-            else
+            else if (!isSilent)
             {
                 var player = players[0];
                 if (amount == 1)
@@ -80,7 +103,7 @@ namespace SpleefResurgence
         {
             string username = args.Parameters[0];
             int amount = Convert.ToInt32(args.Parameters[1]);
-            AddCoins(username, amount);
+            AddCoins(username, amount, false);
             args.Player.SendSuccessMessage($"Gave {username} {amount} Spleef Coins!");
         }
 
@@ -166,13 +189,10 @@ namespace SpleefResurgence
 
         public void TransferCoins (string sender, string receiver, int coins)
         {
-            if (coins > 0 && GetCoins(sender) >= coins)
-            {
-                AddCoins(sender, -coins);
-                AddCoins(receiver, coins);
+            AddCoins(receiver, coins, false);
+            AddCoins(sender, -coins, true);
 
-                TShock.Log.ConsoleInfo($"{sender} transferred {coins} Spleef Coins to {receiver}!");
-            }
+            TShock.Log.ConsoleInfo($"{sender} transferred {coins} Spleef Coins to {receiver}!");
         }
 
         public void TransferCoinsCommand(CommandArgs args)
@@ -191,7 +211,13 @@ namespace SpleefResurgence
                 args.Player.SendErrorMessage($"You do not have enough Spleef Coins");
                 return;
             }
-            TransferCoins(sender, receiver, coins);
+            if (isUserInTable(receiver))
+            {
+                TransferCoins(sender, receiver, coins);
+                args.Player.SendSuccessMessage($"Transfered {coins} Spleef Coins to {receiver}");
+                return;
+            }
+            args.Player.SendErrorMessage($"An account by the name {receiver} doesn't exist");
         }
 
         public static void MigrateUsersToSpleefDatabase()
