@@ -84,6 +84,8 @@ namespace SpleefResurgence
                 if (player != null && player.Active)
                 {
                     player.SetBuff(BuffID.Honey, 600);
+                    player.SetBuff(BuffID.Shine, 600);
+                    player.SetBuff(BuffID.NightOwl, 600);
                 }
             }
         }
