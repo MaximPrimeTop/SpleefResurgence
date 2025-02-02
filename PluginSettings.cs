@@ -18,16 +18,32 @@ namespace SpleefResurgence
         public string LavariseCommand { get; set; }
         [JsonProperty("Fill command")]
         public string FillCommand { get; set; }
+        [JsonProperty("Normal map")]
+        public Map NormalMap { get; set; }
+        [JsonProperty("Snow map")]
+        public Map SnowMap { get; set; }
+        [JsonProperty("Landmine map")]
+        public Map LandmineMap { get; set; }
+        [JsonProperty("Geyser map")]
+        public Map GeyserMap { get; set; }
+        [JsonProperty("Rope map")]
+        public Map RopeMap { get; set; }
+        [JsonProperty("Minecart map")]
+        public Map MinecartMap { get; set; }
+        [JsonProperty("Platform map")]
+        public Map PlatformMap { get; set; }
+        [JsonProperty("Lavafall map")]
+        public Map LavafallMap { get; set; }
+    }
+
+    public class Map
+    {
+        [JsonProperty("Map Command")]
+        public string MapCommand { get; set; }
         [JsonProperty("Arena spawn X")]
         public int tpposx { get; set; }
         [JsonProperty("Arena spawn Y")]
         public int tpposy { get; set; }
-        [JsonProperty("Normal arena command")]
-        public string NormalArenaCommand { get; set; }
-        [JsonProperty("Snow arena command")]
-        public string SnowArenaCommand { get; set; }
-        [JsonProperty("Landmine arena command")]
-        public string LandmineArenaCommand { get; set; }
     }
 
     public class PluginSettings

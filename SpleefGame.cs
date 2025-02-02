@@ -13,6 +13,7 @@ using Terraria.Audio;
 using IL.Terraria.GameContent.ItemDropRules;
 using static Org.BouncyCastle.Bcpg.Attr.ImageAttrib;
 using GetText.Loaders;
+using Newtonsoft.Json;
 
 namespace SpleefResurgence
 {
@@ -32,19 +33,39 @@ namespace SpleefResurgence
 
         private bool isGaming = false;
 
+        private class Map
+        {
+            public string MapCommand;
+            public int tpposx;
+            public int tpposy;
+        }
+
+        private Map ConvertMap(SpleefResurgence.Map Map)
+        {
+            return new Map
+            {
+                MapCommand = Map.MapCommand,
+                tpposx = Map.tpposx,
+                tpposy = Map.tpposy
+            };
+        }
+
         private string CommandToStartRound;
         private string CommandToEndRound;
-        private string SnowArenaCommand;
-        private string NormalArenaCommand;
-        private string LandmineArenaCommand;
-        private int tpposx;
-        private int tpposy;
+        private Map SnowMap;
+        private Map NormalMap;
+        private Map LandmineMap;
+        private Map GeyserMap;
+        private Map RopeMap;
+        private Map MinecartMap;
+        private Map PlatformMap;
+        private Map LavafallMap;
         private int NumOfPlayers;
         private int RoundCounter = 0;
 
         private Random rnd = new Random();
 
-        private Dictionary<string, int[]> PlayerInfo = new(); // 0 - score, 1 - tpx, 2 - tpy 3 - alive/dead 1/0
+        private Dictionary<string, int[]> PlayerInfo = new(); // 0 - score, 1 - alive/dead 1/0
 
         bool isPlayerOnline(string playername)
         {
@@ -56,78 +77,6 @@ namespace SpleefResurgence
             return true;
         }
 
-        private async void Boulders(string GameType)
-        {
-            await Task.Delay(20000);
-
-            if (GameType == "1" || GameType == "boulder")
-            {
-                foreach (KeyValuePair<string, int[]> player in PlayerInfo)
-                {
-                    var plr = TSPlayer.FindByNameOrID(player.Key)[0];
-                    Vector2 position = plr.TPlayer.position;
-                    plr.GiveItem(540, 50);
-                }
-                TSPlayer.All.SendMessage("[i:540] Boulders have been given out! [i:540]", Color.DeepPink);
-            }
-
-            if (GameType == "12" || GameType == "bouncy")
-            {
-                foreach (KeyValuePair<string, int[]> player in PlayerInfo)
-                {
-                    var plr = TSPlayer.FindByNameOrID(player.Key)[0];
-                    Vector2 position = plr.TPlayer.position;
-                    plr.GiveItem(5383, 5);
-                }
-                TSPlayer.All.SendMessage("[i:5383] Boulders have been given out! [i:5383]", Color.DeepPink);
-            }
-            if (GameType == "13" || GameType == "cactus")
-            {
-                foreach (KeyValuePair<string, int[]> player in PlayerInfo)
-                {
-                    var plr = TSPlayer.FindByNameOrID(player.Key)[0];
-                    Vector2 position = plr.TPlayer.position;
-                    plr.GiveItem(4390, 25);
-                }
-                TSPlayer.All.SendMessage("[i:4390] Boulders have been given out! [i:4390]", Color.DeepPink);
-            }
-        }
-
-        private void ChooseArena(string GameArena)
-        {
-
-            if (GameArena == "random" || GameArena == "r")
-            {
-                GameArena = Convert.ToString(rnd.Next(3));
-            }
-
-            if (GameArena == "snow" || GameArena == "1")
-            {
-                if (SnowArenaCommand == "emdy")
-                    GameArena = "0";
-                else
-                {
-                    TSPlayer.All.SendMessage("[i:593] (Snow arena) [i:593]", Color.White);
-                    Commands.HandleCommand(TSPlayer.Server, SnowArenaCommand);
-                }
-            }
-            if (GameArena == "landmine" || GameArena == "2")
-            {
-                if (LandmineArenaCommand == "emdy")
-                    GameArena = "0";
-                else
-                {
-                    TSPlayer.All.SendMessage("[i:937] (Landmine arena) [i:937]", Color.Green);
-                    Commands.HandleCommand(TSPlayer.Server, LandmineArenaCommand);
-                }
-            }
-            if (GameArena == "normal" || GameArena == "0")
-            {
-                TSPlayer.All.SendMessage("[i:776] (Normal arena) [i:776]", Color.Cyan);
-                Commands.HandleCommand(TSPlayer.Server, NormalArenaCommand);
-            }
-        }
-
         private void StartRound(CommandArgs args, string[] GameType, string GameArena, int GimmickAmount = 1)
         {
             foreach (KeyValuePair<string, int[]> player in PlayerInfo)
@@ -137,23 +86,26 @@ namespace SpleefResurgence
                     args.Player.SendErrorMessage($"yo bro this {player.Key} he doesn't exist or some shit, idk bro either wait fro him to join back or restart the game tbh cus duh this guy is not here");
                     return;
                 }
-                var plr = TSPlayer.FindByNameOrID(player.Key)[0];
-                player.Value[3] = 1;
-                plr.Teleport(player.Value[1], player.Value[2]);
-                plr.SetBuff(BuffID.Webbed, 100);
             }
+            counter = 0;
             RoundCounter++;
             Commands.HandleCommand(TSPlayer.Server, CommandToStartRound);
             TSPlayer.All.SendMessage($"Round {RoundCounter} started", Color.DarkSeaGreen);
+            for (int i = 0; i < GimmickAmount; i++)
+            {
+                if (GameType[i] == "11" || GameType[i] == "gravedigger")
+                {
+                    GameArena = "snow";
+                    break;
+                }
+            }
             ServerApi.Hooks.NetGetData.Register(pluginInstance, OnGetData);
+            ChooseArena(GameArena);
             for (int i = 0; i < GimmickAmount; i++)
             {
                 ChooseGimmick(GameType[i]);
-                if (GameType[i] == "11" || GameType[i] == "gravedigger")
-                    GameArena = "0";
             }
-            ChooseArena(GameArena);        
-        }
+            }
 
         public void TheGaming(CommandArgs args)
         {
@@ -211,10 +163,15 @@ namespace SpleefResurgence
                         TSPlayer.All.SendMessage($"{plr.Key} : {plr.Value[0]}", Color.Coral);
                     }
                 }
+                else
+                {
+                    args.Player.SendErrorMessage("erm no");
+                    return;
+                }
             }
             else if (args.Parameters.Count == 2 && args.Parameters[0] == "add" && isGaming) // /game add name
             {
-                PlayerInfo.Add(args.Parameters[1], new int[] { 0, tpposx * 16, tpposy * 16, 1 });
+                PlayerInfo.Add(args.Parameters[1], new int[] { 0, 0 });
                 NumOfPlayers++;
                 args.Player.SendSuccessMessage($"added {args.Parameters[1]} to the game!");
             }
@@ -290,11 +247,14 @@ namespace SpleefResurgence
                 {
                     CommandToStartRound = gameTemplate.LavariseCommand;
                     CommandToEndRound = gameTemplate.FillCommand;
-                    SnowArenaCommand = gameTemplate.SnowArenaCommand;
-                    NormalArenaCommand = gameTemplate.NormalArenaCommand;
-                    LandmineArenaCommand = gameTemplate.LandmineArenaCommand;
-                    tpposx = gameTemplate.tpposx;
-                    tpposy = gameTemplate.tpposy;
+                    SnowMap = ConvertMap(gameTemplate.SnowMap);
+                    NormalMap = ConvertMap(gameTemplate.NormalMap);
+                    LandmineMap = ConvertMap(gameTemplate.LandmineMap);
+                    GeyserMap = ConvertMap(gameTemplate.GeyserMap);
+                    RopeMap = ConvertMap(gameTemplate.RopeMap);
+                    MinecartMap = ConvertMap(gameTemplate.MinecartMap);
+                    PlatformMap = ConvertMap(gameTemplate.PlatformMap);
+                    LavafallMap = ConvertMap(gameTemplate.LavafallMap);
                 }
                 else
                 {
@@ -303,10 +263,15 @@ namespace SpleefResurgence
                 }
                 for (int i = 3; i <= NumOfPlayers + 2; i++)
                 {
-                    PlayerInfo.Add(args.Parameters[i], new int[] { 0, tpposx * 16, tpposy * 16, 1 });
+                    PlayerInfo.Add(args.Parameters[i], new int[] {0, 1 });
                 }
                 isGaming = true;
                 TSPlayer.All.SendMessage("Game started, get ready!", Color.SeaShell);
+            }
+            else
+            {
+                args.Player.SendErrorMessage("erm no");
+                return;
             }
         }
 
@@ -326,9 +291,9 @@ namespace SpleefResurgence
                     foreach (KeyValuePair<string, int[]> player in PlayerInfo)
                     {
                         var plrOG = TSPlayer.FindByNameOrID(player.Key)[0];
-                        if (plr == plrOG && player.Value[3] == 1)
+                        if (plr == plrOG && player.Value[1] == 1)
                         {
-                            PlayerInfo[player.Key][3] = 0;
+                            PlayerInfo[player.Key][1] = 0;
                             counter++;
 
                             if (counter == NumOfPlayers - 1)
@@ -340,7 +305,6 @@ namespace SpleefResurgence
 
                             else if (counter == NumOfPlayers)
                             {
-                                counter = 0;
                                 PlayerInfo[player.Key][0] += 2;
                                 TSPlayer.All.SendMessage($"Round ended! {player.Key} won this round and {SecondWinner} got second place!", Color.LimeGreen);
                                 var sortedPlayerInfo = PlayerInfo
@@ -359,155 +323,237 @@ namespace SpleefResurgence
                 }
             }
         }
+
+        private void GiveEveryoneItems(int itemID, int amount)
+        {
+            foreach (KeyValuePair<string, int[]> player in PlayerInfo)
+            {
+                var plr = TSPlayer.FindByNameOrID(player.Key)[0];
+                plr.GiveItem(itemID, amount);
+            }
+        }
+
+        private void SetEveryoneBuff(int BuffID, int time)
+        {
+            foreach (KeyValuePair<string, int[]> player in PlayerInfo)
+            {
+                var plr = TSPlayer.FindByNameOrID(player.Key)[0];
+                plr.SetBuff(BuffID, 600);
+            }
+        }
+
+        private void TpAndWebEveryone(int x1, int y1)
+        {
+            foreach (KeyValuePair<string, int[]> player in PlayerInfo)
+            {
+                var plr = TSPlayer.FindByNameOrID(player.Key)[0];
+                plr.Teleport(x1 * 16, y1 * 16);
+                plr.SetBuff(BuffID.Webbed, 100);
+                player.Value[1] = 1;
+            }
+        }
+
+        private void ChooseArena(string GameArena)
+        {
+            if (GameArena == "random" || GameArena == "r")
+                GameArena = Convert.ToString(rnd.Next(7));
+
+            switch (GameArena)
+            {
+                case "0":
+                case "normal":
+                    TSPlayer.All.SendMessage("[i:776] (Normal arena) [i:776]", Color.Cyan);
+                    Commands.HandleCommand(TSPlayer.Server, NormalMap.MapCommand);
+                    TpAndWebEveryone(NormalMap.tpposx, NormalMap.tpposy);
+                    break;
+                case "snow":
+                    if (SnowMap.MapCommand == "emdy")
+                        goto case "0";
+                    TSPlayer.All.SendMessage("[i:593] (Snow arena) [i:593]", Color.White);
+                    Commands.HandleCommand(TSPlayer.Server, SnowMap.MapCommand);
+                    TpAndWebEveryone(SnowMap.tpposx, SnowMap.tpposy);
+                    break;
+                case "1":
+                case "landmine":
+                    if (LandmineMap.MapCommand == "emdy")
+                        goto case "0";
+                    TSPlayer.All.SendMessage("[i:937] (Landmine arena) [i:937]", Color.Green);
+                    Commands.HandleCommand(TSPlayer.Server, LandmineMap.MapCommand);
+                    TpAndWebEveryone(LandmineMap.tpposx, LandmineMap.tpposy);
+                    break;
+                case "2":
+                case "geyser":
+                    if (GeyserMap.MapCommand == "emdy")
+                        goto case "0";
+                    TSPlayer.All.SendMessage("[i:3722] (Geyser arena) [i:3722]", Color.Orange);
+                    Commands.HandleCommand(TSPlayer.Server, GeyserMap.MapCommand);
+                    TpAndWebEveryone(GeyserMap.tpposx, GeyserMap.tpposy);
+                    break;
+                case "3":
+                case "rope":
+                    if (RopeMap.MapCommand == "emdy")
+                        goto case "0";
+                    TSPlayer.All.SendMessage("[i:965] (Rope arena) [i:965]", Color.RosyBrown);
+                    Commands.HandleCommand(TSPlayer.Server, RopeMap.MapCommand);
+                    TpAndWebEveryone(RopeMap.tpposx, RopeMap.tpposy);
+                    break;
+                case "4":
+                case "minecart":
+                    if (MinecartMap.MapCommand == "emdy")
+                        goto case "0";
+                    TSPlayer.All.SendMessage("[i:2340] (Minecart arena) [i:2340]", Color.Gray);
+                    Commands.HandleCommand(TSPlayer.Server, MinecartMap.MapCommand);
+                    TpAndWebEveryone(MinecartMap.tpposx, MinecartMap.tpposy);
+                    break;
+                case "5":
+                case "platform":
+                    if (PlatformMap.MapCommand == "emdy")
+                        goto case "0";
+                    TSPlayer.All.SendMessage("[i:776] (Platform arena) [i:776]", Color.Cyan);
+                    Commands.HandleCommand(TSPlayer.Server, PlatformMap.MapCommand);
+                    TpAndWebEveryone(PlatformMap.tpposx, PlatformMap.tpposy);
+                    break;
+                case "6":
+                case "lavafall":
+                    if (LavafallMap.MapCommand == "emdy")
+                        goto case "0";
+                    TSPlayer.All.SendMessage("[i:776] (Lavafall arena) [i:776]", Color.Cyan);
+                    Commands.HandleCommand(TSPlayer.Server, LavafallMap.MapCommand);
+                    TpAndWebEveryone(LavafallMap.tpposx, LavafallMap.tpposy);
+                    break;
+                default:
+                    TSPlayer.All.SendMessage("Invalid gimmick, putting normal", Color.DarkRed);
+                    goto case "0";
+
+            }
+        }
+
+
+        private async void Boulders(string GameType)
+        {
+            await Task.Delay(20000);
+
+            switch (GameType)
+            {
+                case "boulder":
+                    GiveEveryoneItems(540, 50);
+                    TSPlayer.All.SendMessage("[i:540] Boulders have been given out! [i:540]", Color.DeepPink);
+                    break;
+                case "bouncy":
+                    GiveEveryoneItems(5383, 5);
+                    TSPlayer.All.SendMessage("[i:5383] Boulders have been given out! [i:5383]", Color.DeepPink);
+                    break;
+                case "cactus":
+                    GiveEveryoneItems(4390, 25);
+                    TSPlayer.All.SendMessage("[i:4390] Boulders have been given out! [i:4390]", Color.DeepPink);
+                    break;
+            }
+        }
+
         private void ChooseGimmick(string GameType)
         {
             if (GameType == "random" || GameType == "r")
-            {
-                GameType = Convert.ToString(rnd.Next(16));
-            }
+                GameType = Convert.ToString(rnd.Next(18));
 
-            if (GameType == "0" || GameType == "normal")
+            switch (GameType)
             {
-                TSPlayer.All.SendMessage("[i:776] Normal round! [i:776]", Color.Cyan);
-            }
-
-            if (GameType == "1" || GameType == "boulder")
-            {
-                TSPlayer.All.SendMessage("[i:540] Boulder round! [i:540]", Color.Gray);
-                Boulders(GameType);
-            }
-
-            if (GameType == "2" || GameType == "cloud")
-            {
-                TSPlayer.All.SendMessage("[i:53] Cloud in a bottle round! [i:53]", Color.White);
-                foreach (KeyValuePair<string, int[]> player in PlayerInfo)
-                {
-                    var plr = TSPlayer.FindByNameOrID(player.Key)[0];
-                    plr.GiveItem(53, 1);
-                }
-            }
-
-            if (GameType == "3" || GameType == "tsunami")
-            {
-                TSPlayer.All.SendMessage("[i:3201] Tsunami in a bottle round! [i:3201]", Color.DeepSkyBlue);
-                foreach (KeyValuePair<string, int[]> player in PlayerInfo)
-                {
-                    var plr = TSPlayer.FindByNameOrID(player.Key)[0];
-                    plr.GiveItem(3201, 1);
-                }
-            }
-
-            if (GameType == "4" || GameType == "blizzard")
-            {
-                TSPlayer.All.SendMessage("[i:987] Blizzard in a bottle round! [i:987]", Color.White);
-                foreach (KeyValuePair<string, int[]> player in PlayerInfo)
-                {
-                    var plr = TSPlayer.FindByNameOrID(player.Key)[0];
-                    plr.GiveItem(987, 1);
-                }
-            }
-
-            if (GameType == "5" || GameType == "portal")
-            {
-                TSPlayer.All.SendMessage("[i:3384] Portal round! [i:3384]", Color.White);
-                foreach (KeyValuePair<string, int[]> player in PlayerInfo)
-                {
-                    var plr = TSPlayer.FindByNameOrID(player.Key)[0];
-                    plr.GiveItem(3384, 1);
-                }
-            }
-
-            if (GameType == "6" || GameType == "bomb fish")
-            {
-                TSPlayer.All.SendMessage("[i:3196] Bomb fish round! [i:3196]", Color.DarkGray);
-                foreach (KeyValuePair<string, int[]> player in PlayerInfo)
-                {
-                    var plr = TSPlayer.FindByNameOrID(player.Key)[0];
-                    plr.GiveItem(3196, 50);
-                }
-            }
-
-            if (GameType == "7" || GameType == "rocket15")
-            {
-                TSPlayer.All.SendMessage("[i:759] Rocket round! (15 rockets) [i:759]", Color.Orange);
-                foreach (KeyValuePair<string, int[]> player in PlayerInfo)
-                {
-                    var plr = TSPlayer.FindByNameOrID(player.Key)[0];
-                    plr.GiveItem(759, 1);
-                    plr.GiveItem(772, 15);
-                }
-            }
-
-            if (GameType == "8" || GameType == "ice rod")
-            {
-                TSPlayer.All.SendMessage("[i:496] Ice rod round! [i:496]", Color.DeepSkyBlue);
-                foreach (KeyValuePair<string, int[]> player in PlayerInfo)
-                {
-                    var plr = TSPlayer.FindByNameOrID(player.Key)[0];
-                    plr.GiveItem(496, 1);
-                }
-            }
-
-            if (GameType == "9" || GameType == "soc")
-            {
-                TSPlayer.All.SendMessage("[i:3097] Shield of Cthulhu round! [i:3097]", Color.Red);
-                foreach (KeyValuePair<string, int[]> player in PlayerInfo)
-                {
-                    var plr = TSPlayer.FindByNameOrID(player.Key)[0];
-                    plr.GiveItem(3097, 1);
-                }
-            }
-
-            if (GameType == "10" || GameType == "slime")
-            {
-                TSPlayer.All.SendMessage("[i:2430] Slime saddle round! [i:2430]", Color.DeepSkyBlue);
-                foreach (KeyValuePair<string, int[]> player in PlayerInfo)
-                {
-                    var plr = TSPlayer.FindByNameOrID(player.Key)[0];
-                    plr.GiveItem(2430, 1);
-                }
-            }
-
-            if (GameType == "11" || GameType == "gravedigger")
-            {
-                TSPlayer.All.SendMessage("[i:4711] Gravedigger round! [i:4711]", Color.Gray);
-                foreach (KeyValuePair<string, int[]> player in PlayerInfo)
-                {
-                    var plr = TSPlayer.FindByNameOrID(player.Key)[0];
-                    plr.GiveItem(4711, 1);
-                }
-            }
-
-            if (GameType == "12" || GameType == "bouncy")
-            {
-                TSPlayer.All.SendMessage("[i:5383] Bouncy boulder round! [i:5383]", Color.LightPink);
-                Boulders(GameType);
-            }
-
-            if (GameType == "13" || GameType == "cactus")
-            {
-                TSPlayer.All.SendMessage("[i:4390] Rolling cactus round! [i:4390]", Color.Green);
-                Boulders(GameType);
-            }
-
-            if (GameType == "14" || GameType == "rocket100")
-            {
-                TSPlayer.All.SendMessage("[i:759] Rocket round! (100 rockets) [i:759]", Color.Orange);
-                foreach (KeyValuePair<string, int[]> player in PlayerInfo)
-                {
-                    var plr = TSPlayer.FindByNameOrID(player.Key)[0];
-                    plr.GiveItem(759, 1);
-                    plr.GiveItem(772, 100);
-                }
-            }
-            if (GameType == "15" || GameType == "baloon")
-            {
-                TSPlayer.All.SendMessage("[i:159] Balloon round! [i:159]", Color.Red);
-                foreach (KeyValuePair<string, int[]> player in PlayerInfo)
-                {
-                    var plr = TSPlayer.FindByNameOrID(player.Key)[0];
-                    plr.GiveItem(159, 1);
-                }
+                case "0":
+                case "normal":
+                    TSPlayer.All.SendMessage("[i:776] Normal round! [i:776]", Color.Cyan);
+                    break;
+                case "1":
+                case "boulder":
+                    TSPlayer.All.SendMessage("[i:540] Boulder round! [i:540]", Color.Gray);
+                    Boulders("boulder");
+                    break;
+                case "2":
+                case "cloud":
+                    TSPlayer.All.SendMessage("[i:53] Cloud in a bottle round! [i:53]", Color.White);
+                    GiveEveryoneItems(53, 1);
+                    break;
+                case "3":
+                case "tsunami":
+                    TSPlayer.All.SendMessage("[i:3201] Tsunami in a bottle round! [i:3201]", Color.DeepSkyBlue);
+                    GiveEveryoneItems(3201, 1);
+                    break;
+                case "4":
+                case "blizzard":
+                    TSPlayer.All.SendMessage("[i:987] Blizzard in a bottle round! [i:987]", Color.White);
+                    GiveEveryoneItems(987, 1);
+                    break;
+                case "5":
+                case "portal":
+                    TSPlayer.All.SendMessage("[i:3384] Portal round! [i:3384]", Color.White);
+                    GiveEveryoneItems(3384, 1);
+                    break;
+                case "6":
+                case "bombfish":
+                    TSPlayer.All.SendMessage("[i:3196] Bomb fish round! [i:3196]", Color.DarkGray);
+                    GiveEveryoneItems(3196, 50);
+                    break;
+                case "7":
+                case "rocket15":
+                    TSPlayer.All.SendMessage("[i:759] Rocket round! (15 rockets) [i:759]", Color.Orange);
+                    GiveEveryoneItems(759, 1);
+                    GiveEveryoneItems(772, 15);
+                    break;
+                case "8":
+                case "icerod":
+                    TSPlayer.All.SendMessage("[i:496] Ice rod round! [i:496]", Color.DeepSkyBlue);
+                    GiveEveryoneItems(496, 1);
+                    break;
+                case "9":
+                case "soc":
+                    TSPlayer.All.SendMessage("[i:3097] Shield of Cthulhu round! [i:3097]", Color.Red);
+                    GiveEveryoneItems(3097, 1);
+                    break;
+                case "10":
+                case "slime":
+                    TSPlayer.All.SendMessage("[i:2430] Slime saddle round! [i:2430]", Color.DeepSkyBlue);
+                    GiveEveryoneItems(2430, 1);
+                    break;
+                case "11":
+                case "gravedigger":
+                    TSPlayer.All.SendMessage("[i:4711] Gravedigger round! [i:4711]", Color.Gray);
+                    GiveEveryoneItems(4711, 1);
+                    break;
+                case "12":
+                case "bouncy":
+                    TSPlayer.All.SendMessage("[i:5383] Bouncy boulder round! [i:5383]", Color.LightPink);
+                    Boulders("bouncy");
+                    break;
+                case "13":
+                case "cactus":
+                    TSPlayer.All.SendMessage("[i:4390] Rolling cactus round! [i:4390]", Color.Green);
+                    Boulders("cactus");
+                    break;
+                case "14":
+                case "rocket100":
+                    TSPlayer.All.SendMessage("[i:759] Rocket round! (100 rockets) [i:759]", Color.Orange);
+                    GiveEveryoneItems(759, 1);
+                    GiveEveryoneItems(772, 100);
+                    break;
+                case "15":
+                case "balloon":
+                    TSPlayer.All.SendMessage("[i:159] Balloon round! [i:159]", Color.Red);
+                    GiveEveryoneItems(159, 1);
+                    break;
+                case "16":
+                case "insignia":
+                    TSPlayer.All.SendMessage("[i:4989] Soaring insignia round [i:4989]", Color.Pink);
+                    GiveEveryoneItems(4989, 1);
+                    break;
+                case "17":
+                case "longrange":
+                    TSPlayer.All.SendMessage("[i:407][i:2214][i:2215] Long range round [i:2215][i:2214][i:407]", Color.RosyBrown);
+                    SetEveryoneBuff(BuffID.Builder, 600);
+                    GiveEveryoneItems(407, 1);
+                    GiveEveryoneItems(2214, 1);
+                    GiveEveryoneItems(2215, 1);
+                    break;
+                default:
+                    TSPlayer.All.SendMessage("Invalid gimmick, putting normal", Color.DarkRed);
+                    goto case "0";
             }
         }
     }
