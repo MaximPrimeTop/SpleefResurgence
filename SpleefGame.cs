@@ -117,7 +117,6 @@ namespace SpleefResurgence
             }
             ServerApi.Hooks.NetGetData.Register(pluginInstance, OnGetData);
             ChooseArena(GameArena);
-            GimmickCount = 0;
             for (int i = 0; i < GimmickAmount; i++)
                 ChooseGimmick(GameType[i]);
         }
@@ -374,12 +373,12 @@ namespace SpleefResurgence
                 var plr = TSPlayer.FindByNameOrID(player.Key)[0];
                 int slot = inventoryEdit.FindNextFreeAccessorySlot(plr);
                 if (slot == -1)
-                    inventoryEdit.AddItem(plr, slot, 1, itemID);
-                else
                 {
                     slot = inventoryEdit.FindNextFreeSlot(plr);
-                    inventoryEdit.AddArmor(plr, slot, itemID);
+                    inventoryEdit.AddItem(plr, slot, 1, itemID);
                 }
+                else
+                    inventoryEdit.AddArmor(plr, slot, itemID);
             }
         }
 
@@ -499,8 +498,6 @@ namespace SpleefResurgence
                     break;
             }
         }
-
-        private int GimmickCount = 0;
 
         private void ChooseGimmick(string GameType)
         {
