@@ -6,15 +6,31 @@ namespace SpleefResurgence
 {
     public class InventoryEdit
     {
+        public int FindNextFreeSlot(TSPlayer player)
+        {
+            var inventory = player.TPlayer.inventory;
+
+            for (int i = 0; i < player.TPlayer.inventory.Length; i++)
+                if (inventory[i].IsAir)
+                    return i;
+            return -1;
+        }
+
+        public int FindNextFreeAccessorySlot(TSPlayer player)
+        {
+            var armor = player.TPlayer.armor;
+
+            for (int i = 3; i <= 7; i++)
+                if (armor[i].IsAir)
+                    return i;
+            return -1;
+        }
+
         public void AddItem(TSPlayer player, int slot, int stack, int itemID)
         {
             player.TPlayer.inventory[slot].SetDefaults(itemID);
             player.TPlayer.inventory[slot].stack = stack;
 
-            // Sync changes with the modified player
-            player.SendData(PacketTypes.PlayerSlot, null, player.Index, slot);
-
-            // Sync changes with all other players
             TSPlayer.All.SendData(PacketTypes.PlayerSlot, null, player.Index, slot);
         }
 
@@ -23,38 +39,31 @@ namespace SpleefResurgence
             player.TPlayer.armor[slot].SetDefaults(itemID);
             player.TPlayer.armor[slot].stack = 1;
 
-            // Sync changes with the modified player
-            player.SendData(PacketTypes.PlayerSlot, null, player.Index, slot);
-
-            // Sync changes with all other players
-            TSPlayer.All.SendData(PacketTypes.PlayerSlot, null, player.Index, slot);
+            TSPlayer.All.SendData(PacketTypes.PlayerSlot, null, player.Index, 59 + slot);
         }
 
         public void ClearPlayerEverything(TSPlayer player)
         {
-            // Clear main inventory slots
             for (int i = 0; i < player.TPlayer.inventory.Length; i++)
             {
                 player.TPlayer.inventory[i].TurnToAir();
-                player.SendData(PacketTypes.PlayerSlot, null, player.Index, i);
                 TSPlayer.All.SendData(PacketTypes.PlayerSlot, null, player.Index, i);
             }
 
-            // Clear armor and accessory slots
-            for (int i = 0; i < player.TPlayer.armor.Length; i++)
+            for (int i = 0; i < 10; i++)
             {
                 player.TPlayer.armor[i].TurnToAir();
-                player.SendData(PacketTypes.PlayerSlot, null, player.Index, 59 + i);
                 TSPlayer.All.SendData(PacketTypes.PlayerSlot, null, player.Index, 59 + i);
             }
 
-            // Clear miscellaneous equipment slots
             for (int i = 0; i < player.TPlayer.miscEquips.Length; i++)
             {
                 player.TPlayer.miscEquips[i].TurnToAir();
-                player.SendData(PacketTypes.PlayerSlot, null, player.Index, 75 + i);
-                TSPlayer.All.SendData(PacketTypes.PlayerSlot, null, player.Index, 75 + i);
+                TSPlayer.All.SendData(PacketTypes.PlayerSlot, null, player.Index, 89 + i);
             }
+
+            player.TPlayer.trashItem.TurnToAir();
+            TSPlayer.All.SendData(PacketTypes.PlayerSlot, null, player.Index, 179);
         }
     }
 }

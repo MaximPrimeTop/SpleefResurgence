@@ -16,21 +16,21 @@ namespace SpleefResurgence
         private SpleefCoin spleefCoin;
         private readonly CustomCommandHandler commandHandler;
         private readonly TileTracker tileTracker;
-        //private readonly InventoryEdit inventoryEdit;
+        private readonly InventoryEdit inventoryEdit;
         private readonly SpleefGame spleefGame;
 
         public override string Author => "MaximPrime";
         public override string Name => "Spleef Resurgence Plugin";
         public override string Description => "ok i think it works yipee.";
-        public override Version Version => new(1, 5, 2, 1);
+        public override Version Version => new(1, 5, 4);
 
         public Spleef(Main game) : base(game)
         {
             spleefCoin = new SpleefCoin();
             commandHandler = new CustomCommandHandler();
             tileTracker = new TileTracker(this);
-            //inventoryEdit = new InventoryEdit();
-            spleefGame = new SpleefGame(this, spleefCoin/*, inventoryEdit*/);
+            inventoryEdit = new InventoryEdit();
+            spleefGame = new SpleefGame(this, spleefCoin, inventoryEdit);
         }
         public override void Initialize()
         {
@@ -52,11 +52,59 @@ namespace SpleefResurgence
 
             Commands.ChatCommands.Add(new Command("spleef.coin.user", PenguinPoints, "pp"));
 
+            Commands.ChatCommands.Add(new Command("spleef.inventory", InventoryReset, "inventoryreset", "invreset"));
+            Commands.ChatCommands.Add(new Command("spleef.inventory", InventoryEditCommand, "inventoryedit", "invedit"));
+            Commands.ChatCommands.Add(new Command("spleef.inventory", ArmorEdit, "armoredit"));
+
             GeneralHooks.ReloadEvent += OnServerReload;
             ServerApi.Hooks.GamePostInitialize.Register(this, OnWorldLoad);
             ServerApi.Hooks.GameUpdate.Register(this, OnWorldUpdate);
 
             SpleefCoin.MigrateUsersToSpleefDatabase();
+        }
+
+        private void InventoryReset(CommandArgs args)
+        {
+            string player = args.Parameters[0];
+            var players = TSPlayer.FindByNameOrID(player);
+            if (players == null || players.Count == 0)
+            {
+                args.Player.SendErrorMessage("worg");
+                return;
+            }
+            var plr = players[0];
+            inventoryEdit.ClearPlayerEverything(plr);
+        }
+
+        private void InventoryEditCommand(CommandArgs args)
+        {
+            string player = args.Parameters[0];
+            var players = TSPlayer.FindByNameOrID(player);
+            if (players == null || players.Count == 0)
+            {
+                args.Player.SendErrorMessage("worg");
+                return;
+            }
+            var plr = players[0];
+            int slot = Convert.ToInt32(args.Parameters[1]) - 1;
+            int stack = Convert.ToInt32(args.Parameters[2]);
+            int itemID = Convert.ToInt32(args.Parameters[3]);
+            inventoryEdit.AddItem(plr, slot, stack, itemID);
+        }
+
+        private void ArmorEdit(CommandArgs args)
+        {
+            string player = args.Parameters[0];
+            var players = TSPlayer.FindByNameOrID(player);
+            if (players == null || players.Count == 0)
+            {
+                args.Player.SendErrorMessage("worg");
+                return;
+            }
+            var plr = players[0];
+            int slot = Convert.ToInt32(args.Parameters[1]) - 1;
+            int itemID = Convert.ToInt32(args.Parameters[2]);
+            inventoryEdit.AddArmor(plr, slot, itemID);
         }
 
         private void PenguinPoints(CommandArgs args)
@@ -94,6 +142,7 @@ namespace SpleefResurgence
         {
             Commands.HandleCommand(TSPlayer.Server, "/time noon");
             Commands.HandleCommand(TSPlayer.Server, "/freezetime");
+            Commands.HandleCommand(TSPlayer.Server, "/gamemode normal");
         }
 
         private void OnServerReload(ReloadEventArgs args)

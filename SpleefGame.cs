@@ -14,6 +14,7 @@ using IL.Terraria.GameContent.ItemDropRules;
 using static Org.BouncyCastle.Bcpg.Attr.ImageAttrib;
 using GetText.Loaders;
 using Newtonsoft.Json;
+using System.Collections;
 
 namespace SpleefResurgence
 {
@@ -21,13 +22,13 @@ namespace SpleefResurgence
     {
         public static PluginSettings Config => PluginSettings.Config;
         private readonly Spleef pluginInstance;
-        //private readonly InventoryEdit inventoryEdit;
+        private readonly InventoryEdit inventoryEdit;
         private readonly SpleefCoin spleefCoin;
 
-        public SpleefGame(Spleef plugin, SpleefCoin spleefCoin/*, InventoryEdit inventoryEdit*/)
+        public SpleefGame(Spleef plugin, SpleefCoin spleefCoin, InventoryEdit inventoryEdit)
         {
             this.pluginInstance = plugin;
-            //this.inventoryEdit = inventoryEdit;
+            this.inventoryEdit = inventoryEdit;
             this.spleefCoin = spleefCoin;
         }
 
@@ -39,6 +40,14 @@ namespace SpleefResurgence
             public int tpposx;
             public int tpposy;
         }
+
+        private class MobMap : Map
+        {
+            public string Mob;
+            public int Mobposx;
+            public int Mobposy;
+        }
+
 
         private Map ConvertMap(SpleefResurgence.Map Map)
         {
@@ -60,12 +69,14 @@ namespace SpleefResurgence
         private Map MinecartMap;
         private Map PlatformMap;
         private Map LavafallMap;
+        private MobMap PigronMap;
         private int NumOfPlayers;
         private int RoundCounter = 0;
 
         private Random rnd = new Random();
 
-        private Dictionary<string, int[]> PlayerInfo = new(); // 0 - score, 1 - alive/dead 1/0
+        private Dictionary<string, int[]> PlayerInfo = new(); // 0 - score, 1 - alive/dead 1/0 2 - place in the round
+        List<KeyValuePair<string, int[]>> PlayerInfoList;
 
         bool isPlayerOnline(string playername)
         {
@@ -86,6 +97,12 @@ namespace SpleefResurgence
                     args.Player.SendErrorMessage($"yo bro this {player.Key} he doesn't exist or some shit, idk bro either wait fro him to join back or restart the game tbh cus duh this guy is not here");
                     return;
                 }
+                var plr = TSPlayer.FindByNameOrID(player.Key)[0];
+                inventoryEdit.ClearPlayerEverything(plr);
+                inventoryEdit.AddItem(plr, 0, 1, 776);
+                inventoryEdit.AddItem(plr, 40, 1, 776);
+                inventoryEdit.AddArmor(plr, 3, 158);
+
             }
             counter = 0;
             RoundCounter++;
@@ -93,21 +110,19 @@ namespace SpleefResurgence
             TSPlayer.All.SendMessage($"Round {RoundCounter} started", Color.DarkSeaGreen);
             for (int i = 0; i < GimmickAmount; i++)
             {
+                if (GameType[i] == "random" || GameType[i] == "r")
+                    GameType[i] = Convert.ToString(rnd.Next(18));
                 if (GameType[i] == "11" || GameType[i] == "gravedigger")
-                {
                     GameArena = "snow";
-                    break;
-                }
             }
             ServerApi.Hooks.NetGetData.Register(pluginInstance, OnGetData);
             ChooseArena(GameArena);
+            GimmickCount = 0;
             for (int i = 0; i < GimmickAmount; i++)
-            {
                 ChooseGimmick(GameType[i]);
-            }
-            }
+        }
 
-        public void TheGaming(CommandArgs args)
+            public void TheGaming(CommandArgs args)
         {
             if (args.Parameters.Count < 1)
             {
@@ -124,10 +139,10 @@ namespace SpleefResurgence
                 else if (args.Parameters[0] == "stop" && isGaming)
                 {
                     SpleefCoin.MigrateUsersToSpleefDatabase();
-                    var sortedPlayerInfo = PlayerInfo
-                                .OrderByDescending(entry => entry.Value[0])
-                                .ToList();
-                    foreach (KeyValuePair<string, int[]> player in sortedPlayerInfo)
+                    PlayerInfoList = PlayerInfo
+                               .OrderByDescending(entry => entry.Value[0])
+                               .ToList();
+                    foreach (KeyValuePair<string, int[]> player in PlayerInfoList)
                     {
                         var players = TSPlayer.FindByNameOrID(player.Key);
                         if (isPlayerOnline(player.Key))
@@ -149,19 +164,17 @@ namespace SpleefResurgence
                     }
                     PlayerInfo.Clear();
                     isGaming = false;
-                    TSPlayer.All.SendMessage($"Game ended, after {RoundCounter} rounds {sortedPlayerInfo[0].Key} WON!!!!!!!!!", Color.MediumTurquoise);
+                    TSPlayer.All.SendMessage($"Game ended, after {RoundCounter} rounds {PlayerInfoList[0].Key} WON!!!!!!!!!", Color.MediumTurquoise);
                     RoundCounter = 0;
                 }
 
                 else if (args.Parameters[0] == "score" && isGaming) // /game score
                 {
-                    var sortedPlayerInfo = PlayerInfo
+                    PlayerInfoList = PlayerInfo
                                     .OrderByDescending(entry => entry.Value[0])
                                     .ToList();
-                    foreach (KeyValuePair<string, int[]> plr in sortedPlayerInfo)
-                    {
+                    foreach (KeyValuePair<string, int[]> plr in PlayerInfoList)
                         TSPlayer.All.SendMessage($"{plr.Key} : {plr.Value[0]}", Color.Coral);
-                    }
                 }
                 else
                 {
@@ -171,7 +184,7 @@ namespace SpleefResurgence
             }
             else if (args.Parameters.Count == 2 && args.Parameters[0] == "add" && isGaming) // /game add name
             {
-                PlayerInfo.Add(args.Parameters[1], new int[] { 0, 0 });
+                PlayerInfo.Add(args.Parameters[1], new int[] { 0, 0, 0});
                 NumOfPlayers++;
                 args.Player.SendSuccessMessage($"added {args.Parameters[1]} to the game!");
             }
@@ -206,7 +219,7 @@ namespace SpleefResurgence
                 {
                     for (int i = 0; i < GimmickAmount; i++)
                         GameTypes[i] = args.Parameters[i + 2];
-                    StartRound(args, GameTypes, args.Parameters[GimmickAmount+2], GimmickAmount);
+                    StartRound(args, GameTypes, args.Parameters[GimmickAmount + 2], GimmickAmount);
                 }
             }
 
@@ -255,6 +268,7 @@ namespace SpleefResurgence
                     MinecartMap = ConvertMap(gameTemplate.MinecartMap);
                     PlatformMap = ConvertMap(gameTemplate.PlatformMap);
                     LavafallMap = ConvertMap(gameTemplate.LavafallMap);
+
                 }
                 else
                 {
@@ -263,7 +277,7 @@ namespace SpleefResurgence
                 }
                 for (int i = 3; i <= NumOfPlayers + 2; i++)
                 {
-                    PlayerInfo.Add(args.Parameters[i], new int[] {0, 1 });
+                    PlayerInfo.Add(args.Parameters[i], new int[] { 0, 0, 0 });
                 }
                 isGaming = true;
                 TSPlayer.All.SendMessage("Game started, get ready!", Color.SeaShell);
@@ -276,60 +290,96 @@ namespace SpleefResurgence
         }
 
         private int counter = 0;
-        private string SecondWinner;
-
         private void OnGetData(GetDataEventArgs args)
         {
             if (args.MsgID == PacketTypes.PlayerDeathV2)
             {
-                using (var reader = new BinaryReader(new MemoryStream(args.Msg.readBuffer, args.Index, args.Length)))
+                using var reader = new BinaryReader(new MemoryStream(args.Msg.readBuffer, args.Index, args.Length));
+                byte playerID = reader.ReadByte();
+
+                var plr = TSPlayer.FindByNameOrID(Convert.ToString(playerID))[0];
+
+                foreach (KeyValuePair<string, int[]> player in PlayerInfo)
                 {
-                    byte playerID = reader.ReadByte();
-
-                    var plr = TSPlayer.FindByNameOrID(Convert.ToString(playerID))[0];
-
-                    foreach (KeyValuePair<string, int[]> player in PlayerInfo)
+                    var plrOG = TSPlayer.FindByNameOrID(player.Key)[0];
+                    if (plr == plrOG && player.Value[1] == 1)
                     {
-                        var plrOG = TSPlayer.FindByNameOrID(player.Key)[0];
-                        if (plr == plrOG && player.Value[1] == 1)
+                        PlayerInfo[player.Key][1] = 0;
+                        PlayerInfo[player.Key][2] = counter;
+                        counter++;
+                        //pretty pelase work
+
+                        if (counter == NumOfPlayers - 1)
+                            Commands.HandleCommand(TSPlayer.Server, CommandToEndRound);
+
+                        else if (counter == NumOfPlayers)
                         {
-                            PlayerInfo[player.Key][1] = 0;
-                            counter++;
-
-                            if (counter == NumOfPlayers - 1)
+                            PlayerInfoList = PlayerInfo
+                               .OrderByDescending(entry => entry.Value[2])
+                               .ToList();
+                            if (NumOfPlayers == 2)
                             {
-                                SecondWinner = player.Key;
-                                PlayerInfo[player.Key][0] += 1;
-                                Commands.HandleCommand(TSPlayer.Server, CommandToEndRound);
+                                PlayerInfoList[0].Value[0] += 1;
+                                TSPlayer.All.SendMessage($"Round ended! {PlayerInfoList[0].Key} won this round!", Color.LimeGreen);
                             }
-
-                            else if (counter == NumOfPlayers)
+                            else if (NumOfPlayers >= 3 && NumOfPlayers <= 6)
                             {
-                                PlayerInfo[player.Key][0] += 2;
-                                TSPlayer.All.SendMessage($"Round ended! {player.Key} won this round and {SecondWinner} got second place!", Color.LimeGreen);
-                                var sortedPlayerInfo = PlayerInfo
-                                    .OrderByDescending(entry => entry.Value[0])
-                                    .ToList();
-                                foreach (KeyValuePair<string, int[]> plrr in sortedPlayerInfo)
-                                {
-                                    TSPlayer.All.SendMessage($"{plrr.Key} : {plrr.Value[0]}", Color.Coral);
-                                }
-                                ServerApi.Hooks.NetGetData.Deregister(pluginInstance, OnGetData);
+                                PlayerInfoList[0].Value[0] += 2;
+                                PlayerInfoList[1].Value[0] += 1;
+                                TSPlayer.All.SendMessage($"Round ended! {PlayerInfoList[0].Key} won this round and {PlayerInfoList[1].Key} got second place!", Color.LimeGreen);
                             }
-
+                            else if (NumOfPlayers >= 7 && NumOfPlayers <= 10)
+                            {
+                                        
+                                PlayerInfoList[1].Value[0] += 2;
+                                PlayerInfoList[2].Value[0] += 1;
+                                TSPlayer.All.SendMessage($"Round ended! {PlayerInfoList[0].Key} won this round {PlayerInfoList[1].Key} got second place and {PlayerInfoList[2].Key} got third place!", Color.LimeGreen);
+                            }
+                            else if (NumOfPlayers >= 11 && NumOfPlayers <= 14)
+                            {
+                                PlayerInfoList[0].Value[0] += 4;
+                                PlayerInfoList[1].Value[0] += 3;
+                                PlayerInfoList[2].Value[0] += 2;
+                                PlayerInfoList[3].Value[0] += 1;
+                                TSPlayer.All.SendMessage($"Round ended! {PlayerInfoList[0].Key} won this round {PlayerInfoList[1].Key} got second place {PlayerInfoList[2].Key} got third place and {PlayerInfoList[3].Key} got fourth place!", Color.LimeGreen);
+                            }
+                            PlayerInfo = PlayerInfoList.ToDictionary(pair => pair.Key, pair => pair.Value);
+                            
+                            PlayerInfoList = PlayerInfo
+                               .OrderByDescending(entry => entry.Value[0])
+                               .ToList();
+                            foreach (KeyValuePair<string, int[]> plrr in PlayerInfoList)
+                                TSPlayer.All.SendMessage($"{plrr.Key} : {plrr.Value[0]}", Color.Coral);
+                            ServerApi.Hooks.NetGetData.Deregister(pluginInstance, OnGetData);
                         }
                     }
-                    
                 }
             }
         }
 
-        private void GiveEveryoneItems(int itemID, int amount)
+        private void GiveEveryoneItems(int itemID, int stack)
         {
             foreach (KeyValuePair<string, int[]> player in PlayerInfo)
             {
                 var plr = TSPlayer.FindByNameOrID(player.Key)[0];
-                plr.GiveItem(itemID, amount);
+                int slot = inventoryEdit.FindNextFreeSlot(plr);
+                inventoryEdit.AddItem(plr, slot, stack, itemID);
+            }
+        }
+
+        private void GiveEveryoneArmor(int itemID)
+        {
+            foreach (KeyValuePair<string, int[]> player in PlayerInfo)
+            {
+                var plr = TSPlayer.FindByNameOrID(player.Key)[0];
+                int slot = inventoryEdit.FindNextFreeAccessorySlot(plr);
+                if (slot == -1)
+                    inventoryEdit.AddItem(plr, slot, 1, itemID);
+                else
+                {
+                    slot = inventoryEdit.FindNextFreeSlot(plr);
+                    inventoryEdit.AddArmor(plr, slot, itemID);
+                }
             }
         }
 
@@ -338,7 +388,7 @@ namespace SpleefResurgence
             foreach (KeyValuePair<string, int[]> player in PlayerInfo)
             {
                 var plr = TSPlayer.FindByNameOrID(player.Key)[0];
-                plr.SetBuff(BuffID, 600);
+                plr.SetBuff(BuffID, time);
             }
         }
 
@@ -417,7 +467,7 @@ namespace SpleefResurgence
                 case "lavafall":
                     if (LavafallMap.MapCommand == "emdy")
                         goto case "0";
-                    TSPlayer.All.SendMessage("[i:776] (Lavafall arena) [i:776]", Color.Cyan);
+                    TSPlayer.All.SendMessage("[i:207] (Lavafall arena) [i:207]", Color.OrangeRed);
                     Commands.HandleCommand(TSPlayer.Server, LavafallMap.MapCommand);
                     TpAndWebEveryone(LavafallMap.tpposx, LavafallMap.tpposy);
                     break;
@@ -450,11 +500,10 @@ namespace SpleefResurgence
             }
         }
 
+        private int GimmickCount = 0;
+
         private void ChooseGimmick(string GameType)
         {
-            if (GameType == "random" || GameType == "r")
-                GameType = Convert.ToString(rnd.Next(18));
-
             switch (GameType)
             {
                 case "0":
@@ -469,17 +518,17 @@ namespace SpleefResurgence
                 case "2":
                 case "cloud":
                     TSPlayer.All.SendMessage("[i:53] Cloud in a bottle round! [i:53]", Color.White);
-                    GiveEveryoneItems(53, 1);
+                    GiveEveryoneArmor(53);
                     break;
                 case "3":
                 case "tsunami":
                     TSPlayer.All.SendMessage("[i:3201] Tsunami in a bottle round! [i:3201]", Color.DeepSkyBlue);
-                    GiveEveryoneItems(3201, 1);
+                    GiveEveryoneArmor(3201);
                     break;
                 case "4":
                 case "blizzard":
                     TSPlayer.All.SendMessage("[i:987] Blizzard in a bottle round! [i:987]", Color.White);
-                    GiveEveryoneItems(987, 1);
+                    GiveEveryoneArmor(987);
                     break;
                 case "5":
                 case "portal":
@@ -505,7 +554,7 @@ namespace SpleefResurgence
                 case "9":
                 case "soc":
                     TSPlayer.All.SendMessage("[i:3097] Shield of Cthulhu round! [i:3097]", Color.Red);
-                    GiveEveryoneItems(3097, 1);
+                    GiveEveryoneArmor(3097);
                     break;
                 case "10":
                 case "slime":
@@ -536,20 +585,25 @@ namespace SpleefResurgence
                 case "15":
                 case "balloon":
                     TSPlayer.All.SendMessage("[i:159] Balloon round! [i:159]", Color.Red);
-                    GiveEveryoneItems(159, 1);
+                    GiveEveryoneArmor(159);
                     break;
                 case "16":
                 case "insignia":
                     TSPlayer.All.SendMessage("[i:4989] Soaring insignia round [i:4989]", Color.Pink);
-                    GiveEveryoneItems(4989, 1);
+                    GiveEveryoneArmor(4989);
                     break;
                 case "17":
                 case "longrange":
-                    TSPlayer.All.SendMessage("[i:407][i:2214][i:2215] Long range round [i:2215][i:2214][i:407]", Color.RosyBrown);
-                    SetEveryoneBuff(BuffID.Builder, 600);
-                    GiveEveryoneItems(407, 1);
-                    GiveEveryoneItems(2214, 1);
-                    GiveEveryoneItems(2215, 1);
+                    TSPlayer.All.SendMessage("[i:407][i:1923][i:2215] Long range round [i:2215][i:1923][i:407]", Color.RosyBrown);
+                    SetEveryoneBuff(BuffID.Builder, 60000);
+                    GiveEveryoneArmor(407);
+                    GiveEveryoneArmor(1923);
+                    GiveEveryoneArmor(2215);
+                    break;
+                case "18":
+                case "flipper":
+                    TSPlayer.All.SendMessage("[i:187] Flipper round [i:187]", Color.RosyBrown);
+                    GiveEveryoneArmor(187);
                     break;
                 default:
                     TSPlayer.All.SendMessage("Invalid gimmick, putting normal", Color.DarkRed);
