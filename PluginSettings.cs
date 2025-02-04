@@ -34,6 +34,8 @@ namespace SpleefResurgence
         public Map PlatformMap { get; set; }
         [JsonProperty("Lavafall map")]
         public Map LavafallMap { get; set; }
+        [JsonProperty("Pigron map")]
+        public MobMap PigronMap { get; set; }
     }
 
     public class Map
@@ -44,6 +46,16 @@ namespace SpleefResurgence
         public int tpposx { get; set; }
         [JsonProperty("Arena spawn Y")]
         public int tpposy { get; set; }
+    }
+
+    public class MobMap : Map
+    {
+        [JsonProperty("Mob ID")]
+        public int MobID { get; set; }
+        [JsonProperty("Mob spawn X")]
+        public int Mobposx { get; set; }
+        [JsonProperty("Mob spawn Y")]
+        public int Mobposy { get; set; }
     }
 
     public class PluginSettings

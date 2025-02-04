@@ -43,11 +43,10 @@ namespace SpleefResurgence
 
         private class MobMap : Map
         {
-            public string Mob;
+            public int MobID;
             public int Mobposx;
             public int Mobposy;
         }
-
 
         private Map ConvertMap(SpleefResurgence.Map Map)
         {
@@ -56,6 +55,19 @@ namespace SpleefResurgence
                 MapCommand = Map.MapCommand,
                 tpposx = Map.tpposx,
                 tpposy = Map.tpposy
+            };
+        }
+
+        private MobMap ConvertMobMap(SpleefResurgence.MobMap Map)
+        {
+            return new MobMap
+            {
+                MapCommand = Map.MapCommand,
+                tpposx = Map.tpposx,
+                tpposy = Map.tpposy,
+                MobID = Map.MobID,
+                Mobposx = Map.Mobposx,
+                Mobposy = Map.tpposy
             };
         }
 
@@ -267,6 +279,7 @@ namespace SpleefResurgence
                     MinecartMap = ConvertMap(gameTemplate.MinecartMap);
                     PlatformMap = ConvertMap(gameTemplate.PlatformMap);
                     LavafallMap = ConvertMap(gameTemplate.LavafallMap);
+                    PigronMap = ConvertMobMap(gameTemplate.PigronMap);
 
                 }
                 else
@@ -402,10 +415,17 @@ namespace SpleefResurgence
             }
         }
 
+        private void SpawnMob(int npcID, int x, int y)
+        {
+            int npcIndex = NPC.NewNPC(null, x, y, npcID);
+            if (npcIndex >= 0)
+                NetMessage.SendData(23, -1, -1, null, npcIndex);
+        }
+
         private void ChooseArena(string GameArena)
         {
             if (GameArena == "random" || GameArena == "r")
-                GameArena = Convert.ToString(rnd.Next(7));
+                GameArena = Convert.ToString(rnd.Next(8));
 
             switch (GameArena)
             {
@@ -470,8 +490,17 @@ namespace SpleefResurgence
                     Commands.HandleCommand(TSPlayer.Server, LavafallMap.MapCommand);
                     TpAndWebEveryone(LavafallMap.tpposx, LavafallMap.tpposy);
                     break;
+                case "7":
+                case "pigron":
+                    if (PigronMap.MapCommand == "emdy")
+                        goto case "0";
+                    TSPlayer.All.SendMessage("[i:4613] (Pigron arena) [i:4613]", Color.DeepPink);
+                    Commands.HandleCommand(TSPlayer.Server, PigronMap.MapCommand);
+                    TpAndWebEveryone(PigronMap.tpposx, PigronMap.tpposy);
+                    SpawnMob(PigronMap.MobID, PigronMap.Mobposx * 16, PigronMap.Mobposy * 16);
+                    break;
                 default:
-                    TSPlayer.All.SendMessage("Invalid gimmick, putting normal", Color.DarkRed);
+                    TSPlayer.All.SendMessage("Invalid arena, putting normal", Color.DarkRed);
                     goto case "0";
 
             }
@@ -599,7 +628,7 @@ namespace SpleefResurgence
                     break;
                 case "18":
                 case "flipper":
-                    TSPlayer.All.SendMessage("[i:187] Flipper round [i:187]", Color.RosyBrown);
+                    TSPlayer.All.SendMessage("[i:187] Flipper round [i:187]", Color.Blue);
                     GiveEveryoneArmor(187);
                     break;
                 default:
