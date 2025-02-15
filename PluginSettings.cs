@@ -57,6 +57,14 @@ namespace SpleefResurgence
         [JsonProperty("Mob spawn Y")]
         public int Mobposy { get; set; }
     }
+    /*
+    public class InventoryTemplate
+    {
+        public string Name { get; set; }
+        [JsonProperty("Inventory")]
+        public List<string> InventoryList { get; set; }
+    }
+    */
 
     public class PluginSettings
     {

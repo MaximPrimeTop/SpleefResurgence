@@ -42,6 +42,14 @@ namespace SpleefResurgence
             TSPlayer.All.SendData(PacketTypes.PlayerSlot, null, player.Index, 59 + slot);
         }
 
+        public void AddMiscEquip(TSPlayer player, int slot, int itemID)
+        {
+            player.TPlayer.miscEquips[slot].SetDefaults(itemID);
+            player.TPlayer.miscEquips[slot].stack = 1;
+
+            TSPlayer.All.SendData(PacketTypes.PlayerSlot, null, player.Index, 89 + slot);
+        }
+
         public void ClearPlayerEverything(TSPlayer player)
         {
             for (int i = 0; i < player.TPlayer.inventory.Length; i++)

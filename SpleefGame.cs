@@ -15,6 +15,7 @@ using static Org.BouncyCastle.Bcpg.Attr.ImageAttrib;
 using GetText.Loaders;
 using Newtonsoft.Json;
 using System.Collections;
+using Steamworks;
 
 namespace SpleefResurgence
 {
@@ -86,9 +87,15 @@ namespace SpleefResurgence
         private int RoundCounter = 0;
 
         private Random rnd = new Random();
-
-        private Dictionary<string, int[]> PlayerInfo = new(); // 0 - score, 1 - alive/dead 1/0 2 - place in the round
-        List<KeyValuePair<string, int[]>> PlayerInfoList;
+        private class Playering
+        {
+            public int score;
+            public bool isAlive;
+            public int place;
+            public string accName;
+        }
+        private Dictionary<string, Playering> PlayerInfo = new();
+        List<KeyValuePair<string, Playering>> PlayerInfoList;
 
         bool isPlayerOnline(string playername)
         {
@@ -102,16 +109,17 @@ namespace SpleefResurgence
 
         private void StartRound(CommandArgs args, string[] GameType, string GameArena, int GimmickAmount = 1)
         {
-            foreach (KeyValuePair<string, int[]> player in PlayerInfo)
+            foreach (KeyValuePair<string, Playering> player in PlayerInfo)
             {
                 if (!isPlayerOnline(player.Key))
                 {
-                    args.Player.SendErrorMessage($"yo bro this {player.Key} he doesn't exist or some shit, idk bro either wait fro him to join back or restart the game tbh cus duh this guy is not here");
+                    args.Player.SendErrorMessage($"yo bro this {player.Key} he doesn't exist or some shit, idk bro either wait fro him to join back or remove him from the game ngl he probably stinks");
                     return;
                 }
                 var plr = TSPlayer.FindByNameOrID(player.Key)[0];
                 inventoryEdit.ClearPlayerEverything(plr);
                 inventoryEdit.AddItem(plr, 0, 1, 776);
+                inventoryEdit.AddItem(plr, 9, 1, 1299);
                 inventoryEdit.AddItem(plr, 40, 1, 776);
                 inventoryEdit.AddArmor(plr, 3, 158);
 
@@ -132,8 +140,247 @@ namespace SpleefResurgence
             for (int i = 0; i < GimmickAmount; i++)
                 ChooseGimmick(GameType[i]);
         }
+        //im tired brah
+        public void TheGaming(CommandArgs args)
+        {
+            if (args.Parameters.Count < 1)
+            {
+                args.Player.SendErrorMessage("erm no");
+                return;
+            }
+            if (args.Parameters[0] == "help")
+            {
+                args.Player.SendInfoMessage("/game template <templateName> <numOfPlayers> <list player names> - creates a new game");
+                args.Player.SendMessage("these commands only work if there's a game going on!", Color.OrangeRed);
+                args.Player.SendInfoMessage("/game start <gimmickAmount> <list gimmicks> <map> - starts a round");
+                args.Player.SendInfoMessage("/game stop - ends the game (alias /game end)");
+                args.Player.SendInfoMessage("/game add <playername> - adds a player to the ongoing game");
+                args.Player.SendInfoMessage("/game remove <playername> - removes a player from the game");
+                args.Player.SendInfoMessage("/game score - shows the current score");
+                args.Player.SendInfoMessage("/game edit <playername> <amount> - changes the player's score by the given amount");
+            }
+            else if (!isGaming)
+            {
+                switch (args.Parameters[0])
+                {
+                    case "template":
+                        if (args.Parameters.Count < 4)
+                        {
+                            args.Player.SendErrorMessage("not enough parameters!");
+                            args.Player.SendErrorMessage("/game template <templateName> <numOfPlayers> <list player names>");
+                            return;
+                        }
+                        NumOfPlayers = Convert.ToInt32(args.Parameters[2]);
+                        if (NumOfPlayers + 3 != args.Parameters.Count)
+                        {
+                            args.Player.SendErrorMessage("wrong amount of players");
+                            args.Player.SendErrorMessage("/game template <templateName> <numOfPlayers> <list player names>");
+                            return;
+                        }
+                        string name = args.Parameters[1];
+                        var gameTemplate = PluginSettings.Config.GameTemplates.FirstOrDefault(c => c.Name == name);
+                        if (gameTemplate != null)
+                        {
+                            CommandToStartRound = gameTemplate.LavariseCommand;
+                            CommandToEndRound = gameTemplate.FillCommand;
+                            SnowMap = ConvertMap(gameTemplate.SnowMap);
+                            NormalMap = ConvertMap(gameTemplate.NormalMap);
+                            LandmineMap = ConvertMap(gameTemplate.LandmineMap);
+                            GeyserMap = ConvertMap(gameTemplate.GeyserMap);
+                            RopeMap = ConvertMap(gameTemplate.RopeMap);
+                            MinecartMap = ConvertMap(gameTemplate.MinecartMap);
+                            PlatformMap = ConvertMap(gameTemplate.PlatformMap);
+                            LavafallMap = ConvertMap(gameTemplate.LavafallMap);
+                            PigronMap = ConvertMobMap(gameTemplate.PigronMap);
 
-            public void TheGaming(CommandArgs args)
+                        }
+                        else
+                        {
+                            args.Player.SendErrorMessage("dummas there isnt a template named like that");
+                            return;
+                        }
+                        for (int i = 3; i <= NumOfPlayers + 2; i++)
+                        {
+                            string playername = args.Parameters[i];
+                            if (!isPlayerOnline(playername))
+                            {
+                                args.Player.SendErrorMessage("this guy does not exist bro");
+                                return;
+                            }
+                            var playerToAdd = TSPlayer.FindByNameOrID(playername)[0];
+                            Playering newPlayering = new()
+                            {
+                                score = 0,
+                                isAlive = false,
+                                place = 0,
+                                accName = playerToAdd.Account.Name
+                            };
+                            PlayerInfo.Add(playername, newPlayering);
+                        }
+                        isGaming = true;
+                        TSPlayer.All.SendMessage("Game started, get ready!", Color.SeaShell);
+                        break;
+                    case "start":
+                    case "stop":
+                    case "end":
+                    case "add":
+                    case "remove":
+                    case "score":
+                    case "edit":
+                        args.Player.SendErrorMessage("You can't use that command yet! You should first create a game");
+                        args.Player.SendInfoMessage("/game template <templateName> <numOfPlayers> <list player names>");
+                        break;
+                    default:
+                        args.Player.SendErrorMessage("That's not a valid command");
+                        args.Player.SendInfoMessage("/game template <templateName> <numOfPlayers> <list player names>");
+                        break;
+                }
+            }
+            else if (isGaming)
+            {
+                switch (args.Parameters[0])
+                {
+                    case "start":
+                        if (args.Parameters.Count < 3)
+                        {
+                            args.Player.SendErrorMessage("not enough parameters!");
+                            args.Player.SendInfoMessage("/game start <gimmickAmount> <list gimmicks> <map>");
+                            return;
+                        }
+                        int GimmickAmount = Convert.ToInt32(args.Parameters[1]);
+                        string[] GameTypes = new string[100];
+                        if (args.Parameters.Count == 3)
+                        {
+                            GameTypes[0] = args.Parameters[1];
+                            StartRound(args, GameTypes, args.Parameters[2]);
+                        }
+                        else if (args.Parameters.Count >= 3 && args.Parameters.Count == 3 + Convert.ToInt32(args.Parameters[1]))
+                        {
+                            for (int i = 0; i < GimmickAmount; i++)
+                                GameTypes[i] = args.Parameters[i + 2];
+                            StartRound(args, GameTypes, args.Parameters[GimmickAmount + 2], GimmickAmount);
+                        }
+                        break;
+                    case "stop":
+                    case "end":
+                        SpleefCoin.MigrateUsersToSpleefDatabase();
+                        PlayerInfoList = PlayerInfo
+                            .OrderByDescending(entry => entry.Value.score)
+                            .ToList();
+                        foreach (KeyValuePair<string, Playering> player in PlayerInfoList)
+                        {
+                            var players = TSPlayer.FindByNameOrID(player.Key);
+                            if (isPlayerOnline(player.Key))
+                            {
+                                var plr = TSPlayer.FindByNameOrID(player.Key)[0];
+                                if (player.Value.accName == player.Key)
+                                    spleefCoin.AddCoins(player.Value.accName, player.Value.score, false);
+                                else
+                                {
+                                    spleefCoin.AddCoins(player.Value.accName, player.Value.score, true);
+                                    plr.SendMessage($"Sent {player.Value.score} Spleef Coin to your account {player.Value.accName}", Color.Purple);
+                                }
+                            }
+                            else
+                                spleefCoin.AddCoins(player.Value.accName, player.Value.score, false);
+                            TSPlayer.All.SendMessage($"{player.Key} : {player.Value.score}", Color.Coral);
+                        }
+                        PlayerInfo.Clear();
+                        isGaming = false;
+                        TSPlayer.All.SendMessage($"Game ended, after {RoundCounter} rounds {PlayerInfoList[0].Key} WON!!!!!!!!!", Color.MediumTurquoise);
+                        RoundCounter = 0;
+                        break;
+                    case "add":
+                        if (args.Parameters.Count != 2)
+                        {
+                            args.Player.SendErrorMessage("wrong amount parameters!");
+                            args.Player.SendInfoMessage("/game add <playername>");
+                            return;
+                        }
+                        string playername = args.Parameters[1];
+                        if (!isPlayerOnline(playername))
+                        {
+                            args.Player.SendErrorMessage("this guy does not exist bro");
+                            return;
+                        }
+                        var playerToAdd = TSPlayer.FindByNameOrID(playername)[0];
+                        Playering newPlayering = new()
+                        {
+                            score = 0,
+                            isAlive = false,
+                            place = 0,
+                            accName = playerToAdd.Account.Name
+                        };
+                        PlayerInfo.Add(playername, newPlayering);
+                        NumOfPlayers++;
+                        args.Player.SendSuccessMessage($"added {args.Parameters[1]} to the game!");
+                        break;
+                    case "remove":
+                        if (args.Parameters.Count != 2)
+                        {
+                            args.Player.SendErrorMessage("wrong amount of parameters!");
+                            args.Player.SendInfoMessage("/game remove <playername>");
+                            return;
+                        }
+                        string name = args.Parameters[1];
+                        Playering playerToRemove;
+                        if (!PlayerInfo.TryGetValue($"{name}", out playerToRemove))
+                        {
+                            args.Player.SendErrorMessage("uh nuh uh");
+                            return;
+                        }
+                        playerToRemove = PlayerInfo[name];
+                        int points = playerToRemove.score;
+                        spleefCoin.AddCoins(playerToRemove.accName, points, false);
+                        PlayerInfo.Remove(name);
+                        NumOfPlayers--;
+                        args.Player.SendSuccessMessage($"removed {name} from the game and awarded {points} Spleef Coins!");
+                        break;
+                    case "score":
+                        PlayerInfoList = PlayerInfo
+                            .OrderByDescending(entry => entry.Value.score)
+                            .ToList();
+                        foreach (KeyValuePair<string, Playering> plr in PlayerInfoList)
+                            TSPlayer.All.SendMessage($"{plr.Key} : {plr.Value.score}", Color.Coral);
+                        break;
+                    case "edit":
+                        if (args.Parameters.Count != 3)
+                        {
+                            args.Player.SendErrorMessage("wrong amount of parameters!");
+                            args.Player.SendInfoMessage("/game edit <playername> <amount>");
+                            return;
+                        }
+                        if (!isPlayerOnline(args.Parameters[1]))
+                        {
+                            args.Player.SendErrorMessage("this guy does not exist bro");
+                            return;
+                        }
+                        var PlayerToEdit = TSPlayer.FindByNameOrID(args.Parameters[1])[0];
+                        int Value = Convert.ToInt32(args.Parameters[2]);
+
+                        if (PlayerInfo.ContainsKey(PlayerToEdit.Name))
+                        {
+                            PlayerInfo[PlayerToEdit.Name].score += Value;
+                            TSPlayer.All.SendMessage($"{PlayerToEdit.Name} score is now {PlayerInfo[PlayerToEdit.Name].score}!", Color.ForestGreen);
+                        }
+
+                        else
+                        {
+                            args.Player.SendErrorMessage("this guy is not in the current game bro");
+                        }
+                        break;
+                    case "template":
+                        args.Player.SendErrorMessage("You can't use this command right now! There is already a game going on");
+                        break;
+                    default:
+                        args.Player.SendErrorMessage("That's not a valid command");
+                        break;
+                }
+            }              
+        }
+
+        /*
+        public void TheGaming(CommandArgs args)
         {
             if (args.Parameters.Count < 1)
             {
@@ -151,7 +398,7 @@ namespace SpleefResurgence
                 {
                     SpleefCoin.MigrateUsersToSpleefDatabase();
                     PlayerInfoList = PlayerInfo
-                               .OrderByDescending(entry => entry.Value[0])
+                               .OrderByDescending(entry => entry.Value.score)
                                .ToList();
                     foreach (KeyValuePair<string, int[]> player in PlayerInfoList)
                     {
@@ -300,7 +547,7 @@ namespace SpleefResurgence
                 return;
             }
         }
-
+        */
         private int counter = 0;
         private void OnGetData(GetDataEventArgs args)
         {
@@ -311,57 +558,57 @@ namespace SpleefResurgence
 
                 var plr = TSPlayer.FindByNameOrID(Convert.ToString(playerID))[0];
 
-                foreach (KeyValuePair<string, int[]> player in PlayerInfo)
+                foreach (KeyValuePair<string, Playering> player in PlayerInfo)
                 {
                     var plrOG = TSPlayer.FindByNameOrID(player.Key)[0];
-                    if (plr == plrOG && player.Value[1] == 1)
+                    if (plr == plrOG && player.Value.isAlive == true)
                     {
-                        PlayerInfo[player.Key][1] = 0;
-                        PlayerInfo[player.Key][2] = counter;
+                        PlayerInfo[player.Key].isAlive = false;
+                        PlayerInfo[player.Key].place = counter;
                         counter++;
                         //pretty pelase work
-
+                        //yay it wokr!11!1!!
                         if (counter == NumOfPlayers - 1)
                             Commands.HandleCommand(TSPlayer.Server, CommandToEndRound);
 
                         else if (counter == NumOfPlayers)
                         {
                             PlayerInfoList = PlayerInfo
-                               .OrderByDescending(entry => entry.Value[2])
+                               .OrderByDescending(entry => entry.Value.place)
                                .ToList();
                             if (NumOfPlayers == 2)
                             {
-                                PlayerInfoList[0].Value[0] += 1;
+                                PlayerInfoList[0].Value.score += 1;
                                 TSPlayer.All.SendMessage($"Round ended! {PlayerInfoList[0].Key} won this round!", Color.LimeGreen);
                             }
                             else if (NumOfPlayers >= 3 && NumOfPlayers <= 6)
                             {
-                                PlayerInfoList[0].Value[0] += 2;
-                                PlayerInfoList[1].Value[0] += 1;
+                                PlayerInfoList[0].Value.score += 2;
+                                PlayerInfoList[1].Value.score += 1;
                                 TSPlayer.All.SendMessage($"Round ended! {PlayerInfoList[0].Key} won this round and {PlayerInfoList[1].Key} got second place!", Color.LimeGreen);
                             }
                             else if (NumOfPlayers >= 7 && NumOfPlayers <= 10)
                             {
-                                        
-                                PlayerInfoList[1].Value[0] += 2;
-                                PlayerInfoList[2].Value[0] += 1;
+                                PlayerInfoList[0].Value.score += 3;
+                                PlayerInfoList[1].Value.score += 2;
+                                PlayerInfoList[2].Value.score += 1;
                                 TSPlayer.All.SendMessage($"Round ended! {PlayerInfoList[0].Key} won this round {PlayerInfoList[1].Key} got second place and {PlayerInfoList[2].Key} got third place!", Color.LimeGreen);
                             }
                             else if (NumOfPlayers >= 11 && NumOfPlayers <= 14)
                             {
-                                PlayerInfoList[0].Value[0] += 4;
-                                PlayerInfoList[1].Value[0] += 3;
-                                PlayerInfoList[2].Value[0] += 2;
-                                PlayerInfoList[3].Value[0] += 1;
+                                PlayerInfoList[0].Value.score += 4;
+                                PlayerInfoList[1].Value.score += 3;
+                                PlayerInfoList[2].Value.score += 2;
+                                PlayerInfoList[3].Value.score += 1;
                                 TSPlayer.All.SendMessage($"Round ended! {PlayerInfoList[0].Key} won this round {PlayerInfoList[1].Key} got second place {PlayerInfoList[2].Key} got third place and {PlayerInfoList[3].Key} got fourth place!", Color.LimeGreen);
                             }
                             PlayerInfo = PlayerInfoList.ToDictionary(pair => pair.Key, pair => pair.Value);
                             
                             PlayerInfoList = PlayerInfo
-                               .OrderByDescending(entry => entry.Value[0])
+                               .OrderByDescending(entry => entry.Value.score)
                                .ToList();
-                            foreach (KeyValuePair<string, int[]> plrr in PlayerInfoList)
-                                TSPlayer.All.SendMessage($"{plrr.Key} : {plrr.Value[0]}", Color.Coral);
+                            foreach (KeyValuePair<string, Playering> plrr in PlayerInfoList)
+                                TSPlayer.All.SendMessage($"{plrr.Key} : {plrr.Value.score}", Color.Coral);
                             ServerApi.Hooks.NetGetData.Deregister(pluginInstance, OnGetData);
                         }
                     }
@@ -371,7 +618,7 @@ namespace SpleefResurgence
 
         private void GiveEveryoneItems(int itemID, int stack)
         {
-            foreach (KeyValuePair<string, int[]> player in PlayerInfo)
+            foreach (KeyValuePair<string, Playering> player in PlayerInfo)
             {
                 var plr = TSPlayer.FindByNameOrID(player.Key)[0];
                 int slot = inventoryEdit.FindNextFreeSlot(plr);
@@ -381,7 +628,7 @@ namespace SpleefResurgence
 
         private void GiveEveryoneArmor(int itemID)
         {
-            foreach (KeyValuePair<string, int[]> player in PlayerInfo)
+            foreach (KeyValuePair<string, Playering> player in PlayerInfo)
             {
                 var plr = TSPlayer.FindByNameOrID(player.Key)[0];
                 int slot = inventoryEdit.FindNextFreeAccessorySlot(plr);
@@ -397,7 +644,7 @@ namespace SpleefResurgence
 
         private void SetEveryoneBuff(int BuffID, int time)
         {
-            foreach (KeyValuePair<string, int[]> player in PlayerInfo)
+            foreach (KeyValuePair<string, Playering> player in PlayerInfo)
             {
                 var plr = TSPlayer.FindByNameOrID(player.Key)[0];
                 plr.SetBuff(BuffID, time);
@@ -406,12 +653,12 @@ namespace SpleefResurgence
 
         private void TpAndWebEveryone(int x1, int y1)
         {
-            foreach (KeyValuePair<string, int[]> player in PlayerInfo)
+            foreach (KeyValuePair<string, Playering> player in PlayerInfo)
             {
                 var plr = TSPlayer.FindByNameOrID(player.Key)[0];
                 plr.Teleport(x1 * 16, y1 * 16);
                 plr.SetBuff(BuffID.Webbed, 100);
-                player.Value[1] = 1;
+                player.Value.isAlive = true;
             }
         }
 

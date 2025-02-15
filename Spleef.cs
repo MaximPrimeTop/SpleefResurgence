@@ -51,10 +51,12 @@ namespace SpleefResurgence
             Commands.ChatCommands.Add(new Command("spleef.coin.user", spleefCoin.TransferCoinsCommand, "transfer"));
 
             Commands.ChatCommands.Add(new Command("spleef.coin.user", PenguinPoints, "pp"));
+            Commands.ChatCommands.Add(new Command("die", Die, "die"));
 
             Commands.ChatCommands.Add(new Command("spleef.inventory", InventoryReset, "inventoryreset", "invreset"));
             Commands.ChatCommands.Add(new Command("spleef.inventory", InventoryEditCommand, "inventoryedit", "invedit"));
             Commands.ChatCommands.Add(new Command("spleef.inventory", ArmorEdit, "armoredit"));
+            Commands.ChatCommands.Add(new Command("spleef.inventory", MiscEquipsEdit, "miscedit"));
 
             GeneralHooks.ReloadEvent += OnServerReload;
             ServerApi.Hooks.GamePostInitialize.Register(this, OnWorldLoad);
@@ -86,7 +88,7 @@ namespace SpleefResurgence
                 return;
             }
             var plr = players[0];
-            int slot = Convert.ToInt32(args.Parameters[1]) - 1;
+            int slot = Convert.ToInt32(args.Parameters[1]);
             int stack = Convert.ToInt32(args.Parameters[2]);
             int itemID = Convert.ToInt32(args.Parameters[3]);
             inventoryEdit.AddItem(plr, slot, stack, itemID);
@@ -102,9 +104,29 @@ namespace SpleefResurgence
                 return;
             }
             var plr = players[0];
-            int slot = Convert.ToInt32(args.Parameters[1]) - 1;
+            int slot = Convert.ToInt32(args.Parameters[1]);
             int itemID = Convert.ToInt32(args.Parameters[2]);
             inventoryEdit.AddArmor(plr, slot, itemID);
+        }
+
+        private void MiscEquipsEdit(CommandArgs args)
+        {
+            string player = args.Parameters[0];
+            var players = TSPlayer.FindByNameOrID(player);
+            if (players == null || players.Count == 0)
+            {
+                args.Player.SendErrorMessage("worg");
+                return;
+            }
+            var plr = players[0];
+            int slot = Convert.ToInt32(args.Parameters[1]);
+            int itemID = Convert.ToInt32(args.Parameters[2]);
+            inventoryEdit.AddMiscEquip(plr, slot, itemID);
+        }
+
+        private void Die(CommandArgs args)
+        {
+            args.Player.KillPlayer();
         }
 
         private void PenguinPoints(CommandArgs args)
