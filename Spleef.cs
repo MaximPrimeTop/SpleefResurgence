@@ -40,7 +40,9 @@ namespace SpleefResurgence
             Commands.ChatCommands.Add(new Command("spleef.customcommand", commandHandler.RemoveCustomCommand, "delcommand", "delc"));
             Commands.ChatCommands.Add(new Command("spleef.customcommand", commandHandler.ListCustomCommand, "listcommand", "listc"));
             
-            Commands.ChatCommands.Add(new Command("spleef.game", spleefGame.TheGaming, "game"));
+            Commands.ChatCommands.Add(new Command("spleef.game.hoster", spleefGame.TheGaming, "game"));
+            Commands.ChatCommands.Add(new Command("spleef.game.user", spleefGame.JoinGame, "join", "j"));
+            Commands.ChatCommands.Add(new Command("spleef.game.user", spleefGame.LeaveGame, "leave", "l"));
 
             Commands.ChatCommands.Add(new Command("spleef.tiletrack", tileTracker.ToggleTileTracking, "tilepos"));
             Commands.ChatCommands.Add(new Command("spleef.coolsay", Coolsay, "coolsay"));
@@ -53,75 +55,17 @@ namespace SpleefResurgence
             Commands.ChatCommands.Add(new Command("spleef.coin.user", PenguinPoints, "pp"));
             Commands.ChatCommands.Add(new Command("die", Die, "die"));
 
-            Commands.ChatCommands.Add(new Command("spleef.inventory", InventoryReset, "inventoryreset", "invreset"));
-            Commands.ChatCommands.Add(new Command("spleef.inventory", InventoryEditCommand, "inventoryedit", "invedit"));
-            Commands.ChatCommands.Add(new Command("spleef.inventory", ArmorEdit, "armoredit"));
-            Commands.ChatCommands.Add(new Command("spleef.inventory", MiscEquipsEdit, "miscedit"));
+            Commands.ChatCommands.Add(new Command("spleef.inventory", inventoryEdit.InventoryReset, "inventoryreset", "invreset"));
+            Commands.ChatCommands.Add(new Command("spleef.inventory", inventoryEdit.InventoryEditCommand, "inventoryedit", "invedit"));
+            Commands.ChatCommands.Add(new Command("spleef.inventory", inventoryEdit.ArmorEdit, "armoredit"));
+            Commands.ChatCommands.Add(new Command("spleef.inventory", inventoryEdit.MiscEquipsEdit, "miscedit"));
+            Commands.ChatCommands.Add(new Command("spleef.inventory", inventoryEdit.SetInventoryCommand, "inventoryset", "invset"));
 
             GeneralHooks.ReloadEvent += OnServerReload;
             ServerApi.Hooks.GamePostInitialize.Register(this, OnWorldLoad);
             ServerApi.Hooks.GameUpdate.Register(this, OnWorldUpdate);
 
             SpleefCoin.MigrateUsersToSpleefDatabase();
-        }
-
-        private void InventoryReset(CommandArgs args)
-        {
-            string player = args.Parameters[0];
-            var players = TSPlayer.FindByNameOrID(player);
-            if (players == null || players.Count == 0)
-            {
-                args.Player.SendErrorMessage("worg");
-                return;
-            }
-            var plr = players[0];
-            inventoryEdit.ClearPlayerEverything(plr);
-        }
-
-        private void InventoryEditCommand(CommandArgs args)
-        {
-            string player = args.Parameters[0];
-            var players = TSPlayer.FindByNameOrID(player);
-            if (players == null || players.Count == 0)
-            {
-                args.Player.SendErrorMessage("worg");
-                return;
-            }
-            var plr = players[0];
-            int slot = Convert.ToInt32(args.Parameters[1]);
-            int stack = Convert.ToInt32(args.Parameters[2]);
-            int itemID = Convert.ToInt32(args.Parameters[3]);
-            inventoryEdit.AddItem(plr, slot, stack, itemID);
-        }
-
-        private void ArmorEdit(CommandArgs args)
-        {
-            string player = args.Parameters[0];
-            var players = TSPlayer.FindByNameOrID(player);
-            if (players == null || players.Count == 0)
-            {
-                args.Player.SendErrorMessage("worg");
-                return;
-            }
-            var plr = players[0];
-            int slot = Convert.ToInt32(args.Parameters[1]);
-            int itemID = Convert.ToInt32(args.Parameters[2]);
-            inventoryEdit.AddArmor(plr, slot, itemID);
-        }
-
-        private void MiscEquipsEdit(CommandArgs args)
-        {
-            string player = args.Parameters[0];
-            var players = TSPlayer.FindByNameOrID(player);
-            if (players == null || players.Count == 0)
-            {
-                args.Player.SendErrorMessage("worg");
-                return;
-            }
-            var plr = players[0];
-            int slot = Convert.ToInt32(args.Parameters[1]);
-            int itemID = Convert.ToInt32(args.Parameters[2]);
-            inventoryEdit.AddMiscEquip(plr, slot, itemID);
         }
 
         private void Die(CommandArgs args)

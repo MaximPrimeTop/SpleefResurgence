@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
 using Terraria;
 using TShockAPI;
 
@@ -6,6 +8,8 @@ namespace SpleefResurgence
 {
     public class InventoryEdit
     {
+        public static PluginSettings Config => PluginSettings.Config;
+
         public int FindNextFreeSlot(TSPlayer player)
         {
             var inventory = player.TPlayer.inventory;
@@ -72,6 +76,106 @@ namespace SpleefResurgence
 
             player.TPlayer.trashItem.TurnToAir();
             TSPlayer.All.SendData(PacketTypes.PlayerSlot, null, player.Index, 179);
+        }
+
+        public void InventoryReset(CommandArgs args)
+        {
+            string player = args.Parameters[0];
+            var players = TSPlayer.FindByNameOrID(player);
+            if (players == null || players.Count == 0)
+            {
+                args.Player.SendErrorMessage("worg");
+                return;
+            }
+            var plr = players[0];
+            ClearPlayerEverything(plr);
+        }
+
+        public void InventoryEditCommand(CommandArgs args)
+        {
+            string player = args.Parameters[0];
+            var players = TSPlayer.FindByNameOrID(player);
+            if (players == null || players.Count == 0)
+            {
+                args.Player.SendErrorMessage("worg");
+                return;
+            }
+            var plr = players[0];
+            int slot = Convert.ToInt32(args.Parameters[1]);
+            int stack = Convert.ToInt32(args.Parameters[2]);
+            int itemID = Convert.ToInt32(args.Parameters[3]);
+            AddItem(plr, slot, stack, itemID);
+        }
+
+        public void ArmorEdit(CommandArgs args)
+        {
+            string player = args.Parameters[0];
+            var players = TSPlayer.FindByNameOrID(player);
+            if (players == null || players.Count == 0)
+            {
+                args.Player.SendErrorMessage("worg");
+                return;
+            }
+            var plr = players[0];
+            int slot = Convert.ToInt32(args.Parameters[1]);
+            int itemID = Convert.ToInt32(args.Parameters[2]);
+            AddArmor(plr, slot, itemID);
+        }
+
+        public void MiscEquipsEdit(CommandArgs args)
+        {
+            string player = args.Parameters[0];
+            var players = TSPlayer.FindByNameOrID(player);
+            if (players == null || players.Count == 0)
+            {
+                args.Player.SendErrorMessage("worg");
+                return;
+            }
+            var plr = players[0];
+            int slot = Convert.ToInt32(args.Parameters[1]);
+            int itemID = Convert.ToInt32(args.Parameters[2]);
+            AddMiscEquip(plr, slot, itemID);
+        }
+
+        public void SetInventory(List<InventorySlot> InvSlots, TSPlayer player)
+        {
+            ClearPlayerEverything(player);
+            foreach (InventorySlot InvSlot in InvSlots)
+                AddItem(player, InvSlot.Slot, InvSlot.Stack, InvSlot.ItemID);
+        }
+
+        public class InventorySlot
+        {
+            public int Slot;
+            public int ItemID;
+            public int Stack;
+        }
+
+        private InventorySlot ConvertInventorySlot(SpleefResurgence.InventorySlot InventorySlot)
+        {
+            return new InventorySlot
+            {
+                Slot = InventorySlot.Slot,
+                ItemID = InventorySlot.ItemID,
+                Stack = InventorySlot.Stack
+            };
+        }
+
+        public void SetInventoryCommand(CommandArgs args)
+        {
+            var player = args.Player;
+            string templateName = args.Parameters[0];
+            var inventoryTemplate = PluginSettings.Config.InventoryTemplates.FirstOrDefault(c => c.Name == templateName);
+            if (inventoryTemplate != null)
+            {
+                List<InventorySlot> InvSlots = new List<InventorySlot>();
+                foreach (var InvSlot in inventoryTemplate.InvSlots)
+                    InvSlots.Add(ConvertInventorySlot(InvSlot));
+                SetInventory(InvSlots, player);
+                player.SendSuccessMessage($"set {templateName}");
+            }
+            else
+                player.SendErrorMessage("that's not a real template");
         }
     }
 }

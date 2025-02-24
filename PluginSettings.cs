@@ -57,14 +57,21 @@ namespace SpleefResurgence
         [JsonProperty("Mob spawn Y")]
         public int Mobposy { get; set; }
     }
-    /*
+
+    public class InventorySlot
+    {
+        public int Slot { get; set; }
+        [JsonProperty("Item ID")]
+        public int ItemID { get; set; }
+        public int Stack { get; set; }
+    }
+
     public class InventoryTemplate
     {
         public string Name { get; set; }
         [JsonProperty("Inventory")]
-        public List<string> InventoryList { get; set; }
+        public List<InventorySlot> InvSlots { get; set; }
     }
-    */
 
     public class PluginSettings
     {
@@ -76,6 +83,9 @@ namespace SpleefResurgence
 
         [JsonProperty("Game templates")]
         public List<GameTemplate> GameTemplates { get; set; } = new();
+
+        [JsonProperty("Inventory Templates")]
+        public List<InventoryTemplate> InventoryTemplates { get; set; } = new();
 
         public static void Save()
         {
