@@ -60,6 +60,8 @@ namespace SpleefResurgence
 
     public class InventorySlot
     {
+        [JsonProperty("Inventory type")]
+        public string InvType { get; set; }
         public int Slot { get; set; }
         [JsonProperty("Item ID")]
         public int ItemID { get; set; }

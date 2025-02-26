@@ -141,24 +141,14 @@ namespace SpleefResurgence
         {
             ClearPlayerEverything(player);
             foreach (InventorySlot InvSlot in InvSlots)
-                AddItem(player, InvSlot.Slot, InvSlot.Stack, InvSlot.ItemID);
-        }
-
-        public class InventorySlot
-        {
-            public int Slot;
-            public int ItemID;
-            public int Stack;
-        }
-
-        private InventorySlot ConvertInventorySlot(SpleefResurgence.InventorySlot InventorySlot)
-        {
-            return new InventorySlot
             {
-                Slot = InventorySlot.Slot,
-                ItemID = InventorySlot.ItemID,
-                Stack = InventorySlot.Stack
-            };
+                if (InvSlot.InvType == "inventory")
+                    AddItem(player, InvSlot.Slot, InvSlot.Stack, InvSlot.ItemID);
+                else if (InvSlot.InvType == "armor")
+                    AddArmor(player, InvSlot.Slot, InvSlot.ItemID);
+                else if (InvSlot.InvType == "misc equipment")
+                    AddMiscEquip(player, InvSlot.Slot, InvSlot.ItemID);
+            }
         }
 
         public void SetInventoryCommand(CommandArgs args)
@@ -168,10 +158,7 @@ namespace SpleefResurgence
             var inventoryTemplate = PluginSettings.Config.InventoryTemplates.FirstOrDefault(c => c.Name == templateName);
             if (inventoryTemplate != null)
             {
-                List<InventorySlot> InvSlots = new List<InventorySlot>();
-                foreach (var InvSlot in inventoryTemplate.InvSlots)
-                    InvSlots.Add(ConvertInventorySlot(InvSlot));
-                SetInventory(InvSlots, player);
+                SetInventory(inventoryTemplate.InvSlots, player);
                 player.SendSuccessMessage($"set {templateName}");
             }
             else

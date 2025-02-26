@@ -224,12 +224,10 @@ namespace SpleefResurgence
                                 }
                                 else
                                 {
-                                    if (args.Parameters.Count == 0)
-                                    {
-                                        var targetPlayer = player;
-                                        command = command.Replace("[PLAYERNAME]", $"\"{targetPlayer.Name}\"");
-                                    }
-                                    else if (args.Parameters.Count == 1)
+                                    var targetPlayer = player;
+                                    command = command.Replace("[PLAYERNAME]", $"\"{targetPlayer.Name}\"");
+
+                                    if (args.Parameters.Count == 1)
                                     {
                                         string playerName = "";
                                         for (int j = 0; j < args.Parameters.Count; j++)
@@ -242,8 +240,8 @@ namespace SpleefResurgence
                                             player.SendErrorMessage($"{args.Parameters[0]} is not a valid player or subcommand");
                                             return;
                                         }
-                                        var targetPlayer = players[0];
-                                        command = command.Replace("[PLAYERNAME]", $"\"{targetPlayer.Name}\"");
+                                        targetPlayer = players[0];
+                                        command = command.Replace("[PLAYERNAME1]", $"\"{targetPlayer.Name}\"");
                                     }
                                     else if (args.Parameters.Count == 2)
                                     {
@@ -253,9 +251,8 @@ namespace SpleefResurgence
                                             player.SendErrorMessage($"{args.Parameters[0]} is not a valid player or subcommand");
                                             return;
                                         }
-                                        var targetPlayer = players[0];
+                                        targetPlayer = players[0];
 
-                                        command = command.Replace("[PLAYERNAME]", $"\"{targetPlayer.Name}\"");
                                         command = command.Replace("[PLAYERNAME1]", $"\"{targetPlayer.Name}\"");
 
                                         players = TSPlayer.FindByNameOrID(args.Parameters[1]);

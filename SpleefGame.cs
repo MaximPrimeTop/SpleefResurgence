@@ -357,8 +357,9 @@ namespace SpleefResurgence
                         playerToRemove = PlayerInfo[name];
                         int points = playerToRemove.score;
                         spleefCoin.AddCoins(playerToRemove.accName, points, false);
+                        if (playerToRemove.isIngame)
+                            NumOfPlayers--;
                         PlayerInfo.Remove(name);
-                        NumOfPlayers--;
                         args.Player.SendSuccessMessage($"removed {name} from the game and awarded {points} Spleef Coins!");
                         TSPlayer.All.SendMessage($"{name} has been completely removed from the game!", Color.Red);
                         break;
