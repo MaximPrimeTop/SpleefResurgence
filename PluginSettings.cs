@@ -18,44 +18,19 @@ namespace SpleefResurgence
         public string LavariseCommand { get; set; }
         [JsonProperty("Fill command")]
         public string FillCommand { get; set; }
-        [JsonProperty("Normal map")]
-        public Map NormalMap { get; set; }
-        [JsonProperty("Snow map")]
-        public Map SnowMap { get; set; }
-        [JsonProperty("Landmine map")]
-        public Map LandmineMap { get; set; }
-        [JsonProperty("Geyser map")]
-        public Map GeyserMap { get; set; }
-        [JsonProperty("Rope map")]
-        public Map RopeMap { get; set; }
-        [JsonProperty("Minecart map")]
-        public Map MinecartMap { get; set; }
-        [JsonProperty("Platform map")]
-        public Map PlatformMap { get; set; }
-        [JsonProperty("Lavafall map")]
-        public Map LavafallMap { get; set; }
-        [JsonProperty("Pigron map")]
-        public MobMap PigronMap { get; set; }
+        public List<Map> Maps { get; set; }
     }
 
     public class Map
     {
+        [JsonProperty("Map Name")]
+        public string MapName { get; set; }
         [JsonProperty("Map Command")]
         public string MapCommand { get; set; }
         [JsonProperty("Arena spawn X")]
         public int tpposx { get; set; }
         [JsonProperty("Arena spawn Y")]
         public int tpposy { get; set; }
-    }
-
-    public class MobMap : Map
-    {
-        [JsonProperty("Mob ID")]
-        public int MobID { get; set; }
-        [JsonProperty("Mob spawn X")]
-        public int Mobposx { get; set; }
-        [JsonProperty("Mob spawn Y")]
-        public int Mobposy { get; set; }
     }
 
     public class InventorySlot
