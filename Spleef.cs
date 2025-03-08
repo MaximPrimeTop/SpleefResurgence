@@ -3,9 +3,9 @@ using Terraria;
 using TerrariaApi.Server;
 using TShockAPI;
 using TShockAPI.Hooks;
-using System.Threading.Tasks;
+using System.Timers;
 using Terraria.ID;
-using System.Diagnostics;
+using Steamworks;
 
 namespace SpleefResurgence
 {
@@ -18,11 +18,13 @@ namespace SpleefResurgence
         private readonly TileTracker tileTracker;
         private readonly InventoryEdit inventoryEdit;
         private readonly SpleefGame spleefGame;
+        private SpleefUserSettings spleefSettings;
+        public static System.Timers.Timer statusTimer;
 
         public override string Author => "MaximPrime";
         public override string Name => "Spleef Resurgence Plugin";
         public override string Description => "ok i think it works yipee.";
-        public override Version Version => new(1, 6, 2);
+        public override System.Version Version => new(1, 7);
 
         public Spleef(Main game) : base(game)
         {
@@ -31,6 +33,7 @@ namespace SpleefResurgence
             tileTracker = new TileTracker(this);
             inventoryEdit = new InventoryEdit();
             spleefGame = new SpleefGame(this, spleefCoin, inventoryEdit);
+            spleefSettings = new SpleefUserSettings();
         }
         public override void Initialize()
         {
@@ -39,10 +42,11 @@ namespace SpleefResurgence
             Commands.ChatCommands.Add(new Command("spleef.customcommand", commandHandler.AddCustomCommand, "addcommand", "addc"));
             Commands.ChatCommands.Add(new Command("spleef.customcommand", commandHandler.RemoveCustomCommand, "delcommand", "delc"));
             Commands.ChatCommands.Add(new Command("spleef.customcommand", commandHandler.ListCustomCommand, "listcommand", "listc"));
-            
+
             Commands.ChatCommands.Add(new Command("spleef.game.hoster", spleefGame.TheGaming, "game"));
             Commands.ChatCommands.Add(new Command("spleef.game.user", spleefGame.JoinGame, "join", "j"));
             Commands.ChatCommands.Add(new Command("spleef.game.user", spleefGame.LeaveGame, "leave", "l"));
+            Commands.ChatCommands.Add(new Command("spleef.game.user", spleefGame.CheckScore, "score"));
 
             Commands.ChatCommands.Add(new Command("spleef.tiletrack", tileTracker.ToggleTileTracking, "tilepos"));
             Commands.ChatCommands.Add(new Command("spleef.coolsay", Coolsay, "coolsay"));
@@ -61,11 +65,36 @@ namespace SpleefResurgence
             Commands.ChatCommands.Add(new Command("spleef.inventory", inventoryEdit.MiscEquipsEdit, "miscedit"));
             Commands.ChatCommands.Add(new Command("spleef.inventory", inventoryEdit.SetInventoryCommand, "inventoryset", "invset"));
 
+            Commands.ChatCommands.Add(new Command("spleef.settings", spleefSettings.EditSettingsCommand, "settings", "toggle"));
+
             GeneralHooks.ReloadEvent += OnServerReload;
             ServerApi.Hooks.GamePostInitialize.Register(this, OnWorldLoad);
             ServerApi.Hooks.GameUpdate.Register(this, OnWorldUpdate);
 
             SpleefCoin.MigrateUsersToSpleefDatabase();
+
+            statusTimer = new System.Timers.Timer(500);
+            statusTimer.Elapsed += statusUpdate;
+            statusTimer.AutoReset = true;
+        }
+
+        public static string statusScore;
+        public static string statusRound;
+        public static string statusLavariseTime;
+        public static string statusText;
+
+        public void statusUpdate(Object source, ElapsedEventArgs e)
+        {
+            spleefGame.UpdateScore();
+            statusText = "\n\n\n\n\n\n\n\n\n\n\n\n" + statusScore + "\n" + statusRound + "\n\n" + statusLavariseTime;
+            foreach (TSPlayer player in TShock.Players)
+            {
+                PlayerSettings settings = spleefSettings.GetSettings(player.Account.Name);
+                if (player != null && player.Active && settings.ShowScore)
+                    player.SendData(PacketTypes.Status, statusText, number2: 1);
+                else
+                    player.SendData(PacketTypes.Status, "\n\n\n\n\n\n\n\n\n\n\n\n" + statusLavariseTime, number2: 1);
+            }
         }
 
         private void Die(CommandArgs args)
@@ -95,7 +124,8 @@ namespace SpleefResurgence
             }
             foreach (TSPlayer player in TShock.Players)
             {
-                if (player != null && player.Active)
+                //PlayerSettings settings = spleefSettings.GetSettings(player.Account.Name);
+                if (player != null && player.Active) // && settings.GetBuffs
                 {
                     player.SetBuff(BuffID.Honey, 600);
                     player.SetBuff(BuffID.Shine, 600);

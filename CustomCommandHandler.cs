@@ -77,8 +77,6 @@ namespace SpleefResurgence
             args.Player.SendMessage($"Custom Commands: {commandList}", Color.Orange);
         }
 
-
-
         public static void RegisterCommands()
         {
             foreach (var cmd in Config.AllCommands)
@@ -99,6 +97,16 @@ namespace SpleefResurgence
         }
         public static bool isCommanding = false;
 
+
+        private static async void LavaRiseTimer(int timeInSeconds)
+        {
+            for (int i = timeInSeconds; i > 0; i--)
+            {
+                Spleef.statusLavariseTime = $"Time until lava rises: {i}";
+                await Task.Delay(1000);
+            }
+        }
+
         public static async void CommandLogic(TSPlayer player, string name, string permission, List<string> CmdList, CommandArgs args)
         {
             var count = args.Parameters.Count;
@@ -107,12 +115,22 @@ namespace SpleefResurgence
             {
                 case "permission":
                     {
+                        if (!player.Group.HasPermission("spleef.customcommand"))
+                        {
+                            player.SendErrorMessage($"hey stinker you do not have the permission to do this");
+                            break;
+                        }
                         player.SendInfoMessage(permission);
                     }
                     break;
 
                 case "help":
                     {
+                        if (!player.Group.HasPermission("spleef.customcommand"))
+                        {
+                            player.SendErrorMessage($"hey stinker you do not have the permission to do this");
+                            break;
+                        }
                         player.SendInfoMessage("To add a command: /{0} add command", name);
                         player.SendInfoMessage("To delete a command: /{0} del numbah [bigeahnumbah]", name);
                         player.SendInfoMessage("To view the list of all commands: /{0} list", name);
@@ -123,6 +141,12 @@ namespace SpleefResurgence
                     break;
                 case "add":
                     {
+                        if (!player.Group.HasPermission("spleef.customcommand"))
+                        {
+                            player.SendErrorMessage($"hey stinker you do not have the permission to do this");
+                            break;
+                        }
+
                         if (count < 2)
                         {
                             player.SendErrorMessage("Invalid syntax! /{0} add command", name);
@@ -138,6 +162,12 @@ namespace SpleefResurgence
                     break;
                 case "list":
                     {
+                        if (!player.Group.HasPermission("spleef.customcommand"))
+                        {
+                            player.SendErrorMessage($"hey stinker you do not have the permission to do this");
+                            break;
+                        }
+
                         if (CmdList.Count == 0)
                         {
                             player.SendInfoMessage("{0} is emdy :(", name);
@@ -156,6 +186,13 @@ namespace SpleefResurgence
                     break;
                 case "del":
                     {
+                        if (!player.Group.HasPermission("spleef.customcommand"))
+                        {
+                            player.SendErrorMessage($"hey stinker you do not have the permission to do this");
+                            break;
+                        }
+                            
+
                         if (count < 2 || count > 3)
                         {
                             player.SendErrorMessage("Invalid syntax! /{0} del <numbah> [bigger numbah]", name);
@@ -191,15 +228,17 @@ namespace SpleefResurgence
                     }
                     break;
                 case "stop":
+                    if (!player.Group.HasPermission("spleef.customcommand"))
                     {
-                        isCommanding = false;
+                        player.SendErrorMessage($"hey stinker you do not have the permission to do this");
+                        break;
                     }
+                    isCommanding = false;
                     break;
                 default:
                     {
                         isCommanding = true;
-                        int i = 0;
-                        while (isCommanding && i < CmdList.Count)
+                        for (int i = 0; i < CmdList.Count && isCommanding; i++)
                         {
                             string command = CmdList[i];
                             {
@@ -220,6 +259,7 @@ namespace SpleefResurgence
                                     Commands.HandleCommand(TSPlayer.Server, $"//p2 {x2} {y2}");
                                     Commands.HandleCommand(TSPlayer.Server, "//cut");
                                     Commands.HandleCommand(TSPlayer.Server, "//fill lava");
+                                    LavaRiseTimer(waittime);
                                     await Task.Delay(waittime * 1000);
                                 }
                                 else
@@ -268,7 +308,6 @@ namespace SpleefResurgence
                                     Commands.HandleCommand(TSPlayer.Server, command);
                                 }
                             }
-                            i++;
                         }
                     }
                     break;
