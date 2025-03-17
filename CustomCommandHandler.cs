@@ -95,6 +95,7 @@ namespace SpleefResurgence
                     Commands.ChatCommands.RemoveAll(c => c.Name == cmd.Name);
             }
         }
+        //shut up i know this is wrong im too lazy to fix this
         public static bool isCommanding = false;
 
 
@@ -261,7 +262,24 @@ namespace SpleefResurgence
                                     Commands.HandleCommand(TSPlayer.Server, "//fill lava");
                                     LavaRiseTimer(waittime);
                                     await Task.Delay(waittime * 1000);
-                                }
+                                }/*
+                                else if (stuff[0] == "waterrise")
+                                {
+                                    int x1 = Convert.ToInt32(stuff[1]);
+                                    int y1 = Convert.ToInt32(stuff[2]);
+                                    int x2 = Convert.ToInt32(stuff[3]);
+                                    int y2 = Convert.ToInt32(stuff[4]);
+                                    int waittime = Convert.ToInt32(stuff[5]);
+
+                                    Commands.HandleCommand(TSPlayer.Server, $"//p1 {x1} {y1}");
+                                    Commands.HandleCommand(TSPlayer.Server, $"//p2 {x2} {y2}");
+                                    Commands.HandleCommand(TSPlayer.Server, "//cut");
+                                    Commands.HandleCommand(TSPlayer.Server, "//fill water");
+                                    LavaRiseTimer(waittime);
+                                    await Task.Delay(waittime * 1000);
+                                }*/
+                                else if (stuff[0] == "timer")
+                                    LavaRiseTimer(Convert.ToInt32(command[6..]));
                                 else
                                 {
                                     var targetPlayer = player;
@@ -272,7 +290,7 @@ namespace SpleefResurgence
                                         string playerName = "";
                                         for (int j = 0; j < args.Parameters.Count; j++)
                                         {
-                                            playerName = playerName + args.Parameters[j];
+                                            playerName += args.Parameters[j];
                                         }
                                         var players = TSPlayer.FindByNameOrID(playerName);
                                         if (players == null || players.Count == 0)
