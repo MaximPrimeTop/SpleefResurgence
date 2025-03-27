@@ -23,8 +23,7 @@ namespace SpleefResurgence
         public int FindNextFreeAccessorySlot(TSPlayer player)
         {
             var armor = player.TPlayer.armor;
-
-            for (int i = 3; i <= 7; i++)
+            for (int i = 3; i <= 9; i++)
                 if (armor[i].IsAir)
                     return i;
             return -1;
@@ -34,7 +33,6 @@ namespace SpleefResurgence
         {
             player.TPlayer.inventory[slot].SetDefaults(itemID);
             player.TPlayer.inventory[slot].stack = stack;
-
             TSPlayer.All.SendData(PacketTypes.PlayerSlot, null, player.Index, slot);
         }
 

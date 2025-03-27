@@ -67,10 +67,10 @@ namespace SpleefResurgence
                 () => { GiveEveryoneItems(3196, 50); }),
 
             new("rocket15", "[i:759] [c/FFA500:Rocket round (15 rockets)] [i:759]",
-                () => { GiveEveryoneItems(759, 1); GiveEveryoneItems(772, 15); }),
+                () => { GiveEveryoneItems(759, 1); GiveEveryoneItems(772, 15, 54); }),
 
             new("rocket100", "[i:759] [c/FFA500:Rocket round (100 rockets)] [i:759]",
-                () => { GiveEveryoneItems(759, 1); GiveEveryoneItems(772, 100); }),
+                () => { GiveEveryoneItems(759, 1); GiveEveryoneItems(772, 100, 54); }),
 
             new("icerod", "[i:496] [c/00bfff:Ice rod round] [i:496]",
                 () => { GiveEveryoneItems(496, 1); }),
@@ -109,14 +109,19 @@ namespace SpleefResurgence
                 () => { SetEveryoneBuff(BuffID.Panic, 60000); }),
 
             new("slime", "[i:2430] [c/00bfff:Slime saddle round] [i:2430]",
-                () => { GiveEveryoneItems(2430, 1); }),
+                () => { GiveEveryoneMiscEquips(2430, 3); }),
 
             new("pogo", "[i:4791] [c/FFC0CB:Pogo stick round] [i:4791]",
-                () => { GiveEveryoneItems(4791, 1); }),
+                () => { GiveEveryoneMiscEquips(4791, 3); }),
 
+            new("golf", "[i:4264] [c/FFFFFF:Golf cart round] [i:4264]",
+                () => { GiveEveryoneMiscEquips(4264, 3); }),
 
             new("fleshknuckles", "[i:3016] [c/FF0000:Flesh knuckles round] [i:3016]",
                 () => { GiveEveryoneArmor(3016); }),
+
+            new("feralbite", "[i:1274] [c/000000:Feral bite round AHAHAHAHAHAH I HATE YOU AHHAHAHAHAHAHAHAHAHAHAHAHAHHA!!!!!!!!!!!!!!!!SUFFFERRRRRRRR] [i:1274]",
+                () => { SetEveryoneBuff(BuffID.Rabies, 60000); }),
             };
         }
 
@@ -124,12 +129,14 @@ namespace SpleefResurgence
         private readonly Spleef pluginInstance;
         private readonly InventoryEdit inventoryEdit;
         private readonly SpleefCoin spleefCoin;
+        private readonly SpleefUserSettings spleefSettings;
 
-        public SpleefGame(Spleef plugin, SpleefCoin spleefCoin, InventoryEdit inventoryEdit)
+        public SpleefGame(Spleef plugin, SpleefCoin spleefCoin, InventoryEdit inventoryEdit, SpleefUserSettings spleefSettings)
         {
             this.pluginInstance = plugin;
             this.inventoryEdit = inventoryEdit;
             this.spleefCoin = spleefCoin;
+            this.spleefSettings = spleefSettings;
             PutGimmicks();
         }
 
@@ -150,6 +157,8 @@ namespace SpleefResurgence
 
         private bool isGaming = false;
         private bool isRound = false;
+        private bool isJoinable = false;
+        private bool isBettable = false;
 
         private string CommandToStartRound;
         private string CommandToEndRound;
@@ -192,6 +201,7 @@ namespace SpleefResurgence
 
         private void StartRound(CommandArgs args, string[] GameType, Map GameArena, int GimmickAmount)
         {
+            UpdateScore();
             CountPlayers();
 
             if (PlayerCount <= 1)
@@ -199,53 +209,48 @@ namespace SpleefResurgence
                 args.Player.SendErrorMessage($"Can't start a round with this amount of players! Make sure there are at least 2 players");
                 return;
             }
-            foreach (KeyValuePair<string, Playering> player in PlayerInfo)
-            {
-                if (player.Value.isIngame == true)
-                {
-                    if (!isPlayerOnline(player.Key))
-                    {
-                        args.Player.SendErrorMessage($"yo bro this {player.Key} he doesn't exist or some shit, idk bro either wait fro him to join back or remove him from the game ngl he probably stinks");
-                        return;
-                    }
-                    var plr = TSPlayer.FindByNameOrID(player.Key)[0];
-                    inventoryEdit.ClearPlayerEverything(plr);
-                    inventoryEdit.AddItem(plr, 0, 1, 776);
-                    inventoryEdit.AddItem(plr, 9, 1, 1299);
-                    inventoryEdit.AddItem(plr, 40, 1, 776);
-                    inventoryEdit.AddArmor(plr, 3, 158);
-                }
-            }
+
+            ClearEveryoneInventory();
+            GiveEveryoneItems(ItemID.CobaltPickaxe, 1, 0);
+            GiveEveryoneItems(ItemID.Binoculars, 1, 9);
+            GiveEveryoneItems(ItemID.CobaltPickaxe, 1, 40);
+            GiveEveryoneArmor(ItemID.LuckyHorseshoe, 3);
+            GiveEveryoneArmor(ItemID.Fedora, 18);
+            GiveEveryoneArmor(ItemID.SolarDye, 19);
+            SetEveryoneBuff(BuffID.Honey, 1000000);
+            SetEveryoneBuff(BuffID.Shine, 1000000);
+            SetEveryoneBuff(BuffID.NightOwl, 1000000);
+            SetEveryoneBuff(BuffID.HeartLamp, 1000000);
+            SetEveryoneBuff(BuffID.Campfire, 1000000);
+
             counter = 0;
             RoundCounter++;
             Commands.HandleCommand(TSPlayer.Server, CommandToStartRound);
-            Spleef.statusRound = $"[c/8FBC8F:Round {RoundCounter}]\n";
+            statusRound = $"[c/8FBC8F:Round {RoundCounter}]\n";
             TSPlayer.All.SendMessage($"Round {RoundCounter} started", Color.DarkSeaGreen);
             for (int i = 0; i < GimmickAmount; i++)
-            {
                 if (GameType[i] == "random" || GameType[i] == "r")
-                    GameType[i] = Convert.ToString(rnd.Next(Gimmicks.Count - 1));
-                if (GameType[i] == "11" || GameType[i] == "gravedigger")
-                    GameArena = MapsInfo.FirstOrDefault(c => c.MapName == "gravedigger");
-            }
+                    GameType[i] = Convert.ToString(rnd.Next(Gimmicks.Count - 2));
             isRound = true;
             ServerApi.Hooks.NetGetData.Register(pluginInstance, OnGetData);
             ChooseArena(GameArena);
             for (int i = 0; i < GimmickAmount; i++)
                 ChooseGimmick(GameType[i]);
 
+
+            GiveEveryoneArmor(0, 18);
             MusicBox.SetDefaults(MusicBoxIDs[rnd.Next(MusicBoxIDs.Length)]);
-            GiveEveryoneArmor(MusicBox.netID);
+            GiveEveryoneArmor(MusicBox.netID, 19);
             string SongName = MusicBox.Name.Substring(MusicBox.Name.IndexOf('(') + 1, MusicBox.Name.IndexOf(')') - MusicBox.Name.IndexOf('(') - 1);
             if (MusicBox.Name.Split(' ')[0] == "Otherworldly")
                 SongName = "Otherworldly " + SongName;
-            Spleef.statusRound += $"[i:{MusicBox.netID}] [c/FFB6C1:Playing {SongName}] [i:{MusicBox.netID}]";
+            statusRound += $"[i:{MusicBox.netID}] [c/FFB6C1:Playing {SongName}] [i:{MusicBox.netID}]";
             TSPlayer.All.SendMessage($"[i:{MusicBox.netID}] Playing {SongName} [i:{MusicBox.netID}]", Color.LightPink);
         }
         //im tired brah
         private void AnnounceScore()
         {
-            TSPlayer.All.SendMessage(Spleef.statusScore, Color.Coral);
+            TSPlayer.All.SendMessage(statusScore, Color.Coral);
         }
 
         public void UpdateScore()
@@ -253,13 +258,13 @@ namespace SpleefResurgence
             PlayerInfoList = PlayerInfo
                 .OrderByDescending(entry => entry.Value.score)
                 .ToList();
-            Spleef.statusScore = "[c/FF1493:Game score:]\n";
+            statusScore = "[c/FF1493:Game score:]\n";
             foreach (KeyValuePair<string, Playering> plr in PlayerInfoList)
             {
                 if (plr.Value.isIngame == true)
-                    Spleef.statusScore += $"[c/FF8559:{plr.Key} : {plr.Value.score}]\n";
+                    statusScore += $"[c/FF8559:{plr.Key} : {plr.Value.score}]\n";
                 else
-                    Spleef.statusScore += $"[c/898989:{plr.Key} : {plr.Value.score}]\n";
+                    statusScore += $"[c/898989:{plr.Key} : {plr.Value.score}]\n";
             }
         }
 
@@ -318,7 +323,7 @@ namespace SpleefResurgence
             if (args.Parameters[0] == "help")
             {
                 args.Player.SendInfoMessage("/game list (gimmick, template, map <templatename>)");
-                args.Player.SendInfoMessage("/game template <templateName> - creates a new game");
+                args.Player.SendInfoMessage("/game template <templateName> [isJoinable] [isBettable] - creates a new game. By default it's joinable and people can't place bets(bets aren't implemented yet).");
                 args.Player.SendMessage("these commands only work if there's a game going on!", Color.OrangeRed);
                 args.Player.SendInfoMessage("/game start <gimmickAmount> <list gimmicks> <map> or /game start <gimmick> <map> or  - starts a round");
                 args.Player.SendInfoMessage("/game stop - ends the game (alias /game end), however if there's a round active, stops the round.");
@@ -332,10 +337,10 @@ namespace SpleefResurgence
                 switch (args.Parameters[0])
                 {
                     case "template":
-                        if (args.Parameters.Count != 2)
+                        if (args.Parameters.Count < 2 || args.Parameters.Count > 4)
                         {
                             args.Player.SendErrorMessage("wrong amount of parameters!");
-                            args.Player.SendErrorMessage("/game template <templateName>");
+                            args.Player.SendErrorMessage("/game template <templateName> [isJoinable] [isBettable]");
                             return;
                         }
                         string name = args.Parameters[1];
@@ -350,11 +355,63 @@ namespace SpleefResurgence
                         CommandToEndRound = gameTemplate.FillCommand;
                         foreach (var map in gameTemplate.Maps)
                             MapsInfo.Add(map);
+                        if (args.Parameters.Count > 2)
+                        {
+                            switch (args.Parameters[2])
+                            {
+                                case "true":
+                                case "1":
+                                case "enable":
+                                    isJoinable = true;
+                                    break;
+                                case "false":
+                                case "0":
+                                case "disable":
+                                    isJoinable = false;
+                                    break;
+                                default:
+                                    args.Player.SendErrorMessage($"zzzzzzzzz yeah idk what you meant by {args.Parameters[2]}");
+                                    return;
+                            }
+                            if (args.Parameters.Count > 3)
+                            {
+                                switch (args.Parameters[3])
+                                {
+                                    case "true":
+                                    case "1":
+                                    case "enable":
+                                        isBettable = true;
+                                        break;
+                                    case "false":
+                                    case "0":
+                                    case "disable":
+                                        isBettable = false;
+                                        break;
+                                    default:
+                                        args.Player.SendErrorMessage($"zzzzzzzzz yeah idk what you meant by {args.Parameters[2]}");
+                                        return;
+                                }
+                            }
+                            else
+                                isBettable = false;
+                        }
+                        else
+                        {
+                            isJoinable = true;
+                            isBettable = false;
+                        }
 
                         isGaming = true;
-                        TSPlayer.All.SendMessage("Game started! Join with /j", Color.SeaShell);
+                        if (isJoinable)
+                            TSPlayer.All.SendMessage("Game started! Join with /j", Color.SeaShell);
+                        else
+                            TSPlayer.All.SendMessage("Game started!", Color.SeaShell);
+                        if (isBettable)
+                            TSPlayer.All.SendMessage("Start placing your bets! Bet with /bet username amount", Color.SeaShell);
+
                         ServerApi.Hooks.ServerLeave.Register(pluginInstance, OnPlayerLeave);
-                        Spleef.statusTimer.Start();
+                        ServerApi.Hooks.GameUpdate.Register(pluginInstance, OnWorldUpdate);
+                        UpdateScore();
                         return;
                     case "list":
                         ListStuff(args);
@@ -424,6 +481,11 @@ namespace SpleefResurgence
                             return;
                         }
                         StartRound(args, GameTypes, map, GimmickAmount);
+                        if (isBettable)
+                        {
+                            TSPlayer.All.SendMessage("All bets are closed now!", Color.SeaShell);
+                            isBettable = false;
+                        }
                         break;
                     case "stop":
                     case "end":
@@ -451,8 +513,9 @@ namespace SpleefResurgence
                         MapsInfo.Clear();
                         isGaming = false;
                         RoundCounter = 0;
+                        UpdateScore();
                         ServerApi.Hooks.ServerLeave.Deregister(pluginInstance, OnPlayerLeave);
-                        Spleef.statusTimer.Stop();
+                        ServerApi.Hooks.GameUpdate.Deregister(pluginInstance, OnWorldUpdate);
                         break;
                     case "add":
                         if (args.Parameters.Count != 2)
@@ -467,7 +530,26 @@ namespace SpleefResurgence
                             args.Player.SendErrorMessage("this guy does not exist bro");
                             return;
                         }
+                        
+                        if (PlayerInfo.ContainsKey(playername))
+                        {
+                            Playering playerToAddBack = PlayerInfo[playername];
+
+                            if (playerToAddBack.isIngame == true)
+                            {
+                                args.Player.SendErrorMessage("They are already in the game!");
+                                return;
+                            }
+
+                            playerToAddBack.isIngame = true;
+                            playerToAddBack.place = -1;
+                            TSPlayer.All.SendMessage($"{playername} has been addded back into the game!", Color.Green);
+                            UpdateScore();
+                            return;
+                        }
+
                         var playerToAdd = TSPlayer.FindByNameOrID(playername)[0];
+
                         Playering newPlayering = new()
                         {
                             score = 0,
@@ -479,6 +561,7 @@ namespace SpleefResurgence
                         playername = playerToAdd.Name;
                         PlayerInfo.Add(playername, newPlayering);
                         TSPlayer.All.SendMessage($"{playername} has been added to the game!", Color.Green);
+                        UpdateScore();
                         break;
                     case "remove":
                         if (args.Parameters.Count != 2)
@@ -502,6 +585,7 @@ namespace SpleefResurgence
                         PlayerInfo.Remove(name);
                         args.Player.SendSuccessMessage($"removed {name} from the game and awarded {points} Spleef Coins!");
                         TSPlayer.All.SendMessage($"{name} has been completely removed from the game!", Color.Red);
+                        UpdateScore();
                         break;
                     case "score":
                         AnnounceScore();
@@ -572,12 +656,49 @@ namespace SpleefResurgence
                 }
             }
         }
+        /*
+        private class Bet
+        {
+            string Gambler;
+            int Amount;
+            string Dissapointment;
+            public Bet(string name, int amount, string name2)
+            {
+                Gambler = name;
+                Amount = amount;
+                Dissapointment = name2;
+            }
+        }
 
+        List<Bet> Bets = new();
+
+        public void Betting (CommandArgs args) // /bet username amount
+        {
+            string gamblerName = args.Player.Account.Name;
+            int amount = Convert.ToInt32(args.Parameters[1]);
+            string fighterName = args.Parameters[0];
+            if (isBettable && isRoundBettable)
+            {
+                Bets.Add(new Bet(gamblerName, amount, fighterName));
+            }
+        }
+
+        public void Challenge (CommandArgs args) // /challenge username amount
+        {
+
+        }
+        */
         public void JoinGame (CommandArgs args)
         {
             if (!isGaming)
             {
                 args.Player.SendErrorMessage("There is no game to join!");
+                return;
+            }
+
+            if (!isJoinable)
+            {
+                args.Player.SendErrorMessage("You can't join this game!");
                 return;
             }
 
@@ -609,6 +730,7 @@ namespace SpleefResurgence
             };
             PlayerInfo.Add(playername, newPlayering);
             TSPlayer.All.SendMessage($"{playername} has joined the game!", Color.Green);
+            UpdateScore();
         }
 
         public void LeaveGame (CommandArgs args)
@@ -641,12 +763,14 @@ namespace SpleefResurgence
                 counter++;
                 TSPlayer.All.SendMessage($"{playername} has left the game midround! What a stinker...", Color.Red);
                 CheckRound(counter);
+                UpdateScore();
                 return;
             }
             
             playerToRemove = PlayerInfo[playername];
             playerToRemove.isIngame = false;
             TSPlayer.All.SendMessage($"{playername} has left the game!", Color.Red);
+            UpdateScore();
         }
 
         public void CheckScore(CommandArgs args)
@@ -656,7 +780,8 @@ namespace SpleefResurgence
                 args.Player.SendErrorMessage("There is no game active!"); //just in case
                 return;
             }
-            args.Player.SendInfoMessage(Spleef.statusScore);
+            UpdateScore();
+            args.Player.SendInfoMessage(statusScore);
         }
 
         private int counter = 0;
@@ -704,6 +829,31 @@ namespace SpleefResurgence
                 TSPlayer.All.SendMessage($"If you want to leave the game type /l", Color.LightPink);
                 isRound = false;
                 ServerApi.Hooks.NetGetData.Deregister(pluginInstance, OnGetData);
+                UpdateScore();
+            }
+        }
+
+        private string statusScore;
+        private string statusRound;
+        private const string thethingy = "\n\n\n\n\n\n\n\n\n\n\n\n";
+
+        private void OnWorldUpdate(EventArgs args)
+        {
+            foreach (TSPlayer player in TShock.Players)
+            {
+                if (player != null && player.Active && player.Account.Name != null)
+                {
+                    PlayerSettings settings = spleefSettings.GetSettings(player.Account.Name);
+                    if (settings.ShowScore)
+                    {
+                         if (settings.ShowLavarise)
+                            player.SendData(PacketTypes.Status, thethingy + Spleef.statusLavariseTime + "\n\n" + statusScore + "\n" + statusRound, number2: 1);
+                         else
+                            player.SendData(PacketTypes.Status, thethingy + statusScore + "\n" + statusRound, number2: 1);
+                    }
+                    else if (settings.ShowLavarise)
+                        player.SendData(PacketTypes.Status, thethingy + Spleef.statusLavariseTime, number2: 1);
+                }
             }
         }
 
@@ -731,7 +881,6 @@ namespace SpleefResurgence
                             inventoryEdit.AddItem(plr, 9, 1, 1299);
                             inventoryEdit.AddItem(plr, 40, 1, 776);
                             inventoryEdit.AddArmor(plr, 3, 158);
-                            inventoryEdit.AddArmor(plr, 4, MusicBox.netID);
                             CheckRound(counter);
                         }
                     }
@@ -772,24 +921,49 @@ namespace SpleefResurgence
                     }   
                 }
             }
+            UpdateScore();
         }
 
 
-        private void GiveEveryoneItems(int itemID, int stack)
+        private void GiveEveryoneItems(int itemID, int stack, int slot = -1)
         {
-
             foreach (KeyValuePair<string, Playering> player in PlayerInfo)
             {
                 if (player.Value.isIngame)
                 {
                     var plr = TSPlayer.FindByNameOrID(player.Key)[0];
-                    int slot = inventoryEdit.FindNextFreeSlot(plr);
+                    if (slot == -1)
+                        slot = inventoryEdit.FindNextFreeSlot(plr);
                     inventoryEdit.AddItem(plr, slot, stack, itemID);
                 }
             }
         }
 
-        private void GiveEveryoneArmor(int itemID)
+        private void GiveEveryoneMiscEquips(int itemID, int slot)
+        {
+            foreach (KeyValuePair<string, Playering> player in PlayerInfo)
+            {
+                if (player.Value.isIngame)
+                {
+                    var plr = TSPlayer.FindByNameOrID(player.Key)[0];
+                    inventoryEdit.AddMiscEquip(plr, slot, itemID);
+                }
+            }
+        }
+
+        private void ClearEveryoneInventory()
+        {
+            foreach (KeyValuePair<string, Playering> player in PlayerInfo)
+            {
+                if (player.Value.isIngame)
+                {
+                    var plr = TSPlayer.FindByNameOrID(player.Key)[0];
+                    inventoryEdit.ClearPlayerEverything(plr);
+                }
+            }
+        }
+
+        private void GiveEveryoneArmor(int itemID, int slot = -1)
         {
             Commands.HandleCommand(TSPlayer.Server, "/gamemode master");
             foreach (KeyValuePair<string, Playering> player in PlayerInfo)
@@ -797,7 +971,8 @@ namespace SpleefResurgence
                 if (player.Value.isIngame == true)
                 {
                     var plr = TSPlayer.FindByNameOrID(player.Key)[0];
-                    int slot = inventoryEdit.FindNextFreeAccessorySlot(plr);
+                    if (slot == -1)
+                        slot = inventoryEdit.FindNextFreeAccessorySlot(plr);
                     if (slot == -1)
                     {
                         slot = inventoryEdit.FindNextFreeSlot(plr);
@@ -841,52 +1016,56 @@ namespace SpleefResurgence
             switch (GameArena.MapName)
             {
                 case "normal":
-                    Spleef.statusRound += "[i:776] [c/00FFFF:Normal arena] [i:776]\n";
+                    statusRound += "[i:776] [c/00FFFF:Normal arena] [i:776]\n";
                     TSPlayer.All.SendMessage("[i:776] Normal arena [i:776]", Color.Cyan);
                     break;
                 case "gravedigger":
-                    Spleef.statusRound += "[i:4711] [c/FFFFFF:Gravedigger arena] [i:4711]\n";
+                    statusRound += "[i:4711] [c/FFFFFF:Gravedigger arena] [i:4711]\n";
                     TSPlayer.All.SendMessage("[i:4711] Gravedigger arena [i:4711]", Color.White);
                     GiveEveryoneItems(4711, 1);
                     break;
                 case "landmine":
-                    Spleef.statusRound += "[i:937] [c/00FF00:Landmine arena] [i:937]\n";
+                    statusRound += "[i:937] [c/00FF00:Landmine arena] [i:937]\n";
                     TSPlayer.All.SendMessage("[i:937] Landmine arena [i:937]", Color.Green);
                     break;
                 case "geyser":
-                    Spleef.statusRound += "[i:3722] [c/FFA500:Geyser arena] [i:3722]\n";
+                    statusRound += "[i:3722] [c/FFA500:Geyser arena] [i:3722]\n";
                     TSPlayer.All.SendMessage("[i:3722] Geyser arena [i:3722]", Color.Orange);
                     break;
                 case "rope":
-                    Spleef.statusRound += "[i:965] [c/bc8f8f:Rope arena] [i:965]\n";
+                    statusRound += "[i:965] [c/bc8f8f:Rope arena] [i:965]\n";
                     TSPlayer.All.SendMessage("[i:965] Rope arena [i:965]", Color.RosyBrown);
                     break;
                 case "minecart":
-                    Spleef.statusRound += "[i:2340] [c/808080:Minecart arena] [i:2340]\n";
+                    statusRound += "[i:2340] [c/808080:Minecart arena] [i:2340]\n";
                     TSPlayer.All.SendMessage("[i:2340] Minecart arena [i:2340]", Color.Gray);
                     break;
                 case "platform":
-                    Spleef.statusRound += "[i:776] [c/00FFFF:Platform arena] [i:776]\n";
+                    statusRound += "[i:776] [c/00FFFF:Platform arena] [i:776]\n";
                     TSPlayer.All.SendMessage("[i:776] Platform arena [i:776]", Color.Cyan);
                     break;
                 case "lavafall":
-                    Spleef.statusRound += "[i:207] [c/FF4500:Lavafall arena] [i:207]\n";
+                    statusRound += "[i:207] [c/FF4500:Lavafall arena] [i:207]\n";
                     TSPlayer.All.SendMessage("[i:207] Lavafall arena [i:207]", Color.OrangeRed);
                     break;
                 case "pigron":
-                    Spleef.statusRound += "[i:4613] [c/ff1493:Pigron arena] [i:4613]\n";
+                    statusRound += "[i:4613] [c/ff1493:Pigron arena] [i:4613]\n";
                     TSPlayer.All.SendMessage("[i:4613] Pigron arena [i:4613]", Color.DeepPink);
                     break;
                 case "sand":
-                    Spleef.statusRound += "[i:169] [c/FFFF00:Sand arena] [i:169]\n";
+                    statusRound += "[i:169] [c/FFFF00:Sand arena] [i:169]\n";
                     TSPlayer.All.SendMessage("[i:169] Sand arena [i:169]", Color.Yellow);
                     break;
                 case "meteor":
-                    Spleef.statusRound += "[i:116] [c/bc8f8f:Meteor arena] [i:116]\n";
+                    statusRound += "[i:116] [c/bc8f8f:Meteor arena] [i:116]\n";
                     TSPlayer.All.SendMessage("[i:116] Meteor arena [i:116]", Color.RosyBrown);
                     break;
+                case "honey":
+                    statusRound += "[i:1125] [c/FFFF00:Honey arena] [i:1125]\n";
+                    TSPlayer.All.SendMessage("[i:1125] Honey arena [i:1125]", Color.Yellow);
+                    break;
                 default:
-                    Spleef.statusRound += $"[i:776] [c/00FFFF:{GameArena.MapName}] arena [i:776]\n";
+                    statusRound += $"[i:776] [c/00FFFF:{GameArena.MapName} arena] [i:776]\n";
                     TSPlayer.All.SendMessage($"[i:776] {GameArena.MapName} arena [i:776]", Color.Cyan);
                     break;
             }
@@ -928,9 +1107,10 @@ namespace SpleefResurgence
                 gimmick = Gimmicks[0];
             }
 
-            Spleef.statusRound += $"{gimmick.Statusmsg}\n";
+            statusRound += $"{gimmick.Statusmsg}\n";
             TSPlayer.All.SendInfoMessage(gimmick.Statusmsg);
             gimmick.Action();
         }
     }
 }
+

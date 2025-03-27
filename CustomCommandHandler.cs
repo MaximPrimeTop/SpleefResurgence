@@ -99,11 +99,11 @@ namespace SpleefResurgence
         public static bool isCommanding = false;
 
 
-        private static async void LavaRiseTimer(int timeInSeconds)
+        private static async void LavaRiseTimer(int timeInSeconds, string text = "Time until lava rises: ")
         {
             for (int i = timeInSeconds; i > 0; i--)
             {
-                Spleef.statusLavariseTime = $"Time until lava rises: {i}";
+                Spleef.statusLavariseTime = text+i;
                 await Task.Delay(1000);
             }
         }

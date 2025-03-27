@@ -17,14 +17,14 @@ namespace SpleefResurgence
         private readonly CustomCommandHandler commandHandler;
         private readonly TileTracker tileTracker;
         private readonly InventoryEdit inventoryEdit;
+        private readonly SpleefUserSettings spleefSettings;
         private readonly SpleefGame spleefGame;
-        private SpleefUserSettings spleefSettings;
         public static System.Timers.Timer statusTimer, buffTimer;
 
         public override string Author => "MaximPrime";
         public override string Name => "Spleef Resurgence Plugin";
         public override string Description => "ok i think it works yipee.";
-        public override System.Version Version => new(1, 8);
+        public override System.Version Version => new(1, 8, 1);
 
         public Spleef(Main game) : base(game)
         {
@@ -32,8 +32,8 @@ namespace SpleefResurgence
             commandHandler = new CustomCommandHandler();
             tileTracker = new TileTracker(this);
             inventoryEdit = new InventoryEdit();
-            spleefGame = new SpleefGame(this, spleefCoin, inventoryEdit);
             spleefSettings = new SpleefUserSettings();
+            spleefGame = new SpleefGame(this, spleefCoin, inventoryEdit, spleefSettings);
         }
         public override void Initialize()
         {
@@ -67,78 +67,14 @@ namespace SpleefResurgence
 
             Commands.ChatCommands.Add(new Command("spleef.settings", spleefSettings.EditSettingsCommand, "settings", "toggle"));
 
-            Commands.ChatCommands.Add(new Command("spleef.testingshi", ManuallyStartAndStopTimer, "timerthingy"));
-
             GeneralHooks.ReloadEvent += OnServerReload;
             ServerApi.Hooks.GamePostInitialize.Register(this, OnWorldLoad);
-            ServerApi.Hooks.GameUpdate.Register(this, OnWorldUpdate);
-
+            ServerApi.Hooks.GameUpdate.Register(this, OnWorldUpdateRain);
+            ServerApi.Hooks.GameUpdate.Register(this, OnWorldUpdateBuff);
             SpleefCoin.MigrateUsersToSpleefDatabase();
-
-            statusTimer = new System.Timers.Timer(500);
-            statusTimer.Elapsed += StatusUpdate;
-            statusTimer.AutoReset = true;
-
-            buffTimer = new System.Timers.Timer(3000);
-            buffTimer.Elapsed += BuffUpdate;
-            buffTimer.AutoReset = true;
-            buffTimer.Start();
         }
 
-        private void ManuallyStartAndStopTimer(CommandArgs args)
-        {
-            if (statusTimer.Enabled)
-            {
-                statusTimer.Stop();
-                args.Player.SendSuccessMessage("disabled thsi shi");
-            }
-            else
-            {
-                statusTimer.Start();
-                args.Player.SendSuccessMessage("enab;ed thsi shi");
-            }    
-        }
-
-        public static string statusScore;
-        public static string statusRound;
         public static string statusLavariseTime;
-        public static string statusText;
-
-        public void StatusUpdate(Object source, ElapsedEventArgs e)
-        {
-            spleefGame.UpdateScore();
-            statusText = "\n\n\n\n\n\n\n\n\n\n\n\n" + statusScore + "\n" + statusRound;
-            foreach (TSPlayer player in TShock.Players)
-            {
-                PlayerSettings settings = spleefSettings.GetSettings(player.Account.Name);
-
-                if (player != null && player.Active && settings.ShowScore)
-                {
-                    if (settings.ShowLavarise)
-                        player.SendData(PacketTypes.Status, statusText + "\n\n" + statusLavariseTime, number2: 1);
-                    else
-                        player.SendData(PacketTypes.Status, statusText, number2: 1);
-                }
-                else if (player != null && player.Active && settings.ShowLavarise)
-                    player.SendData(PacketTypes.Status, "\n\n\n\n\n\n\n\n\n\n\n\n" + statusLavariseTime, number2: 1);
-            }
-        }
-
-        public void BuffUpdate(Object source, ElapsedEventArgs e)
-        {
-            foreach (TSPlayer player in TShock.Players)
-            {
-                PlayerSettings settings = spleefSettings.GetSettings(player.Account.Name);
-                if (player != null && player.Active && settings.GetBuffs)
-                {
-                    player.SetBuff(BuffID.Honey, 1000000000);
-                    player.SetBuff(BuffID.HeartLamp, 1000000000);
-                    player.SetBuff(BuffID.Campfire, 1000000000);
-                    player.SetBuff(BuffID.Shine, 1000000000);
-                    player.SetBuff(BuffID.NightOwl, 1000000000);            
-                }
-            }
-        }
 
         private void Die(CommandArgs args)
         {
@@ -156,7 +92,7 @@ namespace SpleefResurgence
             TShock.Utils.Broadcast(message, 255, 255, 255);
         }
 
-        private void OnWorldUpdate(EventArgs args)
+        private void OnWorldUpdateRain(EventArgs args)
         {
             if (Main.raining)
             {
@@ -164,6 +100,21 @@ namespace SpleefResurgence
                 Main.maxRaining = 0f;
                 Main.cloudAlpha = 0f;
                 TSPlayer.All.SendMessage("Rain has been stopped automatically.", Color.Aqua);
+            }
+        }
+
+        private void OnWorldUpdateBuff(EventArgs args)
+        {
+            foreach (TSPlayer player in TShock.Players)
+            {
+                if (player != null && player.Active && player.Account.Name != null && spleefSettings.GetSettings(player.Account.Name).GetBuffs)
+                {
+                    player.SetBuff(BuffID.Honey, 1000000000);
+                    player.SetBuff(BuffID.HeartLamp, 1000000000);
+                    player.SetBuff(BuffID.Campfire, 1000000000);
+                    player.SetBuff(BuffID.Shine, 1000000000);
+                    player.SetBuff(BuffID.NightOwl, 1000000000);
+                }
             }
         }
 
