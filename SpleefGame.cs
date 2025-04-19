@@ -9,6 +9,7 @@ using Terraria;
 using Terraria.ID;
 using TerrariaApi.Server;
 using TShockAPI;
+using System.Diagnostics;
 using Terraria.Audio;
 using IL.Terraria.GameContent.ItemDropRules;
 using static Org.BouncyCastle.Bcpg.Attr.ImageAttrib;
@@ -174,6 +175,11 @@ namespace SpleefResurgence
             public int place;
             public string accName;
             public bool isIngame;
+
+            public int GetPlace (int PlayerCount)
+            {
+                return PlayerCount - place;
+            }
         }
         private Dictionary<string, Playering> PlayerInfo = new();
         private List<Map> MapsInfo = new();
@@ -201,7 +207,6 @@ namespace SpleefResurgence
 
         private void StartRound(CommandArgs args, string[] GameType, Map GameArena, int GimmickAmount)
         {
-            UpdateScore();
             CountPlayers();
 
             if (PlayerCount <= 1)
@@ -246,6 +251,7 @@ namespace SpleefResurgence
                 SongName = "Otherworldly " + SongName;
             statusRound += $"[i:{MusicBox.netID}] [c/FFB6C1:Playing {SongName}] [i:{MusicBox.netID}]";
             TSPlayer.All.SendMessage($"[i:{MusicBox.netID}] Playing {SongName} [i:{MusicBox.netID}]", Color.LightPink);
+            UpdateScore();
         }
         //im tired brah
         private void AnnounceScore()
@@ -262,7 +268,21 @@ namespace SpleefResurgence
             foreach (KeyValuePair<string, Playering> plr in PlayerInfoList)
             {
                 if (plr.Value.isIngame == true)
-                    statusScore += $"[c/FF8559:{plr.Key} : {plr.Value.score}]\n";
+                {
+                    if (plr.Value.isAlive)
+                        statusScore += $"[c/FF8559:{plr.Key} : {plr.Value.score}] [i:58]\n";
+                    else
+                    {
+                        if (plr.Value.GetPlace(PlayerCount) == 1)
+                            statusScore += $"[c/FF8559:{plr.Key} : {plr.Value.score}] [i:4601]\n";
+                        else if (plr.Value.GetPlace(PlayerCount) == 2)
+                            statusScore += $"[c/FF8559:{plr.Key} : {plr.Value.score}] [i:4600]\n";
+                        else if (plr.Value.GetPlace(PlayerCount) == 3)
+                            statusScore += $"[c/FF8559:{plr.Key} : {plr.Value.score}] [i:4599]\n";
+                        else
+                            statusScore += $"[c/FF8559:{plr.Key} : {plr.Value.score}] [i:321]\n";
+                    }
+                }
                 else
                     statusScore += $"[c/898989:{plr.Key} : {plr.Value.score}]\n";
             }
@@ -542,7 +562,7 @@ namespace SpleefResurgence
                             }
 
                             playerToAddBack.isIngame = true;
-                            playerToAddBack.place = -1;
+                            playerToAddBack.place = -100;
                             TSPlayer.All.SendMessage($"{playername} has been addded back into the game!", Color.Green);
                             UpdateScore();
                             return;
@@ -715,8 +735,9 @@ namespace SpleefResurgence
                 }
 
                 playerToAdd.isIngame = true;
-                playerToAdd.place = -1;
+                playerToAdd.place = -100;
                 TSPlayer.All.SendMessage($"{playername} has joined back into the game!", Color.Green);
+                UpdateScore();
                 return;
             }    
             
@@ -724,7 +745,7 @@ namespace SpleefResurgence
             {
                 score = 0,
                 isAlive = false,
-                place = -1,
+                place = -100,
                 accName = args.Player.Account.Name,
                 isIngame = true
             };
@@ -786,42 +807,83 @@ namespace SpleefResurgence
 
         private int counter = 0;
 
+        private Stopwatch suicideTimer = new();
+
         private void CheckRound(int counter)
         {
             if (counter == PlayerCount - 1)
+            {
+                suicideTimer.Restart();
                 Commands.HandleCommand(TSPlayer.Server, CommandToEndRound);
+            }
 
             else if (counter == PlayerCount)
             {
+                bool isSuicide = false;
+
+                suicideTimer.Stop();
+                if (suicideTimer.Elapsed.TotalSeconds < 3)
+                    isSuicide = true;
                 PlayerInfoList = PlayerInfo
                    .OrderByDescending(entry => entry.Value.isIngame)
                    .ThenByDescending(entry => entry.Value.place)
                    .ToList();
-                if (PlayerCount == 2)
+                if (!isSuicide)
                 {
-                    PlayerInfoList[0].Value.score += 1;
-                    TSPlayer.All.SendMessage($"Round ended! {PlayerInfoList[0].Key} won this round!", Color.LimeGreen);
+                    if (PlayerCount == 2)
+                    {
+                        PlayerInfoList[0].Value.score += 1;
+                        TSPlayer.All.SendMessage($"Round ended! {PlayerInfoList[0].Key} won this round!", Color.LimeGreen);
+                    }
+                    else if (PlayerCount >= 3 && PlayerCount <= 6)
+                    {
+                        PlayerInfoList[0].Value.score += 2;
+                        PlayerInfoList[1].Value.score += 1;
+                        TSPlayer.All.SendMessage($"Round ended! {PlayerInfoList[0].Key} won this round and {PlayerInfoList[1].Key} got second place!", Color.LimeGreen);
+                    }
+                    else if (PlayerCount >= 7 && PlayerCount <= 9)
+                    {
+                        PlayerInfoList[0].Value.score += 3;
+                        PlayerInfoList[1].Value.score += 2;
+                        PlayerInfoList[2].Value.score += 1;
+                        TSPlayer.All.SendMessage($"Round ended! {PlayerInfoList[0].Key} won this round {PlayerInfoList[1].Key} got second place and {PlayerInfoList[2].Key} got third place!", Color.LimeGreen);
+                    }
+                    else if (PlayerCount >= 10 && PlayerCount <= 13)
+                    {
+                        PlayerInfoList[0].Value.score += 4;
+                        PlayerInfoList[1].Value.score += 3;
+                        PlayerInfoList[2].Value.score += 2;
+                        PlayerInfoList[3].Value.score += 1;
+                        TSPlayer.All.SendMessage($"Round ended! {PlayerInfoList[0].Key} won this round {PlayerInfoList[1].Key} got second place {PlayerInfoList[2].Key} got third place and {PlayerInfoList[3].Key} got fourth place!", Color.LimeGreen);
+                    }
                 }
-                else if (PlayerCount >= 3 && PlayerCount <= 6)
+                else
                 {
-                    PlayerInfoList[0].Value.score += 2;
-                    PlayerInfoList[1].Value.score += 1;
-                    TSPlayer.All.SendMessage($"Round ended! {PlayerInfoList[0].Key} won this round and {PlayerInfoList[1].Key} got second place!", Color.LimeGreen);
-                }
-                else if (PlayerCount >= 7 && PlayerCount <= 9)
-                {
-                    PlayerInfoList[0].Value.score += 3;
-                    PlayerInfoList[1].Value.score += 2;
-                    PlayerInfoList[2].Value.score += 1;
-                    TSPlayer.All.SendMessage($"Round ended! {PlayerInfoList[0].Key} won this round {PlayerInfoList[1].Key} got second place and {PlayerInfoList[2].Key} got third place!", Color.LimeGreen);
-                }
-                else if (PlayerCount >= 10 && PlayerCount <= 13)
-                {
-                    PlayerInfoList[0].Value.score += 4;
-                    PlayerInfoList[1].Value.score += 3;
-                    PlayerInfoList[2].Value.score += 2;
-                    PlayerInfoList[3].Value.score += 1;
-                    TSPlayer.All.SendMessage($"Round ended! {PlayerInfoList[0].Key} won this round {PlayerInfoList[1].Key} got second place {PlayerInfoList[2].Key} got third place and {PlayerInfoList[3].Key} got fourth place!", Color.LimeGreen);
+                    if (PlayerCount == 2)
+                    {
+                        TSPlayer.All.SendMessage($"Round ended! It's a suicide so no one gets points!", Color.DarkRed);
+                    }
+                    else if (PlayerCount >= 3 && PlayerCount <= 6)
+                    {
+                        PlayerInfoList[0].Value.score += 1;
+                        PlayerInfoList[1].Value.score += 1;
+                        TSPlayer.All.SendMessage($"Round ended! It's a suicide so {PlayerInfoList[0].Key} and {PlayerInfoList[1].Key} both get 1 point!", Color.DarkRed);
+                    }
+                    else if (PlayerCount >= 7 && PlayerCount <= 9)
+                    {
+                        PlayerInfoList[0].Value.score += 2;
+                        PlayerInfoList[1].Value.score += 2;
+                        PlayerInfoList[2].Value.score += 1;
+                        TSPlayer.All.SendMessage($"Round ended! It's a suicide so {PlayerInfoList[0].Key} and {PlayerInfoList[1].Key} get 2 points and {PlayerInfoList[2].Key} got third place!", Color.LimeGreen);
+                    }
+                    else if (PlayerCount >= 10 && PlayerCount <= 13)
+                    {
+                        PlayerInfoList[0].Value.score += 3;
+                        PlayerInfoList[1].Value.score += 3;
+                        PlayerInfoList[2].Value.score += 2;
+                        PlayerInfoList[3].Value.score += 1;
+                        TSPlayer.All.SendMessage($"Round ended! It's a suicide so {PlayerInfoList[0].Key} and {PlayerInfoList[1].Key} get 3 points {PlayerInfoList[2].Key} got third place and {PlayerInfoList[3].Key} got fourth place!", Color.LimeGreen);
+                    }
                 }
                 PlayerInfo = PlayerInfoList.ToDictionary(pair => pair.Key, pair => pair.Value);
 
@@ -885,6 +947,7 @@ namespace SpleefResurgence
                         }
                     }
                 }
+                UpdateScore();
             }
         }
 

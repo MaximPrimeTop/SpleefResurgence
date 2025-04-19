@@ -24,7 +24,7 @@ namespace SpleefResurgence
         public override string Author => "MaximPrime";
         public override string Name => "Spleef Resurgence Plugin";
         public override string Description => "ok i think it works yipee.";
-        public override System.Version Version => new(1, 8, 1);
+        public override System.Version Version => new(1, 8, 2);
 
         public Spleef(Main game) : base(game)
         {
@@ -107,7 +107,7 @@ namespace SpleefResurgence
         {
             foreach (TSPlayer player in TShock.Players)
             {
-                if (player != null && player.Active && player.Account.Name != null && spleefSettings.GetSettings(player.Account.Name).GetBuffs)
+                if (player != null && player.Active && player.IsLoggedIn && player.Account.Name != null && spleefSettings.GetSettings(player.Account.Name).GetBuffs)
                 {
                     player.SetBuff(BuffID.Honey, 1000000000);
                     player.SetBuff(BuffID.HeartLamp, 1000000000);

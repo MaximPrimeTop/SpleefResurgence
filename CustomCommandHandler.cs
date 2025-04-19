@@ -99,7 +99,7 @@ namespace SpleefResurgence
         public static bool isCommanding = false;
 
 
-        private static async void LavaRiseTimer(int timeInSeconds, string text = "Time until lava rises: ")
+        private static async void LavaRiseTimer(int timeInSeconds, string text = "[i:207] Time until lava rises: ")
         {
             for (int i = timeInSeconds; i > 0; i--)
             {
@@ -258,8 +258,7 @@ namespace SpleefResurgence
 
                                     Commands.HandleCommand(TSPlayer.Server, $"//p1 {x1} {y1}");
                                     Commands.HandleCommand(TSPlayer.Server, $"//p2 {x2} {y2}");
-                                    Commands.HandleCommand(TSPlayer.Server, "//cut");
-                                    Commands.HandleCommand(TSPlayer.Server, "//fill lava");
+                                    Commands.HandleCommand(TSPlayer.Server, "//set lava");
                                     LavaRiseTimer(waittime);
                                     await Task.Delay(waittime * 1000);
                                 }/*
