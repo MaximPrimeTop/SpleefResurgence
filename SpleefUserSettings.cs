@@ -58,7 +58,6 @@ namespace SpleefResurgence
                     return settings;
                 }
             }
-            TShock.Log.ConsoleError($"[Spleef Resurgence] This guy {username} stinks");
             return new PlayerSettings();
         }
 

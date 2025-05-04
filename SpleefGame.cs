@@ -24,9 +24,21 @@ namespace SpleefResurgence
 {
     public class SpleefGame
     {
-        public readonly int[] MusicBoxIDs = { 562, 1600, 564, 1601, 1596, 1602, 1603, 1604, 4077, 4079, 1597, 566, 1964, 1610, 568, 569, 570, 1598, 2742, 571, 573, 3237, 1605, 1608, 567, 572, 574, 1599, 1607, 5112, 4979, 1606,
-            4985, 4990, 563, 1609, 3371, 3236, 3235, 1963, 1965, 3370, 3044, 3796, 3869, 4078, 4080, 4081, 4082, 4237, 4356, 4357, 4358, 4421, 4606, 4991, 4992, 5006, 5014, 5015, 5016, 5017, 5018, 5019, 5020, 5021, 5022, 5023,
-            5024, 5025, 5026, 5027, 5028, 5029, 5030, 5031, 5032, 5033, 5034, 5035, 5036, 5037, 5038, 5039, 5040, 5044, 5362, 565};
+        public readonly int[] MusicBoxIDs = { 562, 1600, 564, 1601, 1596, 1602, 1603, 1604, 4077, 4079, 1597, 566, 1964, 1610, 568, 569, 570, 1598, 2742, 571, 573, 3237, 1605, 1608, 567, 572, 574,
+            1599, 1607, 5112, 4979, 1606, 4985, 4990, 563, 1609, 3371, 3236, 3235, 1963, 1965, 3370, 3044, 3796, 3869, 4078, 4080, 4081, 4082, 4237, 4356, 4357, 4358, 4421, 4606, 4991, 4992, 5006,
+            5014, 5015, 5016, 5017, 5018, 5019, 5020, 5021, 5022, 5023,5024, 5025, 5026, 5027, 5028, 5029, 5030, 5031, 5032, 5033, 5034, 5035, 5036, 5037, 5038, 5039, 5040, 5044, 5362, 565 };
+
+        public readonly int[] OneBreakTiles = { 0, 1, 6, 7, 8, 9, 22, 39, 40, 45, 46, 47, 56, 57, 59, 118, 119, 120, 121, 140, 145, 146, 147, 148, 150, 151, 152, 153, 154, 155, 156, 160, 161, 163,
+            164, 166, 167, 168, 169, 170, 175, 176, 177, 189, 196, 197, 200, 204, 206, 230, 262, 263, 264, 265, 266, 267, 268, 273, 274, 284, 325, 326, 327, 346, 347, 348, 367, 368, 371, 396, 397,
+            398, 399, 400, 401, 402, 403, 407, 408, 409, 415, 416, 417, 418, 472, 473, 478, 507, 508, 563, 659, 666, 667, 669, 670, 671, 672, 673, 674, 675, 676, 687, 688, 689, 690, 691 };
+
+        public readonly int[] OneBreakTilesPlatforms = { 30, 38, 54, 157, 158, 159, 188, 190, 191, 193, 195, 202, 311, 321, 322, 350, 357, 369, 370, 474, 479, 498, 500, 501, 502, 503, 562, 635 };
+
+        public readonly int[] TwoBreakTiles = { 25, 107, 117, 203, 221 };
+
+        public readonly int[] TwoBreakTilesPlatforms = { 41, 43, 44 };
+
+        public readonly int[] UnplaceableTiles = { 63, 64, 65, 66, 67, 68, 162, 192, 668 };
 
         public List<Gimmick> Gimmicks;
 
@@ -105,7 +117,10 @@ namespace SpleefResurgence
 
             new("builder", "[i:2325] [c/bc8f8f:Builder round] [i:2325]",
                 () => { SetEveryoneBuff(BuffID.Builder, 60000); }),
-            
+
+            new("mining", "[i:2322] [c/008080:Mining round] [i:2322]",
+                () => { SetEveryoneBuff(BuffID.Mining, 60000); }),
+
             new("panic", "[i:1290] [c/FF0000:Panic round] [i:1290]",
                 () => { SetEveryoneBuff(BuffID.Panic, 60000); }),
 
@@ -165,7 +180,7 @@ namespace SpleefResurgence
         private string CommandToEndRound;
         private int PlayerCount;
         private int RoundCounter;
-        Item MusicBox = new();
+        private Item MusicBox = new();
 
         private Random rnd = new();
         private class Playering
@@ -185,7 +200,7 @@ namespace SpleefResurgence
         private List<Map> MapsInfo = new();
         List<KeyValuePair<string, Playering>> PlayerInfoList;
 
-        bool isPlayerOnline(string playername)
+        public bool isPlayerOnline(string playername)
         {
             var players = TSPlayer.FindByNameOrID(playername);
             if (players == null || players.Count == 0)
@@ -219,7 +234,6 @@ namespace SpleefResurgence
             GiveEveryoneItems(ItemID.CobaltPickaxe, 1, 0);
             GiveEveryoneItems(ItemID.Binoculars, 1, 9);
             GiveEveryoneItems(ItemID.CobaltPickaxe, 1, 40);
-            GiveEveryoneArmor(ItemID.LuckyHorseshoe, 3);
             GiveEveryoneArmor(ItemID.Fedora, 18);
             GiveEveryoneArmor(ItemID.SolarDye, 19);
             SetEveryoneBuff(BuffID.Honey, 1000000);
@@ -244,8 +258,9 @@ namespace SpleefResurgence
 
 
             GiveEveryoneArmor(0, 18);
+            GiveEveryoneArmor(0, 19);
             MusicBox.SetDefaults(MusicBoxIDs[rnd.Next(MusicBoxIDs.Length)]);
-            GiveEveryoneArmor(MusicBox.netID, 19);
+            GiveEveryoneArmor(MusicBox.netID);
             string SongName = MusicBox.Name.Substring(MusicBox.Name.IndexOf('(') + 1, MusicBox.Name.IndexOf(')') - MusicBox.Name.IndexOf('(') - 1);
             if (MusicBox.Name.Split(' ')[0] == "Otherworldly")
                 SongName = "Otherworldly " + SongName;

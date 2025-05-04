@@ -5,6 +5,14 @@ namespace SpleefResurgence
 {
     public class CustomCommandHandler
     {
+        public static readonly int[] OneBreakTiles = { 0, 1, 6, 7, 8, 9, 22, 39, 40, 45, 46, 47, 56, 57, 59, 118, 119, 120, 121, 140, 145, 146, 147, 148, 150, 151, 152, 153, 154, 155, 156, 160, 161, 163,
+            164, 166, 167, 168, 169, 170, 175, 176, 177, 189, 196, 197, 200, 204, 206, 230, 262, 263, 264, 265, 266, 267, 268, 273, 274, 284, 325, 326, 327, 346, 347, 348, 367, 368, 371, 396, 397,
+            398, 399, 400, 401, 402, 403, 407, 408, 409, 415, 416, 417, 418, 472, 473, 478, 507, 508, 563, 659, 666, 667, 669, 670, 671, 672, 673, 674, 675, 676, 687, 688, 689, 690, 691 };
+
+        private static int OneBreakTile;
+
+        private static Random rnd = new();
+
         public static PluginSettings Config => PluginSettings.Config;
 
         public void AddCustomCommand(CommandArgs args)
@@ -235,9 +243,11 @@ namespace SpleefResurgence
                         break;
                     }
                     isCommanding = false;
+                    player.SendSuccessMessage($"stopped command {name} but actually all commands");
                     break;
                 default:
                     {
+                        player.SendSuccessMessage($"doing command {name}");
                         isCommanding = true;
                         for (int i = 0; i < CmdList.Count && isCommanding; i++)
                         {
@@ -262,21 +272,47 @@ namespace SpleefResurgence
                                     LavaRiseTimer(waittime);
                                     await Task.Delay(waittime * 1000);
                                 }/*
-                                else if (stuff[0] == "waterrise")
+                                else if (stuff[0] == "rise")
+                                {
+                                    string type = stuff[1];
+                                    int x1 = Convert.ToInt32(stuff[2]);
+                                    int y1 = Convert.ToInt32(stuff[3]);
+                                    int x2 = Convert.ToInt32(stuff[4]);
+                                    int y2 = Convert.ToInt32(stuff[5]);
+                                    int waittime = Convert.ToInt32(stuff[6]);
+
+                                    Commands.HandleCommand(TSPlayer.Server, $"//p1 {x1} {y1}");
+                                    Commands.HandleCommand(TSPlayer.Server, $"//p2 {x2} {y2}");
+                                    Commands.HandleCommand(TSPlayer.Server, $"//set {type}");
+                                    LavaRiseTimer(waittime);
+                                    await Task.Delay(waittime * 1000);
+                                }*/
+                                else if (stuff[0] == "replaceblock")
                                 {
                                     int x1 = Convert.ToInt32(stuff[1]);
                                     int y1 = Convert.ToInt32(stuff[2]);
                                     int x2 = Convert.ToInt32(stuff[3]);
                                     int y2 = Convert.ToInt32(stuff[4]);
-                                    int waittime = Convert.ToInt32(stuff[5]);
+                                    if (stuff.Length != 6)
+                                        OneBreakTile = OneBreakTiles[rnd.Next(OneBreakTiles.Length)];
+                                    else
+                                        OneBreakTile = Convert.ToInt32(stuff[5]);
 
                                     Commands.HandleCommand(TSPlayer.Server, $"//p1 {x1} {y1}");
                                     Commands.HandleCommand(TSPlayer.Server, $"//p2 {x2} {y2}");
-                                    Commands.HandleCommand(TSPlayer.Server, "//cut");
-                                    Commands.HandleCommand(TSPlayer.Server, "//fill water");
-                                    LavaRiseTimer(waittime);
-                                    await Task.Delay(waittime * 1000);
-                                }*/
+                                    Commands.HandleCommand(TSPlayer.Server, $"//replace dirt {OneBreakTile}");
+                                }
+                                else if (stuff[0] == "replacemore")
+                                {
+                                    int x1 = Convert.ToInt32(stuff[1]);
+                                    int y1 = Convert.ToInt32(stuff[2]);
+                                    int x2 = Convert.ToInt32(stuff[3]);
+                                    int y2 = Convert.ToInt32(stuff[4]);
+                                    
+                                    Commands.HandleCommand(TSPlayer.Server, $"//p1 {x1} {y1}");
+                                    Commands.HandleCommand(TSPlayer.Server, $"//p2 {x2} {y2}");
+                                    Commands.HandleCommand(TSPlayer.Server, $"//replace dirt {OneBreakTile}");
+                                }
                                 else if (stuff[0] == "timer")
                                     LavaRiseTimer(Convert.ToInt32(command[6..]));
                                 else
