@@ -19,12 +19,13 @@ namespace SpleefResurgence
         private readonly InventoryEdit inventoryEdit;
         private readonly SpleefUserSettings spleefSettings;
         private readonly SpleefGame spleefGame;
+        private readonly BlockSpam blockSpam;
         public static System.Timers.Timer statusTimer, buffTimer;
 
         public override string Author => "MaximPrime";
         public override string Name => "Spleef Resurgence Plugin";
         public override string Description => "ok i think it works yipee.";
-        public override System.Version Version => new(1, 8, 3);
+        public override System.Version Version => new(1, 9);
 
         public Spleef(Main game) : base(game)
         {
@@ -34,6 +35,7 @@ namespace SpleefResurgence
             inventoryEdit = new InventoryEdit();
             spleefSettings = new SpleefUserSettings();
             spleefGame = new SpleefGame(this, spleefCoin, inventoryEdit, spleefSettings);
+            blockSpam = new BlockSpam(this, spleefSettings);
         }
         public override void Initialize()
         {
@@ -50,6 +52,7 @@ namespace SpleefResurgence
 
             Commands.ChatCommands.Add(new Command("spleef.tiletrack", tileTracker.ToggleTileTracking, "tilepos"));
             Commands.ChatCommands.Add(new Command("spleef.coolsay", Coolsay, "coolsay"));
+            Commands.ChatCommands.Add(new Command("spleef.track", blockSpam.ToggleTrackingCommand, "track"));
 
             Commands.ChatCommands.Add(new Command("spleef.coin.admin", spleefCoin.AddCoinsCommand, "addcoin"));
             Commands.ChatCommands.Add(new Command("spleef.coin.user", spleefCoin.GetCoinsCommand, "coin", "c"));

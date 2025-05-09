@@ -958,6 +958,7 @@ namespace SpleefResurgence
                             inventoryEdit.AddItem(plr, 9, 1, 1299);
                             inventoryEdit.AddItem(plr, 40, 1, 776);
                             inventoryEdit.AddArmor(plr, 3, 158);
+                            inventoryEdit.AddArmor(plr, 4, MusicBox.netID);
                             CheckRound(counter);
                         }
                     }
@@ -1149,6 +1150,23 @@ namespace SpleefResurgence
             }
             Commands.HandleCommand(TSPlayer.Server, GameArena.MapCommand);
             TpAndWebEveryone(GameArena.tpposx, GameArena.tpposy);
+            if (GameArena.Items.Any())
+            {
+                foreach (var item in GameArena.Items)
+                {
+                    if (item.Type == "inventory")
+                        GiveEveryoneItems(item.ID, item.Stack, item.Slot);
+                    else if (item.Type == "armor")
+                        GiveEveryoneArmor(item.ID, item.Slot);
+                    else if (item.Type == "misc")
+                        GiveEveryoneMiscEquips(item.ID, item.Slot);
+                }
+            }
+            if (GameArena.Buffs.Any())
+            {
+                foreach (var buff in GameArena.Buffs)
+                    SetEveryoneBuff(buff.ID, buff.TimeInSeconds * 60);
+            }
         }
 
 

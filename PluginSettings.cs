@@ -11,14 +11,24 @@ namespace SpleefResurgence
         public List<string> CommandList { get; set; }
     }
 
-    public class GameTemplate
+    public class ItemGimmick
     {
-        public string Name { get; set; }
-        [JsonProperty("Lavarise command")]
-        public string LavariseCommand { get; set; }
-        [JsonProperty("Fill command")]
-        public string FillCommand { get; set; }
-        public List<Map> Maps { get; set; }
+        [JsonProperty("Type")]
+        public string Type { get; set; } = "inventory";
+        [JsonProperty("ID")]
+        public int ID { get; set; }
+        [JsonProperty("Stack")]
+        public int Stack { get; set; } = 1;
+        [JsonProperty("Slot")]
+        public int Slot { get; set; } = -1;
+    }
+
+    public class BuffGimmick
+    {
+        [JsonProperty("ID")]
+        public int ID { get; set; }
+        [JsonProperty("Time")]
+        public int TimeInSeconds { get; set; } = 60;
     }
 
     public class Map
@@ -31,6 +41,20 @@ namespace SpleefResurgence
         public int tpposx { get; set; }
         [JsonProperty("Arena spawn Y")]
         public int tpposy { get; set; }
+        [JsonProperty("Additional items")]
+        public List<ItemGimmick> Items { get; set; } = new();
+        [JsonProperty("Additional buffs")]
+        public List<BuffGimmick> Buffs { get; set; } = new();
+    }
+
+    public class GameTemplate
+    {
+        public string Name { get; set; }
+        [JsonProperty("Lavarise command")]
+        public string LavariseCommand { get; set; }
+        [JsonProperty("Fill command")]
+        public string FillCommand { get; set; }
+        public List<Map> Maps { get; set; }
     }
 
     public class InventorySlot
@@ -40,7 +64,7 @@ namespace SpleefResurgence
         public int Slot { get; set; }
         [JsonProperty("Item ID")]
         public int ItemID { get; set; }
-        public int Stack { get; set; }
+        public int Stack { get; set; } = 1;
     }
 
     public class InventoryTemplate

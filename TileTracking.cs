@@ -55,7 +55,7 @@ namespace SpleefResurgence
                 var x = reader.ReadInt16();
                 var y = reader.ReadInt16();
 
-                if (action is 0 or 1)
+                if (action is 0 or 1 or 5 or 6 or 10 or 11 or 12 or 13 or 16 or 17)
                 {
                     args.Handled = true;
                     NetMessage.SendTileSquare(player.Index, x, y, 1);
