@@ -246,7 +246,7 @@ namespace SpleefResurgence
                         // Insert the username into the Spleef Coins database
                         string insertQuery = @"
                                 INSERT OR IGNORE INTO PlayerCoins (Username, Coins) VALUES (@Username, 0);
-                                INSERT OR IGNORE INTO PlayerSettings (Username, ShowScore, GetBuffs, ShowLavarise, BlockSpamDebug) VALUES (@Username, 1, 1, 1 0);";
+                                INSERT OR IGNORE INTO PlayerSettings (Username, ShowScore, GetBuffs, ShowLavarise, BlockSpamDebug) VALUES (@Username, 1, 1, 1, 0);";
                             ;
 
                         using var insertCommand = new SqliteCommand(insertQuery, spleefConnection);

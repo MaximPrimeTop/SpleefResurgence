@@ -14,14 +14,14 @@ namespace SpleefResurgence
             this.pluginInstance = plugin;
         }
 
-        private readonly Dictionary<int, bool> trackingPlayers = new();
+        private readonly Dictionary<string, bool> trackingPlayers = new();
 
         public void ToggleTileTracking(CommandArgs args)
         {
-            int playerIndex = args.Player.Index;
-            if (trackingPlayers.ContainsKey(playerIndex) && trackingPlayers[playerIndex])
+            string playerName = args.Player.Name;
+            if (trackingPlayers.ContainsKey(playerName) && trackingPlayers[playerName])
             {
-                trackingPlayers[playerIndex] = false;
+                trackingPlayers[playerName] = false;
                 args.Player.SendSuccessMessage("Tile tracking disabled.");
                 foreach (var plr in trackingPlayers)
                 {
@@ -35,7 +35,7 @@ namespace SpleefResurgence
             else
             {
                 ServerApi.Hooks.NetGetData.Register(pluginInstance, OnTileEdit);
-                trackingPlayers[playerIndex] = true;
+                trackingPlayers[playerName] = true;
                 args.Player.SendSuccessMessage("Tile tracking enabled. Interact with a tile to see its position.");
             }
         }
@@ -46,7 +46,7 @@ namespace SpleefResurgence
                 return;
 
             var player = TShock.Players[args.Msg.whoAmI];
-            if (player == null || !player.Active || !trackingPlayers.ContainsKey(player.Index) || !trackingPlayers[player.Index])
+            if (player == null || !player.Active || !trackingPlayers.ContainsKey(player.Name) || !trackingPlayers[player.Name])
                 return;
 
             using (var reader = new BinaryReader(new MemoryStream(args.Msg.readBuffer, args.Index, args.Length)))

@@ -1,24 +1,9 @@
-﻿using IL.Terraria.GameContent.ObjectInteractions;
-using Microsoft.Xna.Framework;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Microsoft.Xna.Framework;
 using Terraria;
 using Terraria.ID;
 using TerrariaApi.Server;
 using TShockAPI;
 using System.Diagnostics;
-using Terraria.Audio;
-using IL.Terraria.GameContent.ItemDropRules;
-using static Org.BouncyCastle.Bcpg.Attr.ImageAttrib;
-using GetText.Loaders;
-using Newtonsoft.Json;
-using System.Collections;
-using Steamworks;
-using Microsoft.Xna.Framework.Input;
-using Org.BouncyCastle.Asn1.X509;
 
 namespace SpleefResurgence
 {
@@ -28,11 +13,11 @@ namespace SpleefResurgence
             1599, 1607, 5112, 4979, 1606, 4985, 4990, 563, 1609, 3371, 3236, 3235, 1963, 1965, 3370, 3044, 3796, 3869, 4078, 4080, 4081, 4082, 4237, 4356, 4357, 4358, 4421, 4606, 4991, 4992, 5006,
             5014, 5015, 5016, 5017, 5018, 5019, 5020, 5021, 5022, 5023,5024, 5025, 5026, 5027, 5028, 5029, 5030, 5031, 5032, 5033, 5034, 5035, 5036, 5037, 5038, 5039, 5040, 5044, 5362, 565 };
 
-        public readonly int[] OneBreakTiles = { 0, 1, 6, 7, 8, 9, 22, 39, 40, 45, 46, 47, 56, 57, 59, 118, 119, 120, 121, 140, 145, 146, 147, 148, 150, 151, 152, 153, 154, 155, 156, 160, 161, 163,
-            164, 166, 167, 168, 169, 170, 175, 176, 177, 189, 196, 197, 200, 204, 206, 230, 262, 263, 264, 265, 266, 267, 268, 273, 274, 284, 325, 326, 327, 346, 347, 348, 367, 368, 371, 396, 397,
+        public readonly static ushort[] OneBreakTiles = { 0, 1, 6, 7, 8, 9, 22, 39, 40, 45, 46, 47, 56, 57, 59, 118, 119, 120, 121, 140, 145, 146, 147, 148, 150, 151, 152, 153, 154, 155, 156, 160, 163,
+            164, 166, 167, 168, 169, 175, 176, 177, 189, 196, 197, 200, 204, 206, 230, 262, 263, 264, 265, 266, 267, 268, 273, 274, 284, 325, 326, 327, 346, 347, 348, 367, 368, 371, 396, 397,
             398, 399, 400, 401, 402, 403, 407, 408, 409, 415, 416, 417, 418, 472, 473, 478, 507, 508, 563, 659, 666, 667, 669, 670, 671, 672, 673, 674, 675, 676, 687, 688, 689, 690, 691 };
 
-        public readonly int[] OneBreakTilesPlatforms = { 30, 38, 54, 157, 158, 159, 188, 190, 191, 193, 195, 202, 311, 321, 322, 350, 357, 369, 370, 474, 479, 498, 500, 501, 502, 503, 562, 635 };
+        public readonly int[] OneBreakTilesPlatforms = { 30, 38, 54, 157, 158, 159, 161, 188, 190, 191, 193, 195, 202, 311, 321, 322, 350, 357, 369, 370, 474, 479, 498, 500, 501, 502, 503, 562, 635 };
 
         public readonly int[] TwoBreakTiles = { 25, 107, 117, 203, 221 };
 
@@ -79,6 +64,12 @@ namespace SpleefResurgence
             new("bombfish", "[i:3196] [c/A9A9A9:Bomb fish round] [i:3196]",
                 () => { GiveEveryoneItems(3196, 50); }),
 
+            new("bombfish", "[i:3115] [c/FFC0CB:Bouncy bomb round] [i:3115]",
+                () => { GiveEveryoneItems(3115, 50); }),
+
+            new("lavabomb", "[i:4825] [c/FFA500:Bouncy bomb round] [i:4825]",
+                () => { ; }),
+
             new("rocket15", "[i:759] [c/FFA500:Rocket round (15 rockets)] [i:759]",
                 () => { GiveEveryoneItems(759, 1); GiveEveryoneItems(772, 15, 54); }),
 
@@ -124,6 +115,12 @@ namespace SpleefResurgence
             new("panic", "[i:1290] [c/FF0000:Panic round] [i:1290]",
                 () => { SetEveryoneBuff(BuffID.Panic, 60000); }),
 
+            new("invisibility", "[i:297] [c/00FFFF:Invisility round] [i:297]",
+                () => { SetEveryoneBuff(BuffID.Invisibility, 60000); }),
+
+            new("featherfall", "[i:320] [c/00FFFF:Featherfall round] [i:320]",
+                () => { SetEveryoneBuff(BuffID.Featherfall, 60000); }),
+
             new("slime", "[i:2430] [c/00bfff:Slime saddle round] [i:2430]",
                 () => { GiveEveryoneMiscEquips(2430, 3); }),
 
@@ -132,6 +129,9 @@ namespace SpleefResurgence
 
             new("golf", "[i:4264] [c/FFFFFF:Golf cart round] [i:4264]",
                 () => { GiveEveryoneMiscEquips(4264, 3); }),
+
+            new("golf", "[i:3260] [c/800080:Unicorn round] [i:3260]",
+                () => { GiveEveryoneMiscEquips(3260, 3); }),
 
             new("fleshknuckles", "[i:3016] [c/FF0000:Flesh knuckles round] [i:3016]",
                 () => { GiveEveryoneArmor(3016); }),
@@ -146,6 +146,7 @@ namespace SpleefResurgence
         private readonly InventoryEdit inventoryEdit;
         private readonly SpleefCoin spleefCoin;
         private readonly SpleefUserSettings spleefSettings;
+        private BlockSpam blockSpam;
 
         public SpleefGame(Spleef plugin, SpleefCoin spleefCoin, InventoryEdit inventoryEdit, SpleefUserSettings spleefSettings)
         {
@@ -154,6 +155,11 @@ namespace SpleefResurgence
             this.spleefCoin = spleefCoin;
             this.spleefSettings = spleefSettings;
             PutGimmicks();
+        }
+
+        public void SetBlockSpam(BlockSpam blockSpam)
+        {
+            this.blockSpam = blockSpam;
         }
 
         public class Gimmick
@@ -172,12 +178,13 @@ namespace SpleefResurgence
 
 
         private bool isGaming = false;
-        private bool isRound = false;
+        public bool isRound = false;
         private bool isJoinable = false;
         private bool isBettable = false;
 
         private string CommandToStartRound;
         private string CommandToEndRound;
+        private string CommandToRandomizeDirt;
         private int PlayerCount;
         private int RoundCounter;
         private Item MusicBox = new();
@@ -185,11 +192,18 @@ namespace SpleefResurgence
         private Random rnd = new();
         private class Playering
         {
-            public int score;
-            public bool isAlive;
-            public int place;
+            public int score = 0;
+            public bool isAlive = false;
+            public int place = -100;
             public string accName;
-            public bool isIngame;
+            public bool isIngame = true;
+            public bool isReady = false;
+
+            public Playering(string accName, int score = 0)
+            {
+                this.score = score;
+                this.accName = accName;
+            }
 
             public int GetPlace (int PlayerCount)
             {
@@ -255,7 +269,6 @@ namespace SpleefResurgence
             ChooseArena(GameArena);
             for (int i = 0; i < GimmickAmount; i++)
                 ChooseGimmick(GameType[i]);
-
 
             GiveEveryoneArmor(0, 18);
             GiveEveryoneArmor(0, 19);
@@ -388,6 +401,7 @@ namespace SpleefResurgence
                         
                         CommandToStartRound = gameTemplate.LavariseCommand;
                         CommandToEndRound = gameTemplate.FillCommand;
+                        CommandToRandomizeDirt = gameTemplate.RandomizeDirtCommand;
                         foreach (var map in gameTemplate.Maps)
                             MapsInfo.Add(map);
                         if (args.Parameters.Count > 2)
@@ -549,6 +563,7 @@ namespace SpleefResurgence
                         isGaming = false;
                         RoundCounter = 0;
                         UpdateScore();
+                        blockSpam.FullTimerAnnounce();
                         ServerApi.Hooks.ServerLeave.Deregister(pluginInstance, OnPlayerLeave);
                         ServerApi.Hooks.GameUpdate.Deregister(pluginInstance, OnWorldUpdate);
                         break;
@@ -585,14 +600,8 @@ namespace SpleefResurgence
 
                         var playerToAdd = TSPlayer.FindByNameOrID(playername)[0];
 
-                        Playering newPlayering = new()
-                        {
-                            score = 0,
-                            isAlive = false,
-                            place = 0,
-                            accName = playerToAdd.Account.Name,
-                            isIngame = true
-                        };
+                        Playering newPlayering = new(playerToAdd.Account.Name);
+
                         playername = playerToAdd.Name;
                         PlayerInfo.Add(playername, newPlayering);
                         TSPlayer.All.SendMessage($"{playername} has been added to the game!", Color.Green);
@@ -754,16 +763,10 @@ namespace SpleefResurgence
                 TSPlayer.All.SendMessage($"{playername} has joined back into the game!", Color.Green);
                 UpdateScore();
                 return;
-            }    
-            
-            Playering newPlayering = new()
-            {
-                score = 0,
-                isAlive = false,
-                place = -100,
-                accName = args.Player.Account.Name,
-                isIngame = true
-            };
+            }
+
+            Playering newPlayering = new(args.Player.Account.Name);
+
             PlayerInfo.Add(playername, newPlayering);
             TSPlayer.All.SendMessage($"{playername} has joined the game!", Color.Green);
             UpdateScore();
@@ -809,7 +812,16 @@ namespace SpleefResurgence
             UpdateScore();
         }
 
-        public void CheckScore(CommandArgs args)
+        public void GetReady(CommandArgs args)
+        {
+            var playerReady = args.Player;
+            if (isGaming && !isRound)
+            {
+                PlayerInfo[playerReady.Name].isReady = true;
+            }
+        }
+
+            public void CheckScore(CommandArgs args)
         {
             if (!isGaming)
             {
@@ -829,6 +841,7 @@ namespace SpleefResurgence
             if (counter == PlayerCount - 1)
             {
                 suicideTimer.Restart();
+                Commands.HandleCommand(TSPlayer.Server, $"{CommandToStartRound} stop");
                 Commands.HandleCommand(TSPlayer.Server, CommandToEndRound);
             }
 
@@ -1044,7 +1057,6 @@ namespace SpleefResurgence
 
         private void GiveEveryoneArmor(int itemID, int slot = -1)
         {
-            Commands.HandleCommand(TSPlayer.Server, "/gamemode master");
             foreach (KeyValuePair<string, Playering> player in PlayerInfo)
             {
                 if (player.Value.isIngame == true)
@@ -1061,7 +1073,6 @@ namespace SpleefResurgence
                         inventoryEdit.AddArmor(plr, slot, itemID);
                 }
             }
-            Commands.HandleCommand(TSPlayer.Server, "/gamemode normal");
         }
 
         private void SetEveryoneBuff(int BuffID, int time)
@@ -1076,16 +1087,29 @@ namespace SpleefResurgence
             }
         }
 
-        private void TpAndWebEveryone(int x1, int y1)
+        private void TpAndWebEveryone(List<ArenaSpawn> ArenaSpawns)
         {
-            foreach (KeyValuePair<string, Playering> player in PlayerInfo)
+            if (ArenaSpawns.Count == 0)
+            {
+                foreach (var player in PlayerInfo)
+                {
+                    if (player.Value.isIngame == true)
+                        player.Value.isAlive = true;
+                }
+                return;
+            }
+
+            var ShuffledList = PlayerInfo.ToList().OrderBy(a => rnd.Next()).ToList();
+            int counter = 0;
+            foreach (KeyValuePair<string, Playering> player in ShuffledList)
             {
                 if (player.Value.isIngame == true)
                 {
                     var plr = TSPlayer.FindByNameOrID(player.Key)[0];
-                    plr.Teleport(x1 * 16, y1 * 16);
+                    plr.Teleport(ArenaSpawns[counter % ArenaSpawns.Count].X * 16, ArenaSpawns[counter % ArenaSpawns.Count].Y * 16);
                     plr.SetBuff(BuffID.Webbed, 100);
                     player.Value.isAlive = true;
+                    counter++;
                 }
             }
         }
@@ -1149,7 +1173,9 @@ namespace SpleefResurgence
                     break;
             }
             Commands.HandleCommand(TSPlayer.Server, GameArena.MapCommand);
-            TpAndWebEveryone(GameArena.tpposx, GameArena.tpposy);
+            if (CommandToRandomizeDirt != "null")
+                Commands.HandleCommand(TSPlayer.Server, CommandToRandomizeDirt);
+            TpAndWebEveryone(GameArena.ArenaSpawns);
             if (GameArena.Items.Any())
             {
                 foreach (var item in GameArena.Items)
@@ -1170,7 +1196,7 @@ namespace SpleefResurgence
         }
 
 
-        private async void Boulders(string GameType)
+        private async void Boulders(string GameType, int itemID = -1, int itemAmount = 1)
         {
             await Task.Delay(20000);
 
@@ -1187,6 +1213,14 @@ namespace SpleefResurgence
                 case "cactus":
                     GiveEveryoneItems(4390, 25);
                     TSPlayer.All.SendMessage("[i:4390] Boulders have been given out! [i:4390]", Color.DeepPink);
+                    break;
+                case "lavabomb":
+                    GiveEveryoneItems(4825, 1);
+                    TSPlayer.All.SendMessage("[i:4825] Lava bombs have been given out! Oh boy! [i:4825]", Color.DeepPink);
+                    break;
+                default:
+                    GiveEveryoneItems(itemID, itemAmount);
+                    TSPlayer.All.SendMessage($"[i:{itemID}] {itemID} have been given out! ^_^ [i:{itemID}]", Color.DeepPink);
                     break;
             }
         }

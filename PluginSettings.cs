@@ -31,16 +31,22 @@ namespace SpleefResurgence
         public int TimeInSeconds { get; set; } = 60;
     }
 
+    public class ArenaSpawn
+    {
+        [JsonProperty("X")]
+        public int X { get; set; }
+        [JsonProperty("Y")]
+        public int Y { get; set; }
+    }
+
     public class Map
     {
         [JsonProperty("Map Name")]
         public string MapName { get; set; }
         [JsonProperty("Map Command")]
-        public string MapCommand { get; set; }
-        [JsonProperty("Arena spawn X")]
-        public int tpposx { get; set; }
-        [JsonProperty("Arena spawn Y")]
-        public int tpposy { get; set; }
+        public string MapCommand { get; set; } = "null";
+        [JsonProperty("Arena spawns")]
+        public List<ArenaSpawn> ArenaSpawns { get; set; } = new();
         [JsonProperty("Additional items")]
         public List<ItemGimmick> Items { get; set; } = new();
         [JsonProperty("Additional buffs")]
@@ -51,9 +57,11 @@ namespace SpleefResurgence
     {
         public string Name { get; set; }
         [JsonProperty("Lavarise command")]
-        public string LavariseCommand { get; set; }
+        public string LavariseCommand { get; set; } = "null";
         [JsonProperty("Fill command")]
-        public string FillCommand { get; set; }
+        public string FillCommand { get; set; } = "null";
+        [JsonProperty("Dirt randomize command")]
+        public string RandomizeDirtCommand { get; set; } = "null";
         public List<Map> Maps { get; set; }
     }
 

@@ -6,6 +6,8 @@ using TShockAPI.Hooks;
 using System.Timers;
 using Terraria.ID;
 using Steamworks;
+using System.Reflection;
+using Terraria.DataStructures;
 
 namespace SpleefResurgence
 {
@@ -21,11 +23,12 @@ namespace SpleefResurgence
         private readonly SpleefGame spleefGame;
         private readonly BlockSpam blockSpam;
         public static System.Timers.Timer statusTimer, buffTimer;
+        public static Random rnd = new();
 
         public override string Author => "MaximPrime";
         public override string Name => "Spleef Resurgence Plugin";
         public override string Description => "ok i think it works yipee.";
-        public override System.Version Version => new(1, 9);
+        public override System.Version Version => new(1, 9, 1);
 
         public Spleef(Main game) : base(game)
         {
@@ -35,7 +38,8 @@ namespace SpleefResurgence
             inventoryEdit = new InventoryEdit();
             spleefSettings = new SpleefUserSettings();
             spleefGame = new SpleefGame(this, spleefCoin, inventoryEdit, spleefSettings);
-            blockSpam = new BlockSpam(this, spleefSettings);
+            blockSpam = new BlockSpam(this, spleefSettings, spleefGame);
+            spleefGame.SetBlockSpam(blockSpam);
         }
         public override void Initialize()
         {
@@ -44,6 +48,7 @@ namespace SpleefResurgence
             Commands.ChatCommands.Add(new Command("spleef.customcommand", commandHandler.AddCustomCommand, "addcommand", "addc"));
             Commands.ChatCommands.Add(new Command("spleef.customcommand", commandHandler.RemoveCustomCommand, "delcommand", "delc"));
             Commands.ChatCommands.Add(new Command("spleef.customcommand", commandHandler.ListCustomCommand, "listcommand", "listc"));
+            Commands.ChatCommands.Add(new Command("spleef.customcommand", commandHandler.ListActiveCommand, "listactive", "lista"));
 
             Commands.ChatCommands.Add(new Command("spleef.game.hoster", spleefGame.TheGaming, "game"));
             Commands.ChatCommands.Add(new Command("spleef.game.user", spleefGame.JoinGame, "join", "j"));

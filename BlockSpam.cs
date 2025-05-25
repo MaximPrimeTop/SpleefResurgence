@@ -15,11 +15,13 @@ namespace SpleefResurgence
     {
         private readonly Spleef pluginInstance;
         private readonly SpleefUserSettings spleefSettings;
+        private readonly SpleefGame spleefGame;
 
-        public BlockSpam(Spleef plugin, SpleefUserSettings spleefSettings)
+        public BlockSpam(Spleef plugin, SpleefUserSettings spleefSettings, SpleefGame spleefGame)
         {
             this.pluginInstance = plugin;
             this.spleefSettings = spleefSettings;
+            this.spleefGame = spleefGame;
             ServerApi.Hooks.NetGetData.Register(pluginInstance, OnTileEdit);
             ServerApi.Hooks.GameUpdate.Register(pluginInstance, CombinedUpdate);
             ServerApi.Hooks.ServerJoin.Register(pluginInstance, OnPlayerJoin);
@@ -38,6 +40,7 @@ namespace SpleefResurgence
             public bool isTracking = false;
             public Stopwatch Timer = new();
             public Stopwatch Timering = new();
+            public Stopwatch FullTimer = new();
 
             public int state = 0; //0 - not tracking, 1 - tracking but no spam yet, 2 - started spamming, 3 - checking if spamming, 4 - checking if spamming 2, 5 - blockspamming more than 20 seconds ok this might be wrong but idc
 
@@ -47,6 +50,7 @@ namespace SpleefResurgence
                 this.isTracking = isTracking;
                 Timer = new();
                 Timering = new();
+                FullTimer = new();
                 this.state = state;
             }
 
@@ -56,6 +60,7 @@ namespace SpleefResurgence
                 state = 0;
                 Timer.Reset();
                 Timering.Reset();
+                FullTimer.Reset();
             }
 
             public void ContinueTracking()
@@ -78,6 +83,20 @@ namespace SpleefResurgence
             Trackers.Remove(TShock.Players[args.Who]. Name);
         }
 
+        public void FullTimerAnnounce()
+        {
+            foreach (var tracker in Trackers)
+            {
+                string name = tracker.Value.name;
+                bool isTracking = tracker.Value.isTracking;
+                if (isTracking)
+                    TSPlayer.All.SendInfoMessage($"{name} - {tracker.Value.FullTimer.Elapsed.TotalSeconds:N3}\n");
+                else
+                    TSPlayer.All.SendInfoMessage($"{name} - N/A\n");
+                tracker.Value.FullTimer.Reset();
+            }
+        }
+
         private string UpdateTracking()
         {
             string res = "\n\n\n\n\n\n\n\n\n\n\n\n";
@@ -86,7 +105,7 @@ namespace SpleefResurgence
                 string name = tracker.Value.name;
                 bool isTracking = tracker.Value.isTracking;
                 if (isTracking)
-                    res += ($"{name} - {tracker.Value.Timer.Elapsed.TotalSeconds:N3} - {tracker.Value.Timering.Elapsed.TotalSeconds:N3}\n");
+                    res += ($"{name} - {tracker.Value.Timer.Elapsed.TotalSeconds:N3} - {tracker.Value.Timering.Elapsed.TotalSeconds:N3} - {tracker.Value.FullTimer.Elapsed.TotalSeconds:N3}\n");
                 else
                     res += ($"{name} - N/A\n");
             }
@@ -152,6 +171,8 @@ namespace SpleefResurgence
                     Trackers[player.Name].state = 1;
                     if (!Trackers[player.Name].Timer.IsRunning)
                         Trackers[player.Name].Timer.Start();
+                    if (!Trackers[player.Name].FullTimer.IsRunning && spleefGame.isRound)
+                        Trackers[player.Name].FullTimer.Start();
                     //TSPlayer.All.SendInfoMessage($"{player.Name} placed a block");
                 }
             }
@@ -167,6 +188,7 @@ namespace SpleefResurgence
                 {
                     //TSPlayer.All.SendInfoMessage($"looking if {tr.GetName()} stopped block spamming.");
                     tr.Timer.Stop();
+                    tr.FullTimer.Stop();
                     tr.state = 4;
                 }
                 /*
