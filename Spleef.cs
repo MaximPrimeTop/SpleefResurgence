@@ -28,12 +28,12 @@ namespace SpleefResurgence
         public override string Author => "MaximPrime";
         public override string Name => "Spleef Resurgence Plugin";
         public override string Description => "ok i think it works yipee.";
-        public override System.Version Version => new(1, 9, 1);
+        public override System.Version Version => new(2, 0);
 
         public Spleef(Main game) : base(game)
         {
             spleefCoin = new SpleefCoin();
-            commandHandler = new CustomCommandHandler();
+            commandHandler = new CustomCommandHandler(this);
             tileTracker = new TileTracker(this);
             inventoryEdit = new InventoryEdit();
             spleefSettings = new SpleefUserSettings();
@@ -66,6 +66,7 @@ namespace SpleefResurgence
 
             Commands.ChatCommands.Add(new Command("spleef.coin.user", PenguinPoints, "pp"));
             Commands.ChatCommands.Add(new Command("die", Die, "die"));
+            Commands.ChatCommands.Add(new Command("spleef.impesonate", Impersonate, "impersonate", "imp"));
 
             Commands.ChatCommands.Add(new Command("spleef.inventory", inventoryEdit.InventoryReset, "inventoryreset", "invreset"));
             Commands.ChatCommands.Add(new Command("spleef.inventory", inventoryEdit.InventoryEditCommand, "inventoryedit", "invedit"));
@@ -92,6 +93,23 @@ namespace SpleefResurgence
         private void PenguinPoints(CommandArgs args)
         {
             TSPlayer.All.SendMessage($"{args.Player.Name} just tried using /pp!!! Laugh at this user", Color.OrangeRed);
+        }
+
+        private void Impersonate(CommandArgs args)
+        {
+            if (args.Parameters.Count < 1)
+            {
+                args.Player.SendErrorMessage("huhhh wajth????11");
+                return;
+            }
+            if (!SpleefGame.isPlayerOnline(args.Parameters[0]))
+            {
+                args.Player.SendErrorMessage("this guy ain't online");
+                return;
+            }
+            TSPlayer player = TSPlayer.FindByNameOrID(args.Parameters[0])[0];
+            string message = string.Join(' ', args.Parameters.ToArray(), 1, args.Parameters.Count - 1);
+            TSPlayer.All.SendMessage($"{player.Group.Prefix}{player.Name}: {message}", player.Group.Color);
         }
 
         private void Coolsay(CommandArgs args)
@@ -143,7 +161,7 @@ namespace SpleefResurgence
                 PluginSettings.Load();
                 CustomCommandHandler.RegisterCommands();
                 SpleefCoin.MigrateUsersToSpleefDatabase();
-                playerReloading.SendSuccessMessage("[SpleefPlugin] Config reloaded!");
+                playerReloading.SendSuccessMessage("[SpleefResurgence] Config reloaded!");
             }
             catch (Exception ex)
             {

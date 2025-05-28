@@ -14,6 +14,7 @@ namespace SpleefResurgence
         public bool ShowScore { get; set; } = true;
         public bool ShowLavarise { get; set; } = true;
         public bool GetBuffs { get; set; } = true;
+        public bool ChatLavarise { get; set; } = false;
         public bool BlockSpamDebug { get; set; } = false;
     }
 
@@ -29,6 +30,7 @@ namespace SpleefResurgence
                         ShowScore INTEGER DEFAULT 1,
                         GetBuffs INTEGER DEFAULT 1,
                         ShowLavarise INTEGER DEFAULT 1,
+                        ChatLavarise INTEGER DEFAULT 0,
                         BlockSpamDebug INTEGER DEFAULT 0
                         );";
 
@@ -82,7 +84,8 @@ namespace SpleefResurgence
                     settings.ShowScore = reader.GetInt32(1) == 1;
                     settings.GetBuffs = reader.GetInt32(2) == 1;
                     settings.ShowLavarise = reader.GetInt32(3) == 1;
-                    settings.BlockSpamDebug = reader.GetInt32(4) == 1;
+                    settings.ChatLavarise = reader.GetInt32(4) == 1;
+                    settings.BlockSpamDebug = reader.GetInt32(5) == 1;
                     return settings;
                 }
             }
@@ -114,6 +117,12 @@ namespace SpleefResurgence
                     args.Player.SendInfoMessage("[c/88E788:Show lavarise timer is enabled!] Change it with /toggle showlavarise disable");
                 else
                     args.Player.SendInfoMessage($"[c/FF474C:Show lavarise timer is disabled!] Change it with /toggle showlavarise enable");
+
+                if (userSettings.ChatLavarise)
+                    args.Player.SendInfoMessage("[c/88E788:Chat lavarise timer is enabled!] Change it with /toggle chatlavarise disable - [c/ff0000:this will be a thing in the future but doesn't work rn]");
+                else
+                    args.Player.SendInfoMessage($"[c/FF474C:Chat lavarise timer is disabled!] Change it with /toggle chatlavarise enable - [c/ff0000:this will be a thing in the future but doesn't work rn]");
+
                 if (userSettings.BlockSpamDebug)
                     args.Player.SendInfoMessage("[c/88E788:Blockspam debug is enabled!] Change it with /toggle debug disable");
                 else
@@ -123,7 +132,7 @@ namespace SpleefResurgence
 
             if (args.Parameters.Count == 2)
             {
-                if (args.Parameters[0] != "showscore" && args.Parameters[0] != "buff" && args.Parameters[0] != "showlavarise" && args.Parameters[0] != "debug")
+                if (args.Parameters[0] != "showscore" && args.Parameters[0] != "buff" && args.Parameters[0] != "showlavarise" && args.Parameters[0] != "chatlavarise" && args.Parameters[0] != "debug")
                 {
                     args.Player.SendErrorMessage($"{args.Parameters[0]} aint a setting");
                     return;
@@ -161,6 +170,8 @@ namespace SpleefResurgence
                     if (Setting == 1 && userSettings.BlockSpamDebug)
                         sql += $"; UPDATE PlayerSettings SET BlockSpamDebug = 0 WHERE Username = @username";
                 }
+                else if (args.Parameters[0] == "chatlavarise")
+                    sql = $"UPDATE PlayerSettings SET ChatLavarise = @setting WHERE Username = @username";
                 else
                 {
                     sql = $"UPDATE PlayerSettings SET BlockSpamDebug = @setting WHERE Username = @username";

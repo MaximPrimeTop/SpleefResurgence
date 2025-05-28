@@ -185,6 +185,8 @@ namespace SpleefResurgence
         private string CommandToStartRound;
         private string CommandToEndRound;
         private string CommandToRandomizeDirt;
+        private string ParameterLavaRise = "null";
+        private string ParameterRandomizeDirt = "null";
         private int PlayerCount;
         private int RoundCounter;
         private Item MusicBox = new();
@@ -214,7 +216,7 @@ namespace SpleefResurgence
         private List<Map> MapsInfo = new();
         List<KeyValuePair<string, Playering>> PlayerInfoList;
 
-        public bool isPlayerOnline(string playername)
+        public static bool isPlayerOnline(string playername)
         {
             var players = TSPlayer.FindByNameOrID(playername);
             if (players == null || players.Count == 0)
@@ -244,6 +246,7 @@ namespace SpleefResurgence
                 return;
             }
 
+            #region default items
             ClearEveryoneInventory();
             GiveEveryoneItems(ItemID.CobaltPickaxe, 1, 0);
             GiveEveryoneItems(ItemID.Binoculars, 1, 9);
@@ -255,21 +258,32 @@ namespace SpleefResurgence
             SetEveryoneBuff(BuffID.NightOwl, 1000000);
             SetEveryoneBuff(BuffID.HeartLamp, 1000000);
             SetEveryoneBuff(BuffID.Campfire, 1000000);
+            #endregion
 
             counter = 0;
             RoundCounter++;
-            Commands.HandleCommand(TSPlayer.Server, CommandToStartRound);
             statusRound = $"[c/8FBC8F:Round {RoundCounter}]\n";
             TSPlayer.All.SendMessage($"Round {RoundCounter} started", Color.DarkSeaGreen);
             for (int i = 0; i < GimmickAmount; i++)
                 if (GameType[i] == "random" || GameType[i] == "r")
                     GameType[i] = Convert.ToString(rnd.Next(Gimmicks.Count - 2));
+
             isRound = true;
             ServerApi.Hooks.NetGetData.Register(pluginInstance, OnGetData);
             ChooseArena(GameArena);
             for (int i = 0; i < GimmickAmount; i++)
                 ChooseGimmick(GameType[i]);
 
+            if (ParameterLavaRise != "null")
+            {
+                Commands.HandleCommand(TSPlayer.Server, ParameterLavaRise);
+                ParameterLavaRise = "null";
+            }
+            else if (GameArena.OtherLavariseCommand != "null")
+                Commands.HandleCommand(TSPlayer.Server, GameArena.OtherLavariseCommand);
+            else
+                Commands.HandleCommand(TSPlayer.Server, CommandToStartRound);
+            #region give music box
             GiveEveryoneArmor(0, 18);
             GiveEveryoneArmor(0, 19);
             MusicBox.SetDefaults(MusicBoxIDs[rnd.Next(MusicBoxIDs.Length)]);
@@ -279,6 +293,8 @@ namespace SpleefResurgence
                 SongName = "Otherworldly " + SongName;
             statusRound += $"[i:{MusicBox.netID}] [c/FFB6C1:Playing {SongName}] [i:{MusicBox.netID}]";
             TSPlayer.All.SendMessage($"[i:{MusicBox.netID}] Playing {SongName} [i:{MusicBox.netID}]", Color.LightPink);
+            #endregion
+
             UpdateScore();
         }
         //im tired brah
@@ -497,14 +513,22 @@ namespace SpleefResurgence
                         }
                         int GimmickAmount = 1;
                         string mapname;
+                        List<string> parameters = args.Message.Split(' ').ToList();
+                        for (int i = 0; i < parameters.Count; i+=2)
+                        {
+                            if (parameters[i] == "-rise")
+                                ParameterLavaRise = parameters[i+1];
+                            else if (parameters[i] == "-random")
+                                ParameterRandomizeDirt = parameters[i + 1];
+                        }
                         string[] GameTypes = new string[100];
-                        if (args.Parameters.Count > 3)
+                        if (args.Parameters.Count - parameters.Count > 3)
                         {
                             GimmickAmount = Convert.ToInt32(args.Parameters[1]);
                             mapname = args.Parameters[GimmickAmount + 2];
                             for (int i = 0; i < GimmickAmount; i++)
                                 GameTypes[i] = args.Parameters[i + 2];
-                            // /game start <gimmickAmount> <list gimmicks> <map>
+                            // /game start <gimmickAmount> <list gimmicks> <map> -parameters
                         }
                         else
                         {
@@ -512,6 +536,9 @@ namespace SpleefResurgence
                             mapname = args.Parameters[2];
                             // /game start <gimmick> <map>
                         }
+
+                        if (args.Parameters.Count > GimmickAmount + 3)
+                        { }
 
                         Map map;
                         if (mapname == "r" || mapname == "random")
@@ -1172,8 +1199,16 @@ namespace SpleefResurgence
                     TSPlayer.All.SendMessage($"[i:776] {GameArena.MapName} arena [i:776]", Color.Cyan);
                     break;
             }
+
             Commands.HandleCommand(TSPlayer.Server, GameArena.MapCommand);
-            if (CommandToRandomizeDirt != "null")
+            if (ParameterRandomizeDirt != "null")
+            {
+                Commands.HandleCommand(TSPlayer.Server, ParameterRandomizeDirt);
+                ParameterRandomizeDirt = "null";
+            }
+            if (GameArena.OtherRandomizeDirtCommand != "null")
+                Commands.HandleCommand(TSPlayer.Server, GameArena.OtherRandomizeDirtCommand);
+            else if (CommandToRandomizeDirt != "null")
                 Commands.HandleCommand(TSPlayer.Server, CommandToRandomizeDirt);
             TpAndWebEveryone(GameArena.ArenaSpawns);
             if (GameArena.Items.Any())

@@ -31,7 +31,7 @@ namespace SpleefResurgence
         private void CombinedUpdate(EventArgs args)
         {
             OnWorldUpdate();
-            TrackerUpdate(args);
+            TrackerUpdate();
         }
 
         class Tracker
@@ -178,7 +178,7 @@ namespace SpleefResurgence
             }
         }
 
-        private void TrackerUpdate (EventArgs args)
+        private void TrackerUpdate ()
         {
             
             foreach (var tracker in Trackers)

@@ -1,9 +1,12 @@
 ﻿using Microsoft.Xna.Framework;
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
+using System.Linq;
 using System.Security.Cryptography;
+using System.Threading.Tasks;
 using Terraria;
 using Terraria.DataStructures;
+using Terraria.ID;
 using TerrariaApi.Server;
 using TShockAPI;
 
@@ -14,6 +17,16 @@ namespace SpleefResurgence
         private static int OneBreakTile;
 
         public static PluginSettings Config => PluginSettings.Config;
+        private readonly Spleef pluginInstance;
+        private static Random rnd = Spleef.rnd;
+
+        private readonly static ushort[] OneBreakTiles = SpleefGame.OneBreakTiles;
+
+        public CustomCommandHandler(Spleef plugin)
+        {
+            this.pluginInstance = plugin;
+            ServerApi.Hooks.GameUpdate.Register(pluginInstance, OnWorldUpdate);
+        }
 
         public void AddCustomCommand(CommandArgs args)
         {
@@ -43,7 +56,7 @@ namespace SpleefResurgence
             args.Player.SendSuccessMessage("new sexy command /{0}", name);
             Commands.ChatCommands.Add(new Command(permission, (args) =>
             {
-                CommandLogic(args.Player, name, permission, commandlist, args);
+                CommandLogicAltAlt(args, name, permission, commandlist);
             }, name));
         }
 
@@ -56,7 +69,7 @@ namespace SpleefResurgence
             }
             string name = args.Parameters[0];
 
-            var commandToRemove = PluginSettings.Config.AllCommands.FirstOrDefault(c => c.Name == name);
+            var commandToRemove = Config.AllCommands.FirstOrDefault(c => c.Name == name);
             if (commandToRemove != null)
             {
                 Config.AllCommands.Remove(commandToRemove);
@@ -93,7 +106,7 @@ namespace SpleefResurgence
                 return;
             }
 
-            string commandList = string.Join(", ", CommandsTrack);
+            string commandList = string.Join(", ", CommandsTrack.Select(c => c.Name).ToList());
 
             args.Player.SendMessage($"Active custom Commands: {commandList}", Color.Gold);
         }
@@ -104,7 +117,7 @@ namespace SpleefResurgence
             {
                 Commands.ChatCommands.Add(new Command(cmd.Permission, (args) =>
                 {
-                    CommandLogic(args.Player, cmd.Name, cmd.Permission, cmd.CommandList, args);
+                    CommandLogicAltAlt(args, cmd.Name, cmd.Permission, cmd.CommandList);
                 }, cmd.Name));
             }
         }
@@ -113,263 +126,475 @@ namespace SpleefResurgence
         {
             foreach (var cmd in Config.AllCommands)
             {
-                    Commands.ChatCommands.RemoveAll(c => c.Name == cmd.Name);
+                Commands.ChatCommands.RemoveAll(c => c.Name == cmd.Name);
             }
         }
 
-        private static async void LavaRiseTimer(int timeInSeconds, string text = "[i:207] Time until lava rises: ")
+        private static async Task LavaRiseTimer(int timeInSeconds, string text = "[i:207] Time until lava rises: ")
         {
-            for (int i = timeInSeconds; i > 0; i--)
+            Stopwatch Risetimer = new();
+            Risetimer.Start();
+            while (Risetimer.Elapsed.TotalSeconds < timeInSeconds)
             {
-                Spleef.statusLavariseTime = text+i;
-                await Task.Delay(1000);
+                Spleef.statusLavariseTime = text + $"{(timeInSeconds - Risetimer.Elapsed.TotalSeconds):N1}";
+                await Task.Delay(10);
             }
         }
 
-        private readonly static List<string> CommandsTrack = new();
-
-        public static async void CommandLogic(TSPlayer player, string name, string permission, List<string> CmdList, CommandArgs args)
+        private static bool isCustomCommand (string name)
         {
-            var count = args.Parameters.Count;
+            return Config.AllCommands.Exists(c => c.Name == name);
+        }
 
+        public class CustomCommand
+        {
+            public string Name;
+            public Queue<string> CmdList;
+            public Stopwatch Stopwatch = new();
+            public double WaitTimeSeconds = 0;
+            public TSPlayer Player;
+            public CommandArgs Args;
+            public bool isPaused = false;
+            public string Parent;
+
+            public CustomCommand(string name, List<string> commands, TSPlayer player, CommandArgs args, string parent)
+            {
+                Name = name;
+                CmdList = new Queue<string>(commands);
+                Player = player;
+                Stopwatch.Start();
+                Args = args;
+                Parent = parent;
+            }
+
+            public void PauseCommand()
+            {
+                Stopwatch.Stop();
+                isPaused = true;
+            }
+            public void ContinueCommand()
+            {
+                Stopwatch.Start();
+                isPaused = false;
+            }
+        }
+
+        private readonly static List<CustomCommand> CommandsTrack = new();
+
+        public static void CommandLogicAltAlt(CommandArgs args, string name, string permission, List<string> CmdList)
+        {
+            TSPlayer player = args.Player;
+            bool isForced = false;
+            string parent = "null";
             switch (args.Parameters.ElementAtOrDefault(0))
             {
                 case "permission":
+                    if (!player.Group.HasPermission("spleef.customcommand"))
                     {
-                        if (!player.Group.HasPermission("spleef.customcommand"))
-                        {
-                            player.SendErrorMessage($"hey stinker you do not have the permission to do this");
-                            break;
-                        }
-                        player.SendInfoMessage(permission);
+                        player.SendErrorMessage($"hey stinker you do not have the permission to do this");
+                        return;
                     }
+                    player.SendInfoMessage(permission);
                     break;
-
                 case "help":
-                    {
-                        if (!player.Group.HasPermission("spleef.customcommand"))
-                        {
-                            player.SendErrorMessage($"hey stinker you do not have the permission to do this");
-                            break;
-                        }
-                        player.SendInfoMessage("To add a command: /{0} add command", name);
-                        player.SendInfoMessage("To delete a command: /{0} del numbah [bigeahnumbah]", name);
-                        player.SendInfoMessage("To view the list of all commands: /{0} list", name);
-                        player.SendInfoMessage("To execute all the commands: /{0}", name);
-                        player.SendMessage("You can also make the server wait before executing a command: /" + name + " add time numbre", Color.Orange);
-                        player.SendMessage("And also an easier way to setup a lavarise: /" + name + " add lavarise x1 y1 x2 y2 waittime", Color.Orange);
-                    }
-                    break;
-                case "add":
-                    {
-                        if (!player.Group.HasPermission("spleef.customcommand"))
-                        {
-                            player.SendErrorMessage($"hey stinker you do not have the permission to do this");
-                            break;
-                        }
-
-                        if (count < 2)
-                        {
-                            player.SendErrorMessage("Invalid syntax! /{0} add command", name);
-                        }
-                        else
-                        {
-                            string NewCmd = string.Join(" ", args.Parameters.Skip(1)); ;
-                            player.SendSuccessMessage("Added: {1}. {0}", NewCmd, CmdList.Count + 1);
-                            CmdList.Add(NewCmd);
-                            PluginSettings.Save();
-                        }
-                    }
-                    break;
-                case "list":
-                    {
-                        if (!player.Group.HasPermission("spleef.customcommand"))
-                        {
-                            player.SendErrorMessage($"hey stinker you do not have the permission to do this");
-                            break;
-                        }
-
-                        if (CmdList.Count == 0)
-                        {
-                            player.SendInfoMessage("{0} is emdy :(", name);
-                        }
-                        else
-                        {
-                            int i = 1;
-                            player.SendMessage("List of commands for \"" + name + "\"", Color.DarkGreen);
-                            foreach (string command in CmdList)
-                            {
-                                player.SendInfoMessage($"{i}. " + command);
-                                i++;
-                            }
-                        }
-                    }
-                    break;
-                case "del":
-                    {
-                        if (!player.Group.HasPermission("spleef.customcommand"))
-                        {
-                            player.SendErrorMessage($"hey stinker you do not have the permission to do this");
-                            break;
-                        }
-                            
-
-                        if (count < 2 || count > 3)
-                        {
-                            player.SendErrorMessage("Invalid syntax! /{0} del <numbah> [bigger numbah]", name);
-                            break;
-                        }
-
-                        int cmdi1 = Convert.ToInt32(args.Parameters[1]) - 1;
-                        if (cmdi1 < 0 || cmdi1 > CmdList.Count - 1)
-                        {
-                            player.SendErrorMessage("Invalid syntax! /{0} del <numbah> [bigger numbah]", name);
-                            break;
-                        }
-                        if (count == 3)
-                        {
-                            int cmdi2 = Convert.ToInt32(args.Parameters[2]) - 1;
-                            if (cmdi2 < cmdi1 || cmdi2 > CmdList.Count - 1)
-                            {
-                                player.SendErrorMessage("Invalid syntax! /{0} del <numbah> [bigger numbah]", name);
-                                break;
-                            }
-                            for (int i = cmdi1; i <= cmdi2; i++)
-                            {
-                                player.SendSuccessMessage("Removed: {0}. {1}", i + 1, CmdList[cmdi1]);
-                                CmdList.RemoveAt(cmdi1);
-                            }
-                        }
-                        else
-                        {
-                            player.SendSuccessMessage("Removed: {0}. {1}", cmdi1 + 1, CmdList[cmdi1]);
-                            CmdList.RemoveAt(cmdi1);
-                        }
-                        PluginSettings.Save();
-                    }
-                    break;
-                case "stop":
                     if (!player.Group.HasPermission("spleef.customcommand"))
                     {
                         player.SendErrorMessage($"hey stinker you do not have the permission to do this");
                         break;
                     }
-                    if (CommandsTrack.Contains(name))
+                    player.SendInfoMessage($"To add a command: /{name} add command");
+                    player.SendInfoMessage($"To delete a command: /{name} del id [id2]");
+                    player.SendInfoMessage($"To view the list of all commands: /{name} list");
+                    player.SendInfoMessage($"To execute all the commands: /{name}");
+                    player.SendMessage($"You can also make the server wait before executing a command: /{name} add time waittime", Color.Orange);
+                    player.SendMessage($"And also an easier way to setup a lavarise: /{name} add lavarise x1 y1 x2 y2 waittime", Color.Orange);
+                    break;
+                case "add":
+                    if (!player.Group.HasPermission("spleef.customcommand"))
                     {
-                        CommandsTrack.Remove(name);
-                        player.SendSuccessMessage($"stopped command {name}");
+                        player.SendErrorMessage($"hey stinker you do not have the permission to do this");
+                        return;
+                    }
+
+                    if (args.Parameters.Count < 2)
+                    {
+                        player.SendErrorMessage($"Invalid syntax! /{name} add command");
+                        return;
                     }
                     else
-                        player.SendErrorMessage($"{name} ain't active");
-                    break;
-                default:
                     {
-                        if (!CommandsTrack.Contains(name))
-                        {
-                            CommandsTrack.Add(name);
-                            player.SendSuccessMessage($"doing command {name}");
-                        }
-                        else
-                        {
-                            player.SendErrorMessage($"heyyy chill out pal {name} hasn't finished yet");
-                            break;
-                        }
-
-                        for (int i = 0; i < CmdList.Count && CommandsTrack.Contains(name); i++)
-                        {
-                            string command = CmdList[i];
-                            List<string> stuff = command.Split(' ').ToList();
-
-                            for (int j = 0; j < stuff.Count; j++)
-                            {
-                                if (stuff[j][0] == 'x')
-                                {
-                                    if (args.Parameters.Count < stuff[j][1] - '0')
-                                    {
-                                        stuff.RemoveAt(j);
-                                        j--;
-                                    }
-                                    else
-                                        stuff[j] = args.Parameters[stuff[j][1] - '1'];
-                                }
-                            }
-
-                            if (stuff[0] == "wait")
-                            {
-                                await Task.Delay(Convert.ToInt32(command[5..]) * 1000);
-                            }
-                            else if (stuff[0] == "lavarise")
-                            {
-                                int x1 = Convert.ToInt32(stuff[1]);
-                                int y1 = Convert.ToInt32(stuff[2]);
-                                int x2 = Convert.ToInt32(stuff[3]);
-                                int y2 = Convert.ToInt32(stuff[4]);
-                                int waittime = Convert.ToInt32(stuff[5]);
-
-                                Commands.HandleCommand(TSPlayer.Server, $"//p1 {x1} {y1}");
-                                Commands.HandleCommand(TSPlayer.Server, $"//p2 {x2} {y2}");
-                                Commands.HandleCommand(TSPlayer.Server, "//set lava");
-                                LavaRiseTimer(waittime);
-                                await Task.Delay(waittime * 1000);
-                            }/*
-                            else if (stuff[0] == "rise")
-                            {
-                                string type = stuff[1];
-                                int x1 = Convert.ToInt32(stuff[2]);
-                                int y1 = Convert.ToInt32(stuff[3]);
-                                int x2 = Convert.ToInt32(stuff[4]);
-                                int y2 = Convert.ToInt32(stuff[5]);
-                                int waittime = Convert.ToInt32(stuff[6]);
-
-                                Commands.HandleCommand(TSPlayer.Server, $"//p1 {x1} {y1}");
-                                Commands.HandleCommand(TSPlayer.Server, $"//p2 {x2} {y2}");
-                                Commands.HandleCommand(TSPlayer.Server, $"//set {type}");
-                                LavaRiseTimer(waittime);
-                                await Task.Delay(waittime * 1000);
-                            }*/
-                            else if (stuff[0] == "replaceblock")
-                            {
-                                int x1 = Convert.ToInt32(stuff[1]);
-                                int y1 = Convert.ToInt32(stuff[2]);
-                                int x2 = Convert.ToInt32(stuff[3]);
-                                int y2 = Convert.ToInt32(stuff[4]);
-                                if (stuff.Count != 6)
-                                    OneBreakTile = SpleefGame.OneBreakTiles[Spleef.rnd.Next(SpleefGame.OneBreakTiles.Length)];
-                                else
-                                    OneBreakTile = Convert.ToInt32(stuff[5]);
-
-                                Commands.HandleCommand(TSPlayer.Server, $"//p1 {x1} {y1}");
-                                Commands.HandleCommand(TSPlayer.Server, $"//p2 {x2} {y2}");
-                                Commands.HandleCommand(TSPlayer.Server, $"//replace dirt {OneBreakTile}");
-                            }
-                            else if (stuff[0] == "replacemore")
-                            {
-                                int x1 = Convert.ToInt32(stuff[1]);
-                                int y1 = Convert.ToInt32(stuff[2]);
-                                int x2 = Convert.ToInt32(stuff[3]);
-                                int y2 = Convert.ToInt32(stuff[4]);
-                                    
-                                Commands.HandleCommand(TSPlayer.Server, $"//p1 {x1} {y1}");
-                                Commands.HandleCommand(TSPlayer.Server, $"//p2 {x2} {y2}");
-                                Commands.HandleCommand(TSPlayer.Server, $"//replace dirt {OneBreakTile}");
-                            }
-
-
-                                        {
-                                        }
-                                    }
-                                }
-                            }
-                            else if (stuff[0] == "timer")
-                                LavaRiseTimer(Convert.ToInt32(command[6..]));
-                            else
-                            {                             
-                                Commands.HandleCommand(TSPlayer.Server, command);
-                            }
-                        }
-                        CommandsTrack.Remove(name);
+                        string NewCmd = string.Join(" ", args.Parameters.Skip(1)); ;
+                        player.SendSuccessMessage($"Added: {CmdList.Count + 1}. {NewCmd}");
+                        CmdList.Add(NewCmd);
+                        PluginSettings.Save();
                     }
                     break;
+                case "list":
+                    if (!player.Group.HasPermission("spleef.customcommand"))
+                    {
+                        player.SendErrorMessage($"hey stinker you do not have the permission to do this");
+                        return;
+                    }
+
+                    if (CmdList.Count == 0)
+                    {
+                        player.SendInfoMessage($"{name} is emdy :(");
+                    }
+                    else
+                    {
+                        int j = 1;
+                        player.SendMessage($"List of commands for \"{name}\"", Color.DarkGreen);
+                        foreach (string command in CmdList)
+                        {
+                            player.SendInfoMessage($"{j}. " + command);
+                            j++;
+                        }
+                    }
+                    break;
+                case "del":
+                    if (!player.Group.HasPermission("spleef.customcommand"))
+                    {
+                        player.SendErrorMessage($"hey stinker you do not have the permission to do this");
+                        return;
+                    }
+
+                    if (args.Parameters.Count < 2 || args.Parameters.Count > 3)
+                    {
+                        player.SendErrorMessage($"Invalid syntax! /{name} del <id> [id2]");
+                        return;
+                    }
+
+                    int cmdi1 = Convert.ToInt32(args.Parameters[1]) - 1;
+                    if (cmdi1 < 0 || cmdi1 > CmdList.Count - 1)
+                    {
+                        player.SendErrorMessage($"Invalid syntax! /{name} del <id> [id2]");
+                        return;
+                    }
+                    if (args.Parameters.Count == 3)
+                    {
+                        int cmdi2 = Convert.ToInt32(args.Parameters[2]) - 1;
+                        if (cmdi2 < cmdi1 || cmdi2 > CmdList.Count - 1)
+                        {
+                            player.SendErrorMessage($"Invalid syntax! /{name} del <id> [id2]");
+                            return;
+                        }
+                        for (int j = cmdi1; j <= cmdi2; j++)
+                        {
+                            player.SendSuccessMessage($"Removed: {j + 1}. {CmdList[cmdi1]}");
+                            CmdList.RemoveAt(cmdi1);
+                        }
+                    }
+                    else
+                    {
+                        player.SendSuccessMessage($"Removed: {cmdi1 + 1}. {CmdList[cmdi1]}");
+                        CmdList.RemoveAt(cmdi1);
+                    }
+                    PluginSettings.Save();
+                    break;
+                case "stop":
+                    if (!player.Group.HasPermission("spleef.customcommand"))
+                    {
+                        player.SendErrorMessage($"hey stinker you do not have the permission to do this");
+                        return;
+                    }
+                    foreach (var command in CommandsTrack)
+                    {
+                        if (command.Name == name)
+                        {
+                            CommandsTrack.Remove(command);
+                            player.SendSuccessMessage($"stopped command {command.Name}");
+                            if (command.Parent != "null" && CommandsTrack.Exists(c => c.Name == command.Parent))
+                            {
+                                var ParentCommand = CommandsTrack.Find(c => c.Name == command.Parent);
+                                ParentCommand.ContinueCommand();
+                            }
+                            return;
+                        }
+                    }
+                    player.SendErrorMessage($"{name} ain't active");
+                    break;
+                case "pause":
+                    if (CommandsTrack.Exists(c => c.Name == name))
+                    {
+                        var PauseCommand = CommandsTrack.Find(c => c.Name == name);
+                        if (PauseCommand.isPaused)
+                        {
+                            player.SendErrorMessage($"This command is already paused paused");
+                            return;
+                        }
+                        PauseCommand.PauseCommand();
+                        player.SendSuccessMessage($"Paused {name}");
+                    }
+                    else
+                        player.SendErrorMessage($"This command isn't active");
+                    break;
+                case "continue":
+                case "unpause":
+                    if (CommandsTrack.Exists(c => c.Name == name))
+                    {
+                        var ContinueCommand = CommandsTrack.Find(c => c.Name == name);
+                        if (!ContinueCommand.isPaused)
+                        {
+                            player.SendErrorMessage($"This command isn't paused");
+                            return;
+                        }
+                        ContinueCommand.ContinueCommand();
+                        player.SendSuccessMessage($"Unpaused {name}");
+                    }
+                    else
+                        player.SendErrorMessage($"This command isn't active");
+                    break;
+                default:
+                    for(int i = 0; i < args.Parameters.Count; i++)
+                    {
+                        string param = args.Parameters[i];
+                        if (param == "-f")
+                            isForced = true;
+                        if (param == "-parent")
+                        {
+                            parent = args.Parameters[i + 1];
+                        }
+                    }
+                    if (!isForced)
+                    {
+                        foreach (var command in CommandsTrack)
+                        {
+                            if (command.Name == name)
+                            {
+                                args.Player.SendErrorMessage($"this {name} do be runnin");
+                                return;
+                            }
+                        }
+                    }
+                    CustomCommand ccmd = new(name, CmdList, player, args, parent);
+                    CommandsTrack.Add(ccmd);
+                    break;
+            }
+        }
+
+        public void OnWorldUpdate(EventArgs args)
+        {
+            for (int i = 0; i < CommandsTrack.Count; i++)
+            {
+                var command = CommandsTrack[i];
+
+                if (command.isPaused)
+                    continue;
+
+                if (command.CmdList.Count == 0)
+                {
+                    command.Player.SendSuccessMessage($"Finished command: {command.Name}");  
+
+                    CommandsTrack.Remove(command);
+                    if (command.Parent != "null")
+                    {
+                        var ParentCommand = CommandsTrack.Find(c => c.Name == command.Parent);
+                        ParentCommand.ContinueCommand();
+                    }
+                    i--;
+                    continue;
+                }
+
+                if (command.Stopwatch.Elapsed.TotalSeconds < command.WaitTimeSeconds)
+                    continue;
+
+                DoCommand(command);
+            }
+        }
+
+        public void DoCommand(CustomCommand command)
+        {
+            command.WaitTimeSeconds = 0;
+            command.Stopwatch.Reset();
+            string cmd = command.CmdList.Dequeue();
+            List<string> cmds = cmd.Split(' ').ToList();
+            for (int j = 0; j < cmds.Count; j++)
+            {
+                string S = cmds[j];
+                if (S[0] == 'x')
+                {
+                    if (command.Args.Parameters.Count < S[1] - '0')
+                    {
+                        cmds.RemoveAt(j);
+                        j--;
+                    }
+                    else
+                    {
+                        if (S.Length >= 4)
+                        {
+                            if (S[2] == '+')
+                            {
+                                int value = int.Parse(command.Args.Parameters[S[1] - '1']) + int.Parse(S[3..]);
+                                cmds[j] = value.ToString();
+                            }
+                            else if (S[2] == '-')
+                            {
+                                int value = int.Parse(command.Args.Parameters[S[1] - '1']) - int.Parse(S[3..]);
+                                cmds[j] = value.ToString();
+                            }
+                        }
+                        else
+                            cmds[j] = command.Args.Parameters[S[1] - '1'];
+                    }
+                }
+            }
+            cmd = string.Join(' ', cmds);
+            if (cmd[0] == '/' || cmd[0] == '.')
+            {
+                string name;
+                int index = cmd.IndexOf(' ');
+                if (index == -1)
+                    name = cmd[1..];
+                else
+                    name = cmd[1..index];
+                if (isCustomCommand(name))
+                {
+                    command.PauseCommand();
+                    Commands.HandleCommand(TSPlayer.Server, $"{cmd} -parent {command.Name}");
+                }
+                else
+                    Commands.HandleCommand(TSPlayer.Server, cmd);
+                return;
+            }
+            else if (cmds[0] == "wait")
+            {
+                command.WaitTimeSeconds = Convert.ToDouble(cmds[1]);
+                command.Stopwatch.Start();
+            }
+            else if (cmds[0] == "timer")
+            {
+                _ = LavaRiseTimer(Convert.ToInt32(cmds[1]));
+            }
+            else if (cmds[0] == "paint")
+            {
+                int paintX1 = Convert.ToInt32(cmds[1]);
+                int paintY1 = Convert.ToInt32(cmds[2]);
+                int paintX2 = Convert.ToInt32(cmds[3]);
+                int paintY2 = Convert.ToInt32(cmds[4]);
+                byte type;
+
+                if (cmds[5] == "r")
+                    type = (byte)rnd.Next(32);
+                else
+                    type = Convert.ToByte(cmds[5]);
+
+                int paintLeft = Math.Min(paintX1, paintX2), paintRight = Math.Max(paintX1, paintX2);
+                int paintTop = Math.Min(paintY1, paintY2), paintBottom = Math.Max(paintY1, paintY2);
+
+                for (int j = paintLeft; j <= paintRight; j++)
+                {
+                    for (int k = paintTop; k <= paintBottom; k++)
+                    {
+                        WorldGen.paintTile(j, k, type, true);
+                        NetMessage.SendTileSquare(-1, j, k, 1);
+                    }
+                }
+            }
+            else if (cmds[0] == "rise")
+            {
+                int x1 = Convert.ToInt32(cmds[1]);
+                int y1 = Convert.ToInt32(cmds[2]);
+                int x2 = Convert.ToInt32(cmds[3]);
+                int y2 = Convert.ToInt32(cmds[4]);
+                byte type = 1;
+
+                if (cmds.Count >= 6)
+                {
+                    if (cmds[5] == "r")
+                        type = (byte)rnd.Next(LiquidID.Count);
+                    else if (cmds[5] == "water" || cmds[5] == "0")
+                        type = 0;
+                    else if (cmds[5] == "lava" || cmds[5] == "1")
+                        type = 1;
+                    else if (cmds[5] == "honey" || cmds[5] == "2")
+                        type = 2;
+                    else if (cmds[5] == "shimmer" || cmds[5] == "3")
+                        type = 3;
+                }
+
+                int left = Math.Min(x1, x2), right = Math.Max(x1, x2);
+                int top = Math.Min(y1, y2), bottom = Math.Max(y1, y2);
+
+                for (int j = left; j <= right; j++)
+                {
+                    for (int k = top; k <= bottom; k++)
+                    {
+                        Main.tile[j, k].ClearTile();
+                        NetMessage.SendTileSquare(-1, j, k, 1);
+                        WorldGen.PlaceLiquid(j, k, type, 255);
+                    }
+                }
+                Liquid.UpdateLiquid();
+            }
+            else if (cmds[0] == "replaceblock")
+            {
+                int x1 = Convert.ToInt32(cmds[1]);
+                int y1 = Convert.ToInt32(cmds[2]);
+                int x2 = Convert.ToInt32(cmds[3]);
+                int y2 = Convert.ToInt32(cmds[4]);
+                if (cmds.Count != 6)
+                    OneBreakTile = SpleefGame.OneBreakTiles[Spleef.rnd.Next(SpleefGame.OneBreakTiles.Length)];
+                else
+                    OneBreakTile = Convert.ToInt32(cmds[5]);
+
+                int left = Math.Min(x1, x2), right = Math.Max(x1, x2);
+                int top = Math.Min(y1, y2), bottom = Math.Max(y1, y2);
+
+                for (int j = left; j <= right; j++)
+                {
+                    for (int k = top; k <= bottom; k++)
+                    {
+                        if (Main.tile[j, k].active() && Main.tile[j, k].type == 0)
+                        {
+                            WorldGen.PlaceTile(j, k, OneBreakTile, true, true);
+                            NetMessage.SendTileSquare(-1, j, k, 1);
+                        }
+                    }
+                }
+            }
+            else if (cmds[0] == "replacemore")
+            {
+                int x1 = Convert.ToInt32(cmds[1]);
+                int y1 = Convert.ToInt32(cmds[2]);
+                int x2 = Convert.ToInt32(cmds[3]);
+                int y2 = Convert.ToInt32(cmds[4]);
+
+                int left = Math.Min(x1, x2), right = Math.Max(x1, x2);
+                int top = Math.Min(y1, y2), bottom = Math.Max(y1, y2);
+
+                for (int j = left; j <= right; j++)
+                {
+                    for (int k = top; k <= bottom; k++)
+                    {
+                        if (Main.tile[j, k].active() && Main.tile[j, k].type == 0)
+                        {
+                            WorldGen.PlaceTile(j, k, OneBreakTiles[Spleef.rnd.Next(OneBreakTiles.Length)], true, true);
+                            NetMessage.SendTileSquare(-1, j, k, 1);
+                        }
+                    }
+                }
+            }
+            else if (cmds[0] == "fullrandom")
+            {
+                int x1 = Convert.ToInt32(cmds[1]);
+                int y1 = Convert.ToInt32(cmds[2]);
+                int x2 = Convert.ToInt32(cmds[3]);
+                int y2 = Convert.ToInt32(cmds[4]);
+
+                int left = Math.Min(x1, x2), right = Math.Max(x1, x2);
+                int top = Math.Min(y1, y2), bottom = Math.Max(y1, y2);
+
+                for (int j = left; j <= right; j++)
+                {
+                    for (int k = top; k <= bottom; k++)
+                    {
+                        if (Main.tile[j, k].active() && Main.tile[j, k].type == 0)
+                        {
+                            WorldGen.PlaceTile(j, k, OneBreakTiles[Spleef.rnd.Next(OneBreakTiles.Length)], true, true);
+                            NetMessage.SendTileSquare(-1, j, k, 1);
+                        }
+                    }
+                }
             }
         }
     }
