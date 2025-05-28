@@ -64,10 +64,10 @@ namespace SpleefResurgence
             new("bombfish", "[i:3196] [c/A9A9A9:Bomb fish round] [i:3196]",
                 () => { GiveEveryoneItems(3196, 50); }),
 
-            new("bombfish", "[i:3115] [c/FFC0CB:Bouncy bomb round] [i:3115]",
+            new("bouncybomb", "[i:3115] [c/FFC0CB:Bouncy bomb round] [i:3115]",
                 () => { GiveEveryoneItems(3115, 50); }),
 
-            new("lavabomb", "[i:4825] [c/FFA500:Bouncy bomb round] [i:4825]",
+            new("lavabomb", "[i:4825] [c/FFA500:Lava bomb round] [i:4825]",
                 () => { ; }),
 
             new("rocket15", "[i:759] [c/FFA500:Rocket round (15 rockets)] [i:759]",
@@ -130,8 +130,11 @@ namespace SpleefResurgence
             new("golf", "[i:4264] [c/FFFFFF:Golf cart round] [i:4264]",
                 () => { GiveEveryoneMiscEquips(4264, 3); }),
 
-            new("golf", "[i:3260] [c/800080:Unicorn round] [i:3260]",
+            new("unicorn", "[i:3260] [c/800080:Unicorn round] [i:3260]",
                 () => { GiveEveryoneMiscEquips(3260, 3); }),
+
+            new("scutlix", "[i:2771] [c/0000FF:Scutlix round] [i:2771]",
+                () => { GiveEveryoneMiscEquips(2771, 3); }),
 
             new("fleshknuckles", "[i:3016] [c/FF0000:Flesh knuckles round] [i:3016]",
                 () => { GiveEveryoneArmor(3016); }),
