@@ -80,19 +80,26 @@ namespace SpleefResurgence
 
         private void OnPlayerLeave(LeaveEventArgs args)
         {
-            Trackers.Remove(TShock.Players[args.Who]. Name);
+            Trackers.Remove(TShock.Players[args.Who].Name);
         }
 
         public void FullTimerAnnounce()
         {
             foreach (var tracker in Trackers)
             {
-                string name = tracker.Value.name;
-                bool isTracking = tracker.Value.isTracking;
-                if (isTracking)
-                    TSPlayer.All.SendInfoMessage($"{name} - {tracker.Value.FullTimer.Elapsed.TotalSeconds:N3}\n");
-                else
-                    TSPlayer.All.SendInfoMessage($"{name} - N/A\n");
+                foreach (TSPlayer player in TShock.Players)
+                {
+                    if (player != null && player.Active && player.IsLoggedIn && player.Account.Name != null && spleefSettings.GetSettings(player.Account.Name).BlockSpamDebug)
+                    {
+                        string name = tracker.Value.name;
+                        bool isTracking = tracker.Value.isTracking;
+
+                        if (isTracking)
+                            TSPlayer.All.SendInfoMessage($"{name} - {tracker.Value.FullTimer.Elapsed.TotalSeconds:N3}");
+                        else
+                            TSPlayer.All.SendInfoMessage($"{name} - N/A");
+                    }
+                }
                 tracker.Value.FullTimer.Reset();
             }
         }

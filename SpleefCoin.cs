@@ -82,9 +82,7 @@ namespace SpleefResurgence
             TShock.Log.ConsoleInfo($"Gave {username} {amount} Spleef Coins!");
             var players = TSPlayer.FindByNameOrID(username);
             if (players == null || players.Count == 0)
-            {
                 TShock.Log.ConsoleInfo($"{username} isn't online atm");
-            }
             else if (!isSilent)
             {
                 var player = players[0];
@@ -92,6 +90,8 @@ namespace SpleefResurgence
                     player.SendMessage($"You just got {amount} Spleef Coin!", Color.Orange);
                 else if (amount == 0)
                     player.SendMessage($"Hmmm you were just given {amount} Spleef Coins, someone's doing a silly", Color.Orange);
+                else if (amount == -1)
+                    player.SendMessage($"You just lost {-amount} Spleef Coin. :(", Color.Orange);
                 else if (amount < 0)
                     player.SendMessage($"You just lost {-amount} Spleef Coins. :(", Color.Orange);
                 else
@@ -102,6 +102,11 @@ namespace SpleefResurgence
         public void AddCoinsCommand(CommandArgs args)
         {
             string username = args.Parameters[0];
+            if (!isUserInTable(username))
+            {
+                args.Player.SendErrorMessage($"{username} does not exist in the table");
+                return;
+            }
             int amount = Convert.ToInt32(args.Parameters[1]);
             AddCoins(username, amount, false);
             args.Player.SendSuccessMessage($"Gave {username} {amount} Spleef Coins!");
@@ -132,8 +137,15 @@ namespace SpleefResurgence
         public void GetCoinsCommand(CommandArgs args)
         {
             string username;
-            if (args.Parameters.Count == 1)
+            if (args.Parameters.Count >= 1)
+            {
                 username = args.Parameters[0];
+                if (!isUserInTable(username))
+                {
+                    args.Player.SendErrorMessage($"{username} does not exist in the table");
+                    return;
+                }
+            }
             else
                 username = args.Player.Account.Name;
             int coins = GetCoins(username);
@@ -246,7 +258,8 @@ namespace SpleefResurgence
                         // Insert the username into the Spleef Coins database
                         string insertQuery = @"
                                 INSERT OR IGNORE INTO PlayerCoins (Username, Coins) VALUES (@Username, 0);
-                                INSERT OR IGNORE INTO PlayerSettings (Username, ShowScore, GetBuffs, ShowLavarise, Chatlavarise, BlockSpamDebug) VALUES (@Username, 1, 1, 1, 0, 0);";
+                                INSERT OR IGNORE INTO PlayerSettings (Username, ShowScore, GetBuffs, ShowLavarise, Chatlavarise, GetMusicBox, BlockSpamDebug) VALUES (@Username, 1, 1, 1, 0, 1, 0);
+                                INSERT OR IGNORE INTO PlayerStats (Username, ELO) VALUES (@Username, 0.0);";
                             ;
 
                         using var insertCommand = new SqliteCommand(insertQuery, spleefConnection);

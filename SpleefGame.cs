@@ -4,6 +4,8 @@ using Terraria.ID;
 using TerrariaApi.Server;
 using TShockAPI;
 using System.Diagnostics;
+using System.Security.Cryptography.X509Certificates;
+using TShockAPI.Hooks;
 
 namespace SpleefResurgence
 {
@@ -68,7 +70,7 @@ namespace SpleefResurgence
                 () => { GiveEveryoneItems(3115, 50); }),
 
             new("lavabomb", "[i:4825] [c/FFA500:Lava bomb round] [i:4825]",
-                () => { ; }),
+                () => { Boulders("lavabomb"); }),
 
             new("rocket15", "[i:759] [c/FFA500:Rocket round (15 rockets)] [i:759]",
                 () => { GiveEveryoneItems(759, 1); GiveEveryoneItems(772, 15, 54); }),
@@ -149,14 +151,16 @@ namespace SpleefResurgence
         private readonly InventoryEdit inventoryEdit;
         private readonly SpleefCoin spleefCoin;
         private readonly SpleefUserSettings spleefSettings;
+        private readonly SpleefELO spleefELO;
         private BlockSpam blockSpam;
 
-        public SpleefGame(Spleef plugin, SpleefCoin spleefCoin, InventoryEdit inventoryEdit, SpleefUserSettings spleefSettings)
+        public SpleefGame(Spleef plugin, SpleefCoin spleefCoin, InventoryEdit inventoryEdit, SpleefUserSettings spleefSettings, SpleefELO spleefELO)
         {
             this.pluginInstance = plugin;
             this.inventoryEdit = inventoryEdit;
             this.spleefCoin = spleefCoin;
             this.spleefSettings = spleefSettings;
+            this.spleefELO = spleefELO;
             PutGimmicks();
         }
 
@@ -188,13 +192,17 @@ namespace SpleefResurgence
         private string CommandToStartRound;
         private string CommandToEndRound;
         private string CommandToRandomizeDirt;
+        private string OtherLavaRiseCommand = "null";
         private string ParameterLavaRise = "null";
         private string ParameterRandomizeDirt = "null";
+        private string MoreParameters = "";
+        private string GameTemplateName;
         private int PlayerCount;
         private int RoundCounter;
         private Item MusicBox = new();
 
         private Random rnd = new();
+
         private class Playering
         {
             public int score = 0;
@@ -203,11 +211,17 @@ namespace SpleefResurgence
             public string accName;
             public bool isIngame = true;
             public bool isReady = false;
+            public float BetPayout;
+            public float ELO;
 
-            public Playering(string accName, int score = 0)
+            public Playering(string accName, int score = 0, float betPayout = 2.0f)
             {
                 this.score = score;
                 this.accName = accName;
+                BetPayout = betPayout;
+                var spleefCoin = new SpleefCoin();
+                var spleefELO = new SpleefELO(spleefCoin);
+                ELO = spleefELO.GetElo(accName);
             }
 
             public int GetPlace (int PlayerCount)
@@ -215,7 +229,8 @@ namespace SpleefResurgence
                 return PlayerCount - place;
             }
         }
-        private Dictionary<string, Playering> PlayerInfo = new();
+
+        private static Dictionary<string, Playering> PlayerInfo = new();
         private List<Map> MapsInfo = new();
         List<KeyValuePair<string, Playering>> PlayerInfoList;
 
@@ -227,6 +242,17 @@ namespace SpleefResurgence
                 return false;
             }
             return true;
+        }
+
+        public bool isPlayerIngame(string playername)
+        {
+            PlayerInfoList = PlayerInfo.ToList();
+            if (!isPlayerOnline(playername))
+                return false;
+            var player = TSPlayer.FindByNameOrID(playername)[0];
+            if (PlayerInfoList.Exists(p => p.Value.accName == player.Account.Name))
+                return true;
+            return false;
         }
 
         public void CountPlayers()
@@ -249,7 +275,7 @@ namespace SpleefResurgence
                 return;
             }
 
-            #region default items
+            #region default items and buffs
             ClearEveryoneInventory();
             GiveEveryoneItems(ItemID.CobaltPickaxe, 1, 0);
             GiveEveryoneItems(ItemID.Binoculars, 1, 9);
@@ -271,6 +297,7 @@ namespace SpleefResurgence
                 if (GameType[i] == "random" || GameType[i] == "r")
                     GameType[i] = Convert.ToString(rnd.Next(Gimmicks.Count - 2));
 
+            isBetsLocked = true;
             isRound = true;
             ServerApi.Hooks.NetGetData.Register(pluginInstance, OnGetData);
             ChooseArena(GameArena);
@@ -278,11 +305,8 @@ namespace SpleefResurgence
                 ChooseGimmick(GameType[i]);
 
             if (ParameterLavaRise != "null")
-            {
                 Commands.HandleCommand(TSPlayer.Server, ParameterLavaRise);
-                ParameterLavaRise = "null";
-            }
-            else if (GameArena.OtherLavariseCommand != "null")
+            else if (OtherLavaRiseCommand != "null")
                 Commands.HandleCommand(TSPlayer.Server, GameArena.OtherLavariseCommand);
             else
                 Commands.HandleCommand(TSPlayer.Server, CommandToStartRound);
@@ -290,14 +314,12 @@ namespace SpleefResurgence
             GiveEveryoneArmor(0, 18);
             GiveEveryoneArmor(0, 19);
             MusicBox.SetDefaults(MusicBoxIDs[rnd.Next(MusicBoxIDs.Length)]);
-            GiveEveryoneArmor(MusicBox.netID);
+            GiveEveryoneMusicBox(MusicBox.netID);
             string SongName = MusicBox.Name.Substring(MusicBox.Name.IndexOf('(') + 1, MusicBox.Name.IndexOf(')') - MusicBox.Name.IndexOf('(') - 1);
             if (MusicBox.Name.Split(' ')[0] == "Otherworldly")
                 SongName = "Otherworldly " + SongName;
-            statusRound += $"[i:{MusicBox.netID}] [c/FFB6C1:Playing {SongName}] [i:{MusicBox.netID}]";
             TSPlayer.All.SendMessage($"[i:{MusicBox.netID}] Playing {SongName} [i:{MusicBox.netID}]", Color.LightPink);
             #endregion
-
             UpdateScore();
         }
         //im tired brah
@@ -317,21 +339,24 @@ namespace SpleefResurgence
                 if (plr.Value.isIngame == true)
                 {
                     if (plr.Value.isAlive)
-                        statusScore += $"[c/FF8559:{plr.Key} : {plr.Value.score}] [i:58]\n";
+                        statusScore += $"[c/FF8559:{plr.Key} : {plr.Value.score}] [i:58]";
                     else
                     {
                         if (plr.Value.GetPlace(PlayerCount) == 1)
-                            statusScore += $"[c/FF8559:{plr.Key} : {plr.Value.score}] [i:4601]\n";
+                            statusScore += $"[c/FF8559:{plr.Key} : {plr.Value.score}] [i:4601]";
                         else if (plr.Value.GetPlace(PlayerCount) == 2)
-                            statusScore += $"[c/FF8559:{plr.Key} : {plr.Value.score}] [i:4600]\n";
+                            statusScore += $"[c/FF8559:{plr.Key} : {plr.Value.score}] [i:4600]";
                         else if (plr.Value.GetPlace(PlayerCount) == 3)
-                            statusScore += $"[c/FF8559:{plr.Key} : {plr.Value.score}] [i:4599]\n";
+                            statusScore += $"[c/FF8559:{plr.Key} : {plr.Value.score}] [i:4599]";
                         else
-                            statusScore += $"[c/FF8559:{plr.Key} : {plr.Value.score}] [i:321]\n";
+                            statusScore += $"[c/FF8559:{plr.Key} : {plr.Value.score}] [i:321]";
                     }
                 }
                 else
-                    statusScore += $"[c/898989:{plr.Key} : {plr.Value.score}]\n";
+                    statusScore += $"[c/898989:{plr.Key} : {plr.Value.score}]";
+                if (isBettable)
+                    statusScore += $"\nBet Payout - {plr.Value.BetPayout:N3}";
+                statusScore += "\n";
             }
         }
 
@@ -380,6 +405,16 @@ namespace SpleefResurgence
             }
         }
 
+        public void LoadStuff(GameTemplate gameTemplate)
+        {
+            MapsInfo.Clear();
+            CommandToStartRound = gameTemplate.LavariseCommand;
+            CommandToEndRound = gameTemplate.FillCommand;
+            CommandToRandomizeDirt = gameTemplate.RandomizeDirtCommand;
+            foreach (var map in gameTemplate.Maps)
+                MapsInfo.Add(map);
+        }
+
         public void TheGaming(CommandArgs args)
         {
             if (args.Parameters.Count < 1)
@@ -387,381 +422,604 @@ namespace SpleefResurgence
                 args.Player.SendErrorMessage("erm no");
                 return;
             }
-            if (args.Parameters[0] == "help")
+            switch (args.Parameters[0])
             {
-                args.Player.SendInfoMessage("/game list (gimmick, template, map <templatename>)");
-                args.Player.SendInfoMessage("/game template <templateName> [isJoinable] [isBettable] - creates a new game. By default it's joinable and people can't place bets(bets aren't implemented yet).");
-                args.Player.SendMessage("these commands only work if there's a game going on!", Color.OrangeRed);
-                args.Player.SendInfoMessage("/game start <gimmickAmount> <list gimmicks> <map> or /game start <gimmick> <map> or  - starts a round");
-                args.Player.SendInfoMessage("/game stop - ends the game (alias /game end), however if there's a round active, stops the round.");
-                args.Player.SendInfoMessage("/game add <playername> - adds a player to the ongoing game");
-                args.Player.SendInfoMessage("/game remove <playername> - removes a player from the game");
-                args.Player.SendInfoMessage("/game score - shows the current score");
-                args.Player.SendInfoMessage("/game edit <playername> <amount> - changes the player's score by the given amount");
-            }
-            else if (!isGaming)
-            {
-                switch (args.Parameters[0])
-                {
-                    case "template":
-                        if (args.Parameters.Count < 2 || args.Parameters.Count > 4)
-                        {
-                            args.Player.SendErrorMessage("wrong amount of parameters!");
-                            args.Player.SendErrorMessage("/game template <templateName> [isJoinable] [isBettable]");
-                            return;
-                        }
-                        string name = args.Parameters[1];
-                        var gameTemplate = PluginSettings.Config.GameTemplates.FirstOrDefault(c => c.Name == name);
-                        if (gameTemplate == null)
-                        {
-                            args.Player.SendErrorMessage("dummas there isnt a template named like that");
-                            return;
-                        }
-                        
-                        CommandToStartRound = gameTemplate.LavariseCommand;
-                        CommandToEndRound = gameTemplate.FillCommand;
-                        CommandToRandomizeDirt = gameTemplate.RandomizeDirtCommand;
-                        foreach (var map in gameTemplate.Maps)
-                            MapsInfo.Add(map);
-                        if (args.Parameters.Count > 2)
-                        {
-                            switch (args.Parameters[2])
-                            {
-                                case "true":
-                                case "1":
-                                case "enable":
-                                    isJoinable = true;
-                                    break;
-                                case "false":
-                                case "0":
-                                case "disable":
-                                    isJoinable = false;
-                                    break;
-                                default:
-                                    args.Player.SendErrorMessage($"zzzzzzzzz yeah idk what you meant by {args.Parameters[2]}");
-                                    return;
-                            }
-                            if (args.Parameters.Count > 3)
-                            {
-                                switch (args.Parameters[3])
-                                {
-                                    case "true":
-                                    case "1":
-                                    case "enable":
-                                        isBettable = true;
-                                        break;
-                                    case "false":
-                                    case "0":
-                                    case "disable":
-                                        isBettable = false;
-                                        break;
-                                    default:
-                                        args.Player.SendErrorMessage($"zzzzzzzzz yeah idk what you meant by {args.Parameters[2]}");
-                                        return;
-                                }
-                            }
-                            else
-                                isBettable = false;
-                        }
-                        else
-                        {
-                            isJoinable = true;
-                            isBettable = false;
-                        }
+                case "help":
+                    args.Player.SendInfoMessage("/game list (gimmick, template, map <templatename>)");
+                    args.Player.SendInfoMessage("/game template <templateName> [isJoinable] [isBettable] - creates a new game. By default it's joinable and people can't place bets(bets aren't implemented yet).");
+                    args.Player.SendMessage("these commands only work if there's a game going on!", Color.OrangeRed);
+                    args.Player.SendInfoMessage("/game start <gimmickAmount> <list gimmicks> <map> or /game start <gimmick> <map> or  - starts a round");
+                    args.Player.SendInfoMessage("/game stop - ends the game (alias /game end), however if there's a round active, stops the round.");
+                    args.Player.SendInfoMessage("/game add <playername> - adds a player to the ongoing game");
+                    args.Player.SendInfoMessage("/game remove <playername> - removes a player from the game");
+                    args.Player.SendInfoMessage("/game score - shows the current score");
+                    args.Player.SendInfoMessage("/game edit score/payout <playername> <amount> - changes the player's score by the given amount");
+                    args.Player.SendInfoMessage("/game bet open/close/off/pay - opens/closes bets, turns them off completely or pays out the bets immediately");
+                    args.Player.SendInfoMessage("/game reload - reloads stuff duh, useful for bet payouts in 1v1s");
+                    break;
+                case "list":
+                    ListStuff(args);
+                    break;
+                case "template":
+                    if (isGaming)
+                    {
+                        args.Player.SendErrorMessage("You can't use this command right now! There is already a game going on.");
+                        return;
+                    }
 
-                        isGaming = true;
-                        if (isJoinable)
-                            TSPlayer.All.SendMessage("Game started! Join with /j", Color.SeaShell);
-                        else
-                            TSPlayer.All.SendMessage("Game started!", Color.SeaShell);
-                        if (isBettable)
-                            TSPlayer.All.SendMessage("Start placing your bets! Bet with /bet username amount", Color.SeaShell);
+                    if (args.Parameters.Count < 2)
+                    {
+                        args.Player.SendErrorMessage("not enough parameters!");
+                        args.Player.SendErrorMessage("/game template <templateName> [isJoinable] [isBettable]");
+                        return;
+                    }
 
-                        ServerApi.Hooks.ServerLeave.Register(pluginInstance, OnPlayerLeave);
-                        ServerApi.Hooks.GameUpdate.Register(pluginInstance, OnWorldUpdate);
+                    GameTemplateName = args.Parameters[1];
+                    var gameTemplate = PluginSettings.Config.GameTemplates.FirstOrDefault(c => c.Name == GameTemplateName);
+                    if (gameTemplate == null)
+                    {
+                        args.Player.SendErrorMessage("dummas there isnt a template named like that");
+                        return;
+                    }
+
+                    LoadStuff(gameTemplate);
+
+                    isJoinable = true;
+                    isBettable = false;
+                    for (int i = 2; i < args.Parameters.Count; i++)
+                    {
+                        if (args.Parameters[i] == "-join" && (args.Parameters[i + 1] == "false" || args.Parameters[i + 1] == "0" || args.Parameters[i + 1] == "disable"))
+                            isJoinable = false;
+                        else if (args.Parameters[i] == "-bet" && (args.Parameters[i + 1] == "true" || args.Parameters[i + 1] == "1" || args.Parameters[i + 1] == "enable"))
+                            isBettable = true;
+                    }
+
+                    isGaming = true;
+                    if (isJoinable)
+                        TSPlayer.All.SendMessage("Game started! Join with /j", Color.SeaShell);
+                    else
+                        TSPlayer.All.SendMessage("Game started!", Color.SeaShell);
+                    if (isBettable)
+                    {
+                        isBetsLocked = false;
+                        TSPlayer.All.SendMessage("Start placing your bets! Bet with /bet add username amount", Color.SeaShell);
+                    }
+                    ServerApi.Hooks.ServerLeave.Register(pluginInstance, OnPlayerLeave);
+                    ServerApi.Hooks.GameUpdate.Register(pluginInstance, OnWorldUpdate);
+                    GeneralHooks.ReloadEvent += OnServerReload;
+                    UpdateScore();
+                    break;
+                case "start":
+                    if (!isGaming)
+                    {
+                        args.Player.SendErrorMessage("You can't use that command yet! You should first create a game");
+                        args.Player.SendInfoMessage("/game template <templateName>");
+                        return;
+                    }
+
+                    if (isRound)
+                    {
+                        args.Player.SendErrorMessage("You can't use this command right now! There is already a round going on.");
+                        break;
+                    }
+
+                    if (args.Parameters.Count < 3)
+                    {
+                        args.Player.SendErrorMessage("not enough parameters!");
+                        args.Player.SendInfoMessage("/game start <gimmickAmount> <list gimmicks> <map>");
+                        return;
+                    }
+                    int GimmickAmount = 1;
+                    string mapname;
+                    
+                    List<string> parameters = args.Message.Split(' ').ToList();
+                    for (int i = 0; i < parameters.Count; i += 2)
+                    {
+                        if (parameters[i] == "-rise")
+                            ParameterLavaRise = parameters[i + 1];
+                        else if (parameters[i] == "-random")
+                            ParameterRandomizeDirt = parameters[i + 1];
+                    }
+                    string[] GameTypes = new string[100];
+                    if (args.Parameters.Count - parameters.Count > 3)
+                    {
+                        GimmickAmount = Convert.ToInt32(args.Parameters[1]);
+                        mapname = args.Parameters[GimmickAmount + 2];
+                        for (int i = 0; i < GimmickAmount; i++)
+                            GameTypes[i] = args.Parameters[i + 2];
+                    }
+                    else
+                    {
+                        GameTypes[0] = args.Parameters[1];
+                        mapname = args.Parameters[2];
+                        // /game start <gimmick> <map>
+                    }
+
+                    if (args.Parameters.Count > GimmickAmount + 3)
+                    { }
+
+                    Map map;
+                    if (mapname == "r" || mapname == "random")
+                        map = MapsInfo[rnd.Next(MapsInfo.Count)];
+                    else if (int.TryParse(mapname, out int n) && n <= MapsInfo.Count && n >= 0)
+                        map = MapsInfo[n];
+                    else
+                        map = MapsInfo.FirstOrDefault(c => c.MapName == mapname);
+
+                    if (map == null)
+                    {
+                        List<string> mapList = MapsInfo.Select((c, index) => $"{index} - {c.MapName}").ToList();
+                        string mapNames = string.Join(", ", mapList);
+                        args.Player.SendErrorMessage("that is not a valid map!");
+                        args.Player.SendInfoMessage($"Here are all valid maps: {mapNames}");
+                        return;
+                    }
+                    OtherLavaRiseCommand = map.OtherLavariseCommand;
+                    StartRound(args, GameTypes, map, GimmickAmount);
+                    if (isBettable)
+                    {
+                        isBetsLocked = true;
+                        TSPlayer.All.SendMessage("All bets are closed now!", Color.SeaShell);
+                    }
+                    break;
+                case "edit":
+                    if (!isGaming)
+                    {
+                        args.Player.SendErrorMessage("You can't use that command yet! You should first create a game");
+                        args.Player.SendInfoMessage("/game template <templateName>");
+                        return;
+                    }
+                    if (args.Parameters.Count != 4)
+                    {
+                        args.Player.SendErrorMessage("wrong amount of parameters!");
+                        args.Player.SendInfoMessage("/game edit score <playername> <amount>");
+                        args.Player.SendInfoMessage("/game edit payout <playername> <amount>");
+                        return;
+                    }
+
+                    if (args.Parameters[1] != "score" && args.Parameters[1] != "payout")
+                    {
+                        args.Player.SendErrorMessage("worg");
+                        args.Player.SendInfoMessage("/game edit score <playername> <amount>");
+                        args.Player.SendInfoMessage("/game edit payout <playername> <amount>");
+                        return;
+                    }
+
+                    string EditName = args.Parameters[2];
+                    float Value = (float)Convert.ToDouble(args.Parameters[3]);
+
+                    if (PlayerInfo.ContainsKey(EditName))
+                    {
+                        if (args.Parameters[1] == "score")
+                        {
+                            PlayerInfo[EditName].score += (int)Value;
+                            TSPlayer.All.SendMessage($"{EditName} score is now {PlayerInfo[EditName].score}!", Color.ForestGreen);
+                        }
+                        else if (args.Parameters[1] == "payout")
+                        {
+                            PlayerInfo[EditName].BetPayout = Value;
+                            TSPlayer.All.SendInfoMessage($"{EditName} payout is now {PlayerInfo[EditName].BetPayout}! Better check your bets!", Color.ForestGreen);
+                        }
                         UpdateScore();
                         return;
-                    case "list":
-                        ListStuff(args);
+                    }
+
+                    if (!isPlayerOnline(args.Parameters[2]))
+                    {
+                        args.Player.SendErrorMessage("this guy does not exist bro");
                         return;
-                    case "start":
-                    case "stop":
-                    case "end":
-                    case "add":
-                    case "remove":
-                    case "score":
-                    case "edit":
+                    }
+
+                    var PlayerToEdit = TSPlayer.FindByNameOrID(EditName)[0];
+
+                    if (PlayerInfo.ContainsKey(PlayerToEdit.Name))
+                    {
+                        if (args.Parameters[1] == "score")
+                        {
+                            PlayerInfo[PlayerToEdit.Name].score += (int)Value;
+                            TSPlayer.All.SendMessage($"{PlayerToEdit.Name} score is now {PlayerInfo[PlayerToEdit.Name].score}!", Color.ForestGreen);
+                        }
+                        else if (args.Parameters[1] == "payout")
+                        {
+                            PlayerInfo[PlayerToEdit.Name].BetPayout = Value;
+                            TSPlayer.All.SendInfoMessage($"{PlayerToEdit.Name} payout is now {PlayerInfo[PlayerToEdit.Name].BetPayout}! Better check your bets!", Color.ForestGreen);
+                        }
+                    }
+                    else
+                        args.Player.SendErrorMessage("this guy is not in the current game bro");
+                    UpdateScore();
+                    break;
+                case "add":
+                    if (!isGaming)
+                    {
+                        args.Player.SendErrorMessage("You can't use that command yet! You should first create a game");
+                        args.Player.SendInfoMessage("/game template <templateName>");
+                        return;
+                    }
+
+                    if (args.Parameters.Count != 2)
+                    {
+                        args.Player.SendErrorMessage("wrong amount of parameters!");
+                        args.Player.SendInfoMessage("/game add <playername>");
+                        return;
+                    }
+                    string playername = args.Parameters[1];
+                    if (!isPlayerOnline(playername))
+                    {
+                        args.Player.SendErrorMessage("this guy does not exist bro");
+                        return;
+                    }
+
+                    if (PlayerInfo.ContainsKey(playername))
+                    {
+                        Playering playerToAddBack = PlayerInfo[playername];
+
+                        if (playerToAddBack.isIngame == true)
+                        {
+                            args.Player.SendErrorMessage("They are already in the game!");
+                            return;
+                        }
+
+                        playerToAddBack.isIngame = true;
+                        playerToAddBack.place = -100;
+                        TSPlayer.All.SendMessage($"{playername} has been addded back into the game!", Color.Green);
+                        UpdateScore();
+                        return;
+                    }
+
+                    var playerToAdd = TSPlayer.FindByNameOrID(playername)[0];
+
+                    Playering newPlayering = new(playerToAdd.Account.Name);
+
+                    playername = playerToAdd.Name;
+                    PlayerInfo.Add(playername, newPlayering);
+                    TSPlayer.All.SendMessage($"{playername} has been added to the game!", Color.Green);
+                    UpdateScore();
+
+                    break;
+                case "remove":
+                    if (!isGaming)
+                    {
                         args.Player.SendErrorMessage("You can't use that command yet! You should first create a game");
                         args.Player.SendInfoMessage("/game template <templateName> <numOfPlayers> <list player names>");
                         return;
-                    default:
-                        args.Player.SendErrorMessage("That's not a valid command");
+                    }
+
+                    if (args.Parameters.Count != 2)
+                    {
+                        args.Player.SendErrorMessage("wrong amount of parameters!");
+                        args.Player.SendInfoMessage("/game remove <playername>");
+                        return;
+                    }
+                    string name = args.Parameters[1];
+                    Playering playerToRemove;
+                    if (!PlayerInfo.TryGetValue($"{name}", out playerToRemove))
+                    {
+                        args.Player.SendErrorMessage("uh nuh uh");
+                        return;
+                    }
+                    playerToRemove = PlayerInfo[name];
+                    int points = playerToRemove.score;
+                    spleefCoin.AddCoins(playerToRemove.accName, points, false);
+                    if (playerToRemove.isAlive)
+                        counter++;
+                    PlayerInfo.Remove(name);
+                    args.Player.SendSuccessMessage($"removed {name} from the game and awarded {points} Spleef Coins!");
+                    TSPlayer.All.SendMessage($"{name} has been completely removed from the game!", Color.Red);
+                    UpdateScore();
+                    break;
+                case "score":
+                    if (!isGaming)
+                    {
+                        args.Player.SendErrorMessage("You can't use that command yet! You should first create a game");
                         args.Player.SendInfoMessage("/game template <templateName> <numOfPlayers> <list player names>");
                         return;
-                }
-            }
-            else if (isGaming && !isRound)
-            {
-                switch (args.Parameters[0])
-                {
-                    case "list":
-                        ListStuff(args);
-                        break;
-                    case "start":
-                        if (args.Parameters.Count < 3)
-                        {
-                            args.Player.SendErrorMessage("not enough parameters!");
-                            args.Player.SendInfoMessage("/game start <gimmickAmount> <list gimmicks> <map>");
-                            return;
-                        }
-                        int GimmickAmount = 1;
-                        string mapname;
-                        List<string> parameters = args.Message.Split(' ').ToList();
-                        for (int i = 0; i < parameters.Count; i+=2)
-                        {
-                            if (parameters[i] == "-rise")
-                                ParameterLavaRise = parameters[i+1];
-                            else if (parameters[i] == "-random")
-                                ParameterRandomizeDirt = parameters[i + 1];
-                        }
-                        string[] GameTypes = new string[100];
-                        if (args.Parameters.Count - parameters.Count > 3)
-                        {
-                            GimmickAmount = Convert.ToInt32(args.Parameters[1]);
-                            mapname = args.Parameters[GimmickAmount + 2];
-                            for (int i = 0; i < GimmickAmount; i++)
-                                GameTypes[i] = args.Parameters[i + 2];
-                            // /game start <gimmickAmount> <list gimmicks> <map> -parameters
-                        }
-                        else
-                        {
-                            GameTypes[0] = args.Parameters[1];
-                            mapname = args.Parameters[2];
-                            // /game start <gimmick> <map>
-                        }
+                    }
+                    AnnounceScore();
+                    break;
+                case "stop":
+                case "end":
+                    if (!isGaming)
+                    {
+                        args.Player.SendErrorMessage("You can't use that command yet! You should first create a game");
+                        args.Player.SendInfoMessage("/game template <templateName>");
+                        return;
+                    }
 
-                        if (args.Parameters.Count > GimmickAmount + 3)
-                        { }
-
-                        Map map;
-                        if (mapname == "r" || mapname == "random")
-                            map = MapsInfo[rnd.Next(MapsInfo.Count)];
-                        else if (int.TryParse(mapname, out int n) && n <= MapsInfo.Count && n >= 0)
-                            map = MapsInfo[n];
-                        else
-                            map = MapsInfo.FirstOrDefault(c => c.MapName == mapname);
-
-                        if (map == null)
-                        {
-                            List<string> mapList = MapsInfo.Select((c, index) => $"{index} - {c.MapName}").ToList();
-                            string mapNames = string.Join(", ", mapList);
-                            args.Player.SendErrorMessage("that is not a valid map!");
-                            args.Player.SendInfoMessage($"Here are all valid maps: {mapNames}");
-                            return;
-                        }
-                        StartRound(args, GameTypes, map, GimmickAmount);
-                        if (isBettable)
-                        {
-                            TSPlayer.All.SendMessage("All bets are closed now!", Color.SeaShell);
-                            isBettable = false;
-                        }
-                        break;
-                    case "stop":
-                    case "end":
-                        SpleefCoin.MigrateUsersToSpleefDatabase();
-                        AnnounceScore();
-                        TSPlayer.All.SendMessage($"Game ended, after {RoundCounter} rounds {PlayerInfoList[0].Key} WON!!!!!!!!!", Color.MediumTurquoise);
-                        foreach (KeyValuePair<string, Playering> player in PlayerInfoList)
-                        {
-                            var players = TSPlayer.FindByNameOrID(player.Key);
-                            if (isPlayerOnline(player.Key))
-                            {
-                                var plr = TSPlayer.FindByNameOrID(player.Key)[0];
-                                if (player.Value.accName == player.Key)
-                                    spleefCoin.AddCoins(player.Value.accName, player.Value.score, false);
-                                else
-                                {
-                                    spleefCoin.AddCoins(player.Value.accName, player.Value.score, true);
-                                    plr.SendMessage($"Sent {player.Value.score} Spleef Coin to your account {player.Value.accName}", Color.Purple);
-                                }
-                            }
-                            else
-                                spleefCoin.AddCoins(player.Value.accName, player.Value.score, false);
-                        }
-                        PlayerInfo.Clear();
-                        MapsInfo.Clear();
-                        isGaming = false;
-                        RoundCounter = 0;
-                        UpdateScore();
-                        blockSpam.FullTimerAnnounce();
-                        ServerApi.Hooks.ServerLeave.Deregister(pluginInstance, OnPlayerLeave);
-                        ServerApi.Hooks.GameUpdate.Deregister(pluginInstance, OnWorldUpdate);
-                        break;
-                    case "add":
-                        if (args.Parameters.Count != 2)
-                        {
-                            args.Player.SendErrorMessage("wrong amount of parameters!");
-                            args.Player.SendInfoMessage("/game add <playername>");
-                            return;
-                        }
-                        string playername = args.Parameters[1];
-                        if (!isPlayerOnline(playername))
-                        {
-                            args.Player.SendErrorMessage("this guy does not exist bro");
-                            return;
-                        }
-                        
-                        if (PlayerInfo.ContainsKey(playername))
-                        {
-                            Playering playerToAddBack = PlayerInfo[playername];
-
-                            if (playerToAddBack.isIngame == true)
-                            {
-                                args.Player.SendErrorMessage("They are already in the game!");
-                                return;
-                            }
-
-                            playerToAddBack.isIngame = true;
-                            playerToAddBack.place = -100;
-                            TSPlayer.All.SendMessage($"{playername} has been addded back into the game!", Color.Green);
-                            UpdateScore();
-                            return;
-                        }
-
-                        var playerToAdd = TSPlayer.FindByNameOrID(playername)[0];
-
-                        Playering newPlayering = new(playerToAdd.Account.Name);
-
-                        playername = playerToAdd.Name;
-                        PlayerInfo.Add(playername, newPlayering);
-                        TSPlayer.All.SendMessage($"{playername} has been added to the game!", Color.Green);
-                        UpdateScore();
-                        break;
-                    case "remove":
-                        if (args.Parameters.Count != 2)
-                        {
-                            args.Player.SendErrorMessage("wrong amount of parameters!");
-                            args.Player.SendInfoMessage("/game remove <playername>");
-                            return;
-                        }
-                        string name = args.Parameters[1];
-                        Playering playerToRemove;
-                        if (!PlayerInfo.TryGetValue($"{name}", out playerToRemove))
-                        {
-                            args.Player.SendErrorMessage("uh nuh uh");
-                            return;
-                        }
-                        playerToRemove = PlayerInfo[name];
-                        int points = playerToRemove.score;
-                        spleefCoin.AddCoins(playerToRemove.accName, points, false);
-                        if (playerToRemove.isIngame)
-                            PlayerCount--;
-                        PlayerInfo.Remove(name);
-                        args.Player.SendSuccessMessage($"removed {name} from the game and awarded {points} Spleef Coins!");
-                        TSPlayer.All.SendMessage($"{name} has been completely removed from the game!", Color.Red);
-                        UpdateScore();
-                        break;
-                    case "score":
-                        AnnounceScore();
-                        break;
-                    case "edit":
-                        if (args.Parameters.Count != 3)
-                        {
-                            args.Player.SendErrorMessage("wrong amount of parameters!");
-                            args.Player.SendInfoMessage("/game edit <playername> <amount>");
-                            return;
-                        }
-                        if (!isPlayerOnline(args.Parameters[1]))
-                        {
-                            args.Player.SendErrorMessage("this guy does not exist bro");
-                            return;
-                        }
-                        var PlayerToEdit = TSPlayer.FindByNameOrID(args.Parameters[1])[0];
-                        int Value = Convert.ToInt32(args.Parameters[2]);
-
-                        if (PlayerInfo.ContainsKey(PlayerToEdit.Name))
-                        {
-                            PlayerInfo[PlayerToEdit.Name].score += Value;
-                            TSPlayer.All.SendMessage($"{PlayerToEdit.Name} score is now {PlayerInfo[PlayerToEdit.Name].score}!", Color.ForestGreen);
-                        }
-
-                        else
-                        {
-                            args.Player.SendErrorMessage("this guy is not in the current game bro");
-                        }
-                        break;
-                    case "template":
-                        args.Player.SendErrorMessage("You can't use this command right now! There is already a game going on.");
-                        break;
-                    default:
-                        args.Player.SendErrorMessage("That's not a valid command.");
-                        break;
-                }
-            }
-            else if (isGaming && isRound)
-            {
-                switch (args.Parameters[0])
-                {
-                    case "stop":
-                    case "end":
+                    if (isRound)
+                    {
                         ServerApi.Hooks.NetGetData.Deregister(pluginInstance, OnGetData);
+                        StopLavarise();
                         Commands.HandleCommand(TSPlayer.Server, CommandToEndRound);
                         TSPlayer.All.SendMessage($"Forcefully ended round!", Color.BlueViolet);
                         isRound = false;
-                        break;
-                    case "score":
-                        AnnounceScore();
-                        break;
-                    case "list":
-                        ListStuff(args);
-                        break;
-                    case "start":
-                    case "add":
-                    case "remove":
-                    case "edit":
-                        args.Player.SendErrorMessage("You can't use this command right now! There is currently a round going on. Wait until it ends or end it with /game stop");
-                        break;
-                    case "template":
-                        args.Player.SendErrorMessage("You can't use this command right now! There is already a game going on.");
-                        break;
-                    default:
-                        args.Player.SendErrorMessage("That's not a valid command.");
-                        break;
-                }
+                        return;
+                    }
+
+                    SpleefCoin.MigrateUsersToSpleefDatabase();
+                    AnnounceScore();
+                    TSPlayer.All.SendMessage($"Game ended, after {RoundCounter} rounds {PlayerInfoList[0].Key} WON!!!!!!!!!", Color.MediumTurquoise);
+                    foreach (KeyValuePair<string, Playering> player in PlayerInfoList)
+                    {
+                        var players = TSPlayer.FindByNameOrID(player.Key);
+                        if (isPlayerOnline(player.Key))
+                        {
+                            var plr = TSPlayer.FindByNameOrID(player.Key)[0];
+                            if (player.Value.accName == player.Key)
+                                spleefCoin.AddCoins(player.Value.accName, player.Value.score, false);
+                            else
+                            {
+                                spleefCoin.AddCoins(player.Value.accName, player.Value.score, true);
+                                plr.SendMessage($"Sent {player.Value.score} Spleef Coin to your account {player.Value.accName}", Color.Purple);
+                            }
+                        }
+                        else
+                            spleefCoin.AddCoins(player.Value.accName, player.Value.score, false);
+                    }
+                    if (isBettable)
+                        PayAllBets();
+                    PlayerInfo.Clear();
+                    MapsInfo.Clear();
+                    isGaming = false;
+                    RoundCounter = 0;
+                    UpdateScore();
+                    blockSpam.FullTimerAnnounce();
+                    GeneralHooks.ReloadEvent -= OnServerReload;
+                    ServerApi.Hooks.ServerLeave.Deregister(pluginInstance, OnPlayerLeave);
+                    ServerApi.Hooks.GameUpdate.Deregister(pluginInstance, OnWorldUpdate);
+                    break;
+                case "bet":
+                    if (!isGaming)
+                    {
+                        args.Player.SendErrorMessage("You can't use that command yet! You should first create a game");
+                        args.Player.SendInfoMessage("/game template <templateName>");
+                        return;
+                    }
+
+                    if (args.Parameters[1] == "open")
+                    {
+                        isBettable = true;
+                        isBetsLocked = false;
+                        TSPlayer.All.SendMessage("The bets have been opened! Start placing your bets with /bet!", Color.SeaShell);
+                        return;
+                    }
+
+                    if (args.Parameters[1] == "close")
+                    {
+                        isBetsLocked = true;
+                        TSPlayer.All.SendMessage("The bets are closed now!", Color.SeaShell);
+                        return;
+                    }
+
+                    if (args.Parameters[1] == "off")
+                    {
+                        isBettable = false;
+                        Bets.Clear();
+                        TSPlayer.All.SendMessage("All bets have been cleared! You can't place any more bets as well :C", Color.SeaShell);
+                        return;
+                    }
+
+                    if (args.Parameters[1] == "pay")
+                    {
+                        PayAllBets();
+                        return;
+                    }
+                    break;
+                case "reload":
+                    if (!isGaming)
+                    {
+                        args.Player.SendErrorMessage("You can't use that command yet! You should first create a game");
+                        args.Player.SendInfoMessage("/game template <templateName>");
+                        return;
+                    }
+
+                    CountPlayers();
+                    if (isBettable && PlayerCount == 2)
+                    {
+                        UpdatePayout();
+                        args.Player.SendSuccessMessage("Payouts updated!");
+                    }
+                    UpdateScore();
+                    break;
+                default:
+                    args.Player.SendErrorMessage("That ain't a command buckaroo");
+                    args.Player.SendInfoMessage("/game help");
+                    break;
             }
         }
-        /*
+
         private class Bet
         {
-            string Gambler;
-            int Amount;
-            string Dissapointment;
-            public Bet(string name, int amount, string name2)
+            public string Gambler;
+            public int Amount;
+            public string Dissapointment;
+            public string DissapointmentDisplayName;
+            public Bet(string name, int amount, string name2, string displayName)
             {
                 Gambler = name;
                 Amount = amount;
                 Dissapointment = name2;
+                DissapointmentDisplayName = displayName;
+            }
+
+            public float GetBetPayout()
+            {
+                return PlayerInfo[DissapointmentDisplayName].BetPayout;
             }
         }
 
-        List<Bet> Bets = new();
+        private List<Bet> Bets = new();
+        private bool isBetsLocked = true;
 
-        public void Betting (CommandArgs args) // /bet username amount
+        private int GetAllBets(string name)
         {
-            string gamblerName = args.Player.Account.Name;
-            int amount = Convert.ToInt32(args.Parameters[1]);
-            string fighterName = args.Parameters[0];
-            if (isBettable && isRoundBettable)
+            int sum = 0;
+            foreach (Bet bet in Bets.FindAll(b => b.Gambler == name))
+                sum += bet.Amount;
+            return sum;
+        }
+
+        public void UpdatePayout() //only works for 2 players rn
+        {
+            PlayerInfoList = PlayerInfo.ToList();
+            Playering player1 = PlayerInfoList[0].Value, player2 = PlayerInfoList[1].Value;
+
+            player1.ELO = spleefELO.GetElo(player1.accName);
+            player2.ELO = spleefELO.GetElo(player2.accName);
+
+            player1.BetPayout = spleefELO.prob(player1.ELO, player2.ELO) / spleefELO.prob(player2.ELO, player1.ELO);
+            player2.BetPayout = spleefELO.prob(player2.ELO, player1.ELO) / spleefELO.prob(player1.ELO, player2.ELO);
+
+            PlayerInfo = PlayerInfoList.ToDictionary(pair => pair.Key, pair => pair.Value);
+        }
+
+        public void PayAllBets()
+        {
+            foreach (Bet bet in Bets)
             {
-                Bets.Add(new Bet(gamblerName, amount, fighterName));
+                if (bet.Dissapointment == PlayerInfoList[0].Value.accName)
+                {
+                    int payout = (int)Math.Round(bet.Amount * PlayerInfoList[0].Value.BetPayout);
+                    spleefCoin.AddCoins(bet.Gambler, payout, false);
+                    TSPlayer.All.SendMessage($"{bet.Gambler} bet on {bet.Dissapointment} {bet.Amount} Spleef Coin(s) and won {payout}!", Color.Chocolate);
+                }
+                else
+                {
+                    spleefCoin.AddCoins(bet.Gambler, -bet.Amount, false);
+                    TSPlayer.All.SendMessage($"{bet.Gambler} bet on {bet.Dissapointment} {bet.Amount} Spleef Coin(s) and lost their bet, what a loser.", Color.Aquamarine);
+                }
             }
+            Bets.Clear();
+        }
+
+        public void Betting (CommandArgs args) // /bet add/remove username amount
+        {
+            if (args.Parameters.Count < 1)
+            {
+                args.Player.SendErrorMessage("brotha do /bet help");
+                return;
+            }
+
+            if (args.Parameters[0] == "help")
+            {
+                args.Player.SendInfoMessage($"Whenever a game starts you can place bets on who you think will win");
+                args.Player.SendInfoMessage($"/bet list - lists all the bets");
+                args.Player.SendInfoMessage($"/bet check - lists all your bets");
+                args.Player.SendInfoMessage($"/bet add username amount - adds a bet on the player if they're ingame");
+                args.Player.SendInfoMessage($"/bet remove username amount - removes an amount from the bet only unless it becomes negative");
+                return;
+            }
+
+            if (!isBettable)
+            {
+                args.Player.SendErrorMessage("You can't bet right now!");
+                return;
+            }
+
+            if (args.Parameters[0] == "list")
+            {
+                if (Bets.Count == 0)
+                {
+                    args.Player.SendInfoMessage("There are no bets!");
+                    return;
+                }
+                foreach(Bet bet in Bets)
+                    args.Player.SendInfoMessage($"{bet.Gambler} - {bet.Dissapointment} : {bet.Amount} (+{(int)Math.Round(bet.Amount * bet.GetBetPayout())})");
+                return;
+            }
+
+            string gamblerName = args.Player.Account.Name;
+
+            if (args.Parameters[0] == "check")
+            {
+                if (Bets.Count(b => b.Gambler == gamblerName) == 0)
+                {
+                    args.Player.SendInfoMessage("You don't have any bets!");
+                    return;
+                }
+                foreach (Bet bet in Bets.FindAll(b => b.Gambler == gamblerName))
+                    args.Player.SendInfoMessage($"{bet.Dissapointment} : {bet.Amount} (+{(int)Math.Round(bet.Amount * bet.GetBetPayout())})");
+                return;
+            }
+
+            if (isBetsLocked)
+            {
+                args.Player.SendErrorMessage("The bets are locked now!");
+                return;
+            }
+
+            if (args.Parameters[0] != "add" && args.Parameters[0] != "remove")
+            {
+                args.Player.SendErrorMessage("uh wrong do /bet add/remove username amount");
+                return;
+            }
+
+            string fighterName = args.Parameters[1];
+
+            if (!isPlayerIngame(fighterName))
+            {
+                args.Player.SendErrorMessage("This player is not in the game!");
+                return;
+            }
+
+            TSPlayer fighterPlayer = TSPlayer.FindByNameOrID(fighterName)[0];
+            fighterName = fighterPlayer.Name;
+            string fighterFullName = fighterPlayer.Account.Name;
+            int amount = Convert.ToInt32(args.Parameters[2]);
+
+            if (Bets.Exists(b => b.Gambler == gamblerName && b.Dissapointment == fighterFullName))
+            {
+                Bet bet = Bets.Find(b => b.Gambler == gamblerName && b.Dissapointment == fighterFullName);
+
+                if (args.Parameters[0] == "remove")
+                    amount = -amount;
+
+                if (bet.Amount + amount == 0)
+                {
+                    args.Player.SendSuccessMessage("Removed your entire bet!");
+                    Bets.Remove(bet);
+                    return;
+                }
+
+                if (bet.Amount + amount < 0)
+                {
+                    args.Player.SendErrorMessage("You can't make your bet negative!");
+                    return;
+                }
+
+                if (spleefCoin.GetCoins(bet.Gambler) < GetAllBets(bet.Gambler) + amount)
+                {
+                    args.Player.SendErrorMessage("You can't bet more than you have!");
+                    return;
+                }
+
+                bet.Amount += amount;
+                args.Player.SendSuccessMessage($"Edited your bet on {fighterName}! In total making it {bet.Amount}! (+{(int)Math.Round(bet.Amount * bet.GetBetPayout())})");
+                return;
+            }
+
+            if (amount <= 0)
+            {
+                args.Player.SendErrorMessage("Hello, what is that bet");
+                return;
+            }
+
+            if (spleefCoin.GetCoins(gamblerName) < GetAllBets(gamblerName) + amount)
+            {
+                args.Player.SendErrorMessage("You can't bet more than you have!");
+                return;
+            }
+
+            Bets.Add(new Bet(gamblerName, amount, fighterFullName, fighterName));
+            var bett = Bets.Find(b => b.Gambler == gamblerName && b.Dissapointment == fighterFullName);
+            args.Player.SendSuccessMessage($"Made a bet on {fighterName} - {amount}! (+{(int)Math.Round(bett.Amount * bett.GetBetPayout())})");
         }
 
         public void Challenge (CommandArgs args) // /challenge username amount
         {
 
         }
-        */
+
         public void JoinGame (CommandArgs args)
         {
             if (!isGaming)
@@ -866,13 +1124,29 @@ namespace SpleefResurgence
 
         private Stopwatch suicideTimer = new();
 
+        private void StopLavarise()
+        {
+            if (ParameterLavaRise != "null")
+            {
+                Commands.HandleCommand(TSPlayer.Server, $"{ParameterLavaRise} stop");
+                ParameterLavaRise = "null";
+            }
+            else if (OtherLavaRiseCommand != "null")
+            {
+                Commands.HandleCommand(TSPlayer.Server, $"{OtherLavaRiseCommand} stop");
+                OtherLavaRiseCommand = "null";
+            }
+            else
+                Commands.HandleCommand(TSPlayer.Server, $"{CommandToStartRound} stop");
+            Commands.HandleCommand(TSPlayer.Server, CommandToEndRound);
+        }
+
         private void CheckRound(int counter)
         {
             if (counter == PlayerCount - 1)
             {
                 suicideTimer.Restart();
-                Commands.HandleCommand(TSPlayer.Server, $"{CommandToStartRound} stop");
-                Commands.HandleCommand(TSPlayer.Server, CommandToEndRound);
+                StopLavarise();
             }
 
             else if (counter == PlayerCount)
@@ -961,7 +1235,7 @@ namespace SpleefResurgence
         {
             foreach (TSPlayer player in TShock.Players)
             {
-                if (player != null && player.Active && player.Account.Name != null)
+                if (player != null && player.Active && player.IsLoggedIn && player.Account.Name != null)
                 {
                     PlayerSettings settings = spleefSettings.GetSettings(player.Account.Name);
                     if (settings.ShowScore)
@@ -1089,7 +1363,28 @@ namespace SpleefResurgence
         {
             foreach (KeyValuePair<string, Playering> player in PlayerInfo)
             {
-                if (player.Value.isIngame == true)
+                if (player.Value.isIngame)
+                {
+                    var plr = TSPlayer.FindByNameOrID(player.Key)[0];
+                    if (slot == -1)
+                        slot = inventoryEdit.FindNextFreeAccessorySlot(plr);
+                    if (slot == -1)
+                    {
+                        slot = inventoryEdit.FindNextFreeSlot(plr);
+                        inventoryEdit.AddItem(plr, slot, 1, itemID);
+                    }
+                    else
+                        inventoryEdit.AddArmor(plr, slot, itemID);
+                }
+            }
+        }
+
+        private void GiveEveryoneMusicBox(int itemID, int slot = -1)
+        {
+            foreach (KeyValuePair<string, Playering> player in PlayerInfo)
+            {
+                var settings = spleefSettings.GetSettings(player.Value.accName);
+                if (player.Value.isIngame && settings.GetMusicBox)
                 {
                     var plr = TSPlayer.FindByNameOrID(player.Key)[0];
                     if (slot == -1)
@@ -1109,7 +1404,7 @@ namespace SpleefResurgence
         {
             foreach (KeyValuePair<string, Playering> player in PlayerInfo)
             {
-                if (player.Value.isIngame == true)
+                if (player.Value.isIngame)
                 {
                     var plr = TSPlayer.FindByNameOrID(player.Key)[0];
                     plr.SetBuff(BuffID, time);
@@ -1123,7 +1418,7 @@ namespace SpleefResurgence
             {
                 foreach (var player in PlayerInfo)
                 {
-                    if (player.Value.isIngame == true)
+                    if (player.Value.isIngame)
                         player.Value.isAlive = true;
                 }
                 return;
@@ -1133,7 +1428,7 @@ namespace SpleefResurgence
             int counter = 0;
             foreach (KeyValuePair<string, Playering> player in ShuffledList)
             {
-                if (player.Value.isIngame == true)
+                if (player.Value.isIngame)
                 {
                     var plr = TSPlayer.FindByNameOrID(player.Key)[0];
                     plr.Teleport(ArenaSpawns[counter % ArenaSpawns.Count].X * 16, ArenaSpawns[counter % ArenaSpawns.Count].Y * 16);
@@ -1206,13 +1501,13 @@ namespace SpleefResurgence
             Commands.HandleCommand(TSPlayer.Server, GameArena.MapCommand);
             if (ParameterRandomizeDirt != "null")
             {
-                Commands.HandleCommand(TSPlayer.Server, ParameterRandomizeDirt);
-                ParameterRandomizeDirt = "null";
+                Commands.HandleCommand(TSPlayer.Server, ParameterRandomizeDirt + MoreParameters);
+                var cmd = CustomCommandHandler.CommandsTrack.Find(c => c.Name == ParameterRandomizeDirt[1..]);
             }
             if (GameArena.OtherRandomizeDirtCommand != "null")
-                Commands.HandleCommand(TSPlayer.Server, GameArena.OtherRandomizeDirtCommand);
+                Commands.HandleCommand(TSPlayer.Server, GameArena.OtherRandomizeDirtCommand + MoreParameters);
             else if (CommandToRandomizeDirt != "null")
-                Commands.HandleCommand(TSPlayer.Server, CommandToRandomizeDirt);
+                Commands.HandleCommand(TSPlayer.Server, CommandToRandomizeDirt + MoreParameters);
             TpAndWebEveryone(GameArena.ArenaSpawns);
             if (GameArena.Items.Any())
             {
@@ -1234,9 +1529,9 @@ namespace SpleefResurgence
         }
 
 
-        private async void Boulders(string GameType, int itemID = -1, int itemAmount = 1)
+        private async void Boulders(string GameType, int itemID = -1, int timeInSeconds = 20, int itemAmount = 1)
         {
-            await Task.Delay(20000);
+            await Task.Delay(timeInSeconds * 1000);
 
             switch (GameType)
             {
@@ -1278,6 +1573,20 @@ namespace SpleefResurgence
             statusRound += $"{gimmick.Statusmsg}\n";
             TSPlayer.All.SendInfoMessage(gimmick.Statusmsg);
             gimmick.Action();
+        }
+        private void OnServerReload(ReloadEventArgs args)
+        {
+            try
+            {
+                var gameTemplate = PluginSettings.Config.GameTemplates.FirstOrDefault(c => c.Name == GameTemplateName);
+                LoadStuff(gameTemplate);
+                args.Player.SendSuccessMessage("[SpleefResurgence] Game template reloaded!");
+            }
+            catch (Exception ex)
+            {
+                args.Player.SendErrorMessage("There was an issue loading the game template!");
+                TShock.Log.ConsoleError(ex.ToString());
+            }
         }
     }
 }
