@@ -22,13 +22,14 @@ namespace SpleefResurgence
         private readonly SpleefUserSettings spleefSettings;
         private readonly SpleefGame spleefGame;
         private readonly BlockSpam blockSpam;
-        public static System.Timers.Timer statusTimer, buffTimer;
+        private readonly SpleefELO spleefELO;
+
         public static Random rnd = new();
 
         public override string Author => "MaximPrime";
         public override string Name => "Spleef Resurgence Plugin";
         public override string Description => "ok i think it works yipee.";
-        public override System.Version Version => new(2, 0);
+        public override System.Version Version => new(2, 1);
 
         public Spleef(Main game) : base(game)
         {
@@ -36,8 +37,9 @@ namespace SpleefResurgence
             commandHandler = new CustomCommandHandler(this);
             tileTracker = new TileTracker(this);
             inventoryEdit = new InventoryEdit();
-            spleefSettings = new SpleefUserSettings();
-            spleefGame = new SpleefGame(this, spleefCoin, inventoryEdit, spleefSettings);
+            spleefSettings = new SpleefUserSettings(spleefCoin);
+            spleefELO = new SpleefELO(spleefCoin);
+            spleefGame = new SpleefGame(this, spleefCoin, inventoryEdit, spleefSettings, spleefELO);
             blockSpam = new BlockSpam(this, spleefSettings, spleefGame);
             spleefGame.SetBlockSpam(blockSpam);
         }
@@ -54,6 +56,7 @@ namespace SpleefResurgence
             Commands.ChatCommands.Add(new Command("spleef.game.user", spleefGame.JoinGame, "join", "j"));
             Commands.ChatCommands.Add(new Command("spleef.game.user", spleefGame.LeaveGame, "leave", "l"));
             Commands.ChatCommands.Add(new Command("spleef.game.user", spleefGame.CheckScore, "score"));
+            Commands.ChatCommands.Add(new Command("spleef.game.user", spleefGame.Betting, "bet"));
 
             Commands.ChatCommands.Add(new Command("spleef.tiletrack", tileTracker.ToggleTileTracking, "tilepos"));
             Commands.ChatCommands.Add(new Command("spleef.coolsay", Coolsay, "coolsay"));
@@ -64,9 +67,13 @@ namespace SpleefResurgence
             Commands.ChatCommands.Add(new Command("spleef.coin.user", spleefCoin.GetLeaderboard, "leaderboard", "lb"));
             Commands.ChatCommands.Add(new Command("spleef.coin.user", spleefCoin.TransferCoinsCommand, "transfer"));
 
+            Commands.ChatCommands.Add(new Command("spleef.elo.admin", spleefELO.SetEloCommand, "eloset"));
+            Commands.ChatCommands.Add(new Command("spleef.elo.user", spleefELO.GetEloCommand, "elo"));
+            //Commands.ChatCommands.Add(new Command("spleef.elo.user", spleefELO.GetEloLeaderboard, "elo"));
+
             Commands.ChatCommands.Add(new Command("spleef.coin.user", PenguinPoints, "pp"));
             Commands.ChatCommands.Add(new Command("die", Die, "die"));
-            Commands.ChatCommands.Add(new Command("spleef.impesonate", Impersonate, "impersonate", "imp"));
+            Commands.ChatCommands.Add(new Command("spleef.impersonate", Impersonate, "impersonate", "imp"));
 
             Commands.ChatCommands.Add(new Command("spleef.inventory", inventoryEdit.InventoryReset, "inventoryreset", "invreset"));
             Commands.ChatCommands.Add(new Command("spleef.inventory", inventoryEdit.InventoryEditCommand, "inventoryedit", "invedit"));
@@ -133,7 +140,7 @@ namespace SpleefResurgence
         {
             foreach (TSPlayer player in TShock.Players)
             {
-                if (player != null && player.Active && player.IsLoggedIn && player.Account.Name != null && spleefSettings.GetSettings(player.Account.Name).GetBuffs)
+                if (player != null && player.Active && player.IsLoggedIn && player.IsLoggedIn && player.Account.Name != null && spleefSettings.GetSettings(player.Account.Name).GetBuffs)
                 {
                     player.SetBuff(BuffID.Honey, 1000000000);
                     player.SetBuff(BuffID.HeartLamp, 1000000000);

@@ -71,18 +71,21 @@ public class BlockSpam
 
     private void OnPlayerLeave(LeaveEventArgs args)
     {
-        Trackers.Remove(TShock.Players[args.Who]. Name);
+        Trackers.Remove(TShock.Players[args.Who].Name);
     }
 
     public void FullTimerAnnounce()
     {
         foreach (var tracker in Trackers)
         {
+          if (player != null && player.Active && player.IsLoggedIn && player.Account.Name != null && spleefSettings.GetSettings(player.Account.Name).BlockSpamDebug)
+          {
             string name = tracker.Value.name;
             if (tracker.Value.spamState != State.NotTracking) //is tracking
                 TSPlayer.All.SendInfoMessage($"{name} - {tracker.Value.TotalBlockSpamTimer.Elapsed.TotalSeconds:N3}\n");
             else
                 TSPlayer.All.SendInfoMessage($"{name} - N/A\n");
+          }
             tracker.Value.TotalBlockSpamTimer.Reset();
         }
     }
@@ -108,7 +111,7 @@ public class BlockSpam
     private void OnWorldUpdate()
     {
         foreach (TSPlayer player in TShock.Players)
-            if (player != null && player.Active && player.IsLoggedIn && player.Name != null && spleefSettings.GetSettings(player.Name).BlockSpamDebug)
+            if (player != null && player.Active && player.IsLoggedIn && player.Account.Name != null && spleefSettings.GetSettings(player.Account.Name).BlockSpamDebug)
                 player.SendData(PacketTypes.Status, UpdateTracking(), number2: 1);
     }
     

@@ -1,4 +1,5 @@
 ﻿using Microsoft.Xna.Framework;
+using Newtonsoft.Json.Schema;
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
 using System.Linq;
@@ -14,8 +15,6 @@ namespace SpleefResurgence
 {
     public class CustomCommandHandler
     {
-        private static int OneBreakTile;
-
         public static PluginSettings Config => PluginSettings.Config;
         private readonly Spleef pluginInstance;
         private static Random rnd = Spleef.rnd;
@@ -130,12 +129,26 @@ namespace SpleefResurgence
             }
         }
 
-        private static async Task LavaRiseTimer(int timeInSeconds, string text = "[i:207] Time until lava rises: ")
+        private static CancellationTokenSource? lavaRiseCts;
+        private static bool isLavaRisePaused = false;
+        private static async Task LavaRiseTimer(int timeInSeconds, CancellationToken token = default, string text = "[i:207] Time until lava rises: ")
         {
             Stopwatch Risetimer = new();
             Risetimer.Start();
             while (Risetimer.Elapsed.TotalSeconds < timeInSeconds)
             {
+                if (token.IsCancellationRequested)
+                {
+                    Spleef.statusLavariseTime = "Lava rise stopped!";
+                    return;
+                }
+
+                if (isLavaRisePaused)
+                {
+                    await Task.Delay(100);
+                    continue;
+                }
+
                 Spleef.statusLavariseTime = text + $"{(timeInSeconds - Risetimer.Elapsed.TotalSeconds):N1}";
                 await Task.Delay(10);
             }
@@ -152,19 +165,21 @@ namespace SpleefResurgence
             public Queue<string> CmdList;
             public Stopwatch Stopwatch = new();
             public double WaitTimeSeconds = 0;
-            public TSPlayer Player;
             public CommandArgs Args;
             public bool isPaused = false;
             public string Parent;
+            public int? OneBreakTile;
+            public byte? Paint;
 
-            public CustomCommand(string name, List<string> commands, TSPlayer player, CommandArgs args, string parent)
+            public CustomCommand(string name, List<string> commands, CommandArgs args, string parent, int? tile, byte? paint)
             {
                 Name = name;
                 CmdList = new Queue<string>(commands);
-                Player = player;
                 Stopwatch.Start();
                 Args = args;
                 Parent = parent;
+                OneBreakTile = tile;
+                Paint = paint;
             }
 
             public void PauseCommand()
@@ -179,13 +194,15 @@ namespace SpleefResurgence
             }
         }
 
-        private readonly static List<CustomCommand> CommandsTrack = new();
+        public readonly static List<CustomCommand> CommandsTrack = new();
 
         public static void CommandLogicAltAlt(CommandArgs args, string name, string permission, List<string> CmdList)
         {
             TSPlayer player = args.Player;
             bool isForced = false;
             string parent = "null";
+            int? tile = null;
+            byte? paint = null;
             switch (args.Parameters.ElementAtOrDefault(0))
             {
                 case "permission":
@@ -207,7 +224,7 @@ namespace SpleefResurgence
                     player.SendInfoMessage($"To view the list of all commands: /{name} list");
                     player.SendInfoMessage($"To execute all the commands: /{name}");
                     player.SendMessage($"You can also make the server wait before executing a command: /{name} add time waittime", Color.Orange);
-                    player.SendMessage($"And also an easier way to setup a lavarise: /{name} add lavarise x1 y1 x2 y2 waittime", Color.Orange);
+                    player.SendMessage($"And also an easier way to setup a lavarise: /{name} add rise x1 y1 x2 y2 waittime", Color.Orange);
                     break;
                 case "add":
                     if (!player.Group.HasPermission("spleef.customcommand"))
@@ -297,6 +314,12 @@ namespace SpleefResurgence
                         player.SendErrorMessage($"hey stinker you do not have the permission to do this");
                         return;
                     }
+                    if (lavaRiseCts != null && !lavaRiseCts.IsCancellationRequested)
+                    {
+                        lavaRiseCts.Cancel();
+                        lavaRiseCts = null;
+                        player.SendInfoMessage("Lava rise timer has been stopped.");
+                    }
                     foreach (var command in CommandsTrack)
                     {
                         if (command.Name == name)
@@ -313,37 +336,6 @@ namespace SpleefResurgence
                     }
                     player.SendErrorMessage($"{name} ain't active");
                     break;
-                case "pause":
-                    if (CommandsTrack.Exists(c => c.Name == name))
-                    {
-                        var PauseCommand = CommandsTrack.Find(c => c.Name == name);
-                        if (PauseCommand.isPaused)
-                        {
-                            player.SendErrorMessage($"This command is already paused paused");
-                            return;
-                        }
-                        PauseCommand.PauseCommand();
-                        player.SendSuccessMessage($"Paused {name}");
-                    }
-                    else
-                        player.SendErrorMessage($"This command isn't active");
-                    break;
-                case "continue":
-                case "unpause":
-                    if (CommandsTrack.Exists(c => c.Name == name))
-                    {
-                        var ContinueCommand = CommandsTrack.Find(c => c.Name == name);
-                        if (!ContinueCommand.isPaused)
-                        {
-                            player.SendErrorMessage($"This command isn't paused");
-                            return;
-                        }
-                        ContinueCommand.ContinueCommand();
-                        player.SendSuccessMessage($"Unpaused {name}");
-                    }
-                    else
-                        player.SendErrorMessage($"This command isn't active");
-                    break;
                 default:
                     for(int i = 0; i < args.Parameters.Count; i++)
                     {
@@ -354,6 +346,10 @@ namespace SpleefResurgence
                         {
                             parent = args.Parameters[i + 1];
                         }
+                        else if (param == "-block" || param == "-tile")
+                            tile = Convert.ToInt32(args.Parameters[i + 1]);
+                        else if (param == "-paint")
+                            paint = Convert.ToByte(args.Parameters[i + 1]);
                     }
                     if (!isForced)
                     {
@@ -366,7 +362,7 @@ namespace SpleefResurgence
                             }
                         }
                     }
-                    CustomCommand ccmd = new(name, CmdList, player, args, parent);
+                    CustomCommand ccmd = new(name, CmdList, args, parent, tile, paint);
                     CommandsTrack.Add(ccmd);
                     break;
             }
@@ -383,7 +379,7 @@ namespace SpleefResurgence
 
                 if (command.CmdList.Count == 0)
                 {
-                    command.Player.SendSuccessMessage($"Finished command: {command.Name}");  
+                    command.Args.Player.SendSuccessMessage($"Finished command: {command.Name}");  
 
                     CommandsTrack.Remove(command);
                     if (command.Parent != "null")
@@ -411,7 +407,9 @@ namespace SpleefResurgence
             for (int j = 0; j < cmds.Count; j++)
             {
                 string S = cmds[j];
-                if (S[0] == 'x')
+                if (S == "[PLAYERNAME]")
+                    cmds[j] = command.Args.Player.Name;
+                else if (S[0] == 'x')
                 {
                     if (command.Args.Parameters.Count < S[1] - '0')
                     {
@@ -463,7 +461,10 @@ namespace SpleefResurgence
             }
             else if (cmds[0] == "timer")
             {
-                _ = LavaRiseTimer(Convert.ToInt32(cmds[1]));
+                lavaRiseCts?.Cancel();
+                lavaRiseCts = new CancellationTokenSource();
+                isLavaRisePaused = false;
+                _ = LavaRiseTimer(Convert.ToInt32(cmds[1]), lavaRiseCts.Token);
             }
             else if (cmds[0] == "paint")
             {
@@ -471,12 +472,14 @@ namespace SpleefResurgence
                 int paintY1 = Convert.ToInt32(cmds[2]);
                 int paintX2 = Convert.ToInt32(cmds[3]);
                 int paintY2 = Convert.ToInt32(cmds[4]);
-                byte type;
-
-                if (cmds[5] == "r")
-                    type = (byte)rnd.Next(32);
-                else
-                    type = Convert.ToByte(cmds[5]);
+                
+                if (command.Paint == null)
+                {
+                    if (cmds[5] == "r")
+                        command.Paint = (byte)rnd.Next(31);
+                    else
+                        command.Paint = Convert.ToByte(cmds[5]);
+                }
 
                 int paintLeft = Math.Min(paintX1, paintX2), paintRight = Math.Max(paintX1, paintX2);
                 int paintTop = Math.Min(paintY1, paintY2), paintBottom = Math.Max(paintY1, paintY2);
@@ -485,7 +488,26 @@ namespace SpleefResurgence
                 {
                     for (int k = paintTop; k <= paintBottom; k++)
                     {
-                        WorldGen.paintTile(j, k, type, true);
+                        WorldGen.paintTile(j, k, (byte)command.Paint, true);
+                        NetMessage.SendTileSquare(-1, j, k, 1);
+                    }
+                }
+            }
+            else if (cmds[0] == "paintmore")
+            {
+                int paintX1 = Convert.ToInt32(cmds[1]);
+                int paintY1 = Convert.ToInt32(cmds[2]);
+                int paintX2 = Convert.ToInt32(cmds[3]);
+                int paintY2 = Convert.ToInt32(cmds[4]);
+
+                int paintLeft = Math.Min(paintX1, paintX2), paintRight = Math.Max(paintX1, paintX2);
+                int paintTop = Math.Min(paintY1, paintY2), paintBottom = Math.Max(paintY1, paintY2);
+
+                for (int j = paintLeft; j <= paintRight; j++)
+                {
+                    for (int k = paintTop; k <= paintBottom; k++)
+                    {
+                        WorldGen.paintTile(j, k, (byte)command.Paint, true);
                         NetMessage.SendTileSquare(-1, j, k, 1);
                     }
                 }
@@ -532,10 +554,14 @@ namespace SpleefResurgence
                 int y1 = Convert.ToInt32(cmds[2]);
                 int x2 = Convert.ToInt32(cmds[3]);
                 int y2 = Convert.ToInt32(cmds[4]);
-                if (cmds.Count != 6)
-                    OneBreakTile = SpleefGame.OneBreakTiles[Spleef.rnd.Next(SpleefGame.OneBreakTiles.Length)];
-                else
-                    OneBreakTile = Convert.ToInt32(cmds[5]);
+
+                if (command.OneBreakTile == null)
+                {
+                    if (cmds.Count != 6)
+                        command.OneBreakTile = SpleefGame.OneBreakTiles[Spleef.rnd.Next(SpleefGame.OneBreakTiles.Length)];
+                    else
+                        command.OneBreakTile = Convert.ToInt32(cmds[5]);
+                }
 
                 int left = Math.Min(x1, x2), right = Math.Max(x1, x2);
                 int top = Math.Min(y1, y2), bottom = Math.Max(y1, y2);
@@ -546,7 +572,7 @@ namespace SpleefResurgence
                     {
                         if (Main.tile[j, k].active() && Main.tile[j, k].type == 0)
                         {
-                            WorldGen.PlaceTile(j, k, OneBreakTile, true, true);
+                            WorldGen.PlaceTile(j, k, (int)command.OneBreakTile, true, true);
                             NetMessage.SendTileSquare(-1, j, k, 1);
                         }
                     }
@@ -568,7 +594,7 @@ namespace SpleefResurgence
                     {
                         if (Main.tile[j, k].active() && Main.tile[j, k].type == 0)
                         {
-                            WorldGen.PlaceTile(j, k, OneBreakTiles[Spleef.rnd.Next(OneBreakTiles.Length)], true, true);
+                            WorldGen.PlaceTile(j, k, (int)command.OneBreakTile, true, true);
                             NetMessage.SendTileSquare(-1, j, k, 1);
                         }
                     }

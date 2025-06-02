@@ -15,6 +15,8 @@ namespace SpleefResurgence
         public bool ShowLavarise { get; set; } = true;
         public bool GetBuffs { get; set; } = true;
         public bool ChatLavarise { get; set; } = false;
+        public bool GetMusicBox { get; set; } = true;
+        public bool GetPaintSprayer { get; set; } = true;
         public bool BlockSpamDebug { get; set; } = false;
     }
 
@@ -22,15 +24,18 @@ namespace SpleefResurgence
     public class SpleefUserSettings
     {
         private readonly string DbPath = Path.Combine(TShock.SavePath, "SpleefCoin.sqlite");
+        private readonly SpleefCoin spleefCoin;
 
-        public SpleefUserSettings()
+        public SpleefUserSettings(SpleefCoin spleefCoin)
         {
+            this.spleefCoin = spleefCoin;
             var sql = @"CREATE TABLE IF NOT EXISTS PlayerSettings (
                         Username TEXT PRIMARY KEY,
                         ShowScore INTEGER DEFAULT 1,
                         GetBuffs INTEGER DEFAULT 1,
                         ShowLavarise INTEGER DEFAULT 1,
                         ChatLavarise INTEGER DEFAULT 0,
+                        GetMusicBox INTEGER DEFAULT 1,
                         BlockSpamDebug INTEGER DEFAULT 0
                         );";
 
@@ -56,7 +61,7 @@ namespace SpleefResurgence
 
                 foreach (var kvp in parameters)
                 {
-                    if (!command.Parameters.Contains(kvp.Key)) // Avoid duplicate parameters
+                    if (!command.Parameters.Contains(kvp.Key))
                         command.Parameters.AddWithValue(kvp.Key, kvp.Value);
                 }
 
@@ -85,7 +90,8 @@ namespace SpleefResurgence
                     settings.GetBuffs = reader.GetInt32(2) == 1;
                     settings.ShowLavarise = reader.GetInt32(3) == 1;
                     settings.ChatLavarise = reader.GetInt32(4) == 1;
-                    settings.BlockSpamDebug = reader.GetInt32(5) == 1;
+                    settings.GetMusicBox = reader.GetInt32(5) == 1;
+                    settings.BlockSpamDebug = reader.GetInt32(6) == 1;
                     return settings;
                 }
             }
@@ -123,6 +129,11 @@ namespace SpleefResurgence
                 else
                     args.Player.SendInfoMessage($"[c/FF474C:Chat lavarise timer is disabled!] Change it with /toggle chatlavarise enable - [c/ff0000:this will be a thing in the future but doesn't work rn]");
 
+                if (userSettings.GetMusicBox)
+                    args.Player.SendInfoMessage("[c/88E788:Get music box is enabled!] Change it with /toggle musicbox disable");
+                else
+                    args.Player.SendInfoMessage($"[c/FF474C:Get music box is disabled!] Change it with /toggle musicbox enable");
+
                 if (userSettings.BlockSpamDebug)
                     args.Player.SendInfoMessage("[c/88E788:Blockspam debug is enabled!] Change it with /toggle debug disable");
                 else
@@ -132,7 +143,7 @@ namespace SpleefResurgence
 
             if (args.Parameters.Count == 2)
             {
-                if (args.Parameters[0] != "showscore" && args.Parameters[0] != "buff" && args.Parameters[0] != "showlavarise" && args.Parameters[0] != "chatlavarise" && args.Parameters[0] != "debug")
+                if (args.Parameters[0] != "showscore" && args.Parameters[0] != "buff" && args.Parameters[0] != "showlavarise" && args.Parameters[0] != "chatlavarise" && args.Parameters[0] != "musicbox" && args.Parameters[0] != "debug")
                 {
                     args.Player.SendErrorMessage($"{args.Parameters[0]} aint a setting");
                     return;
@@ -172,6 +183,8 @@ namespace SpleefResurgence
                 }
                 else if (args.Parameters[0] == "chatlavarise")
                     sql = $"UPDATE PlayerSettings SET ChatLavarise = @setting WHERE Username = @username";
+                else if (args.Parameters[0] == "musicbox")
+                    sql = $"UPDATE PlayerSettings SET GetMusicBox = @setting WHERE Username = @username";
                 else
                 {
                     sql = $"UPDATE PlayerSettings SET BlockSpamDebug = @setting WHERE Username = @username";
