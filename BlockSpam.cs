@@ -17,6 +17,8 @@ public class BlockSpam
     private readonly SpleefUserSettings spleefSettings;
     private readonly SpleefGame spleefGame;
 
+    private readonly Dictionary<string, Tracker> Trackers = new();
+
     public BlockSpam(Spleef plugin, SpleefUserSettings spleefSettings, SpleefGame spleefGame)
     {
         this.pluginInstance = plugin;
@@ -60,8 +62,6 @@ public class BlockSpam
             TotalBlockSpamTimer.Reset();
         }
     }
-
-    private readonly Dictionary<string, Tracker> Trackers = new();
 
     private void OnPlayerJoin(JoinEventArgs args)
     {
