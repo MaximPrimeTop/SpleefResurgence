@@ -205,6 +205,7 @@ namespace SpleefResurgence
 
         private class Playering
         {
+            public string Name;
             public int score = 0;
             public bool isAlive = false;
             public int place = -100;
@@ -214,8 +215,9 @@ namespace SpleefResurgence
             public float BetPayout;
             public float ELO;
 
-            public Playering(string accName, int score = 0, float betPayout = 2.0f)
+            public Playering(string name,string accName, int score = 0, float betPayout = 1.0f)
             {
+                Name = name;
                 this.score = score;
                 this.accName = accName;
                 BetPayout = betPayout;
@@ -230,9 +232,8 @@ namespace SpleefResurgence
             }
         }
 
-        private static Dictionary<string, Playering> PlayerInfo = new();
         private List<Map> MapsInfo = new();
-        List<KeyValuePair<string, Playering>> PlayerInfoList;
+        private static List<Playering> PlayerInfo = new();
 
         public static bool isPlayerOnline(string playername)
         {
@@ -246,11 +247,11 @@ namespace SpleefResurgence
 
         public bool isPlayerIngame(string playername)
         {
-            PlayerInfoList = PlayerInfo.ToList();
+            //PlayerInfoList = PlayerInfo.ToList();
             if (!isPlayerOnline(playername))
                 return false;
             var player = TSPlayer.FindByNameOrID(playername)[0];
-            if (PlayerInfoList.Exists(p => p.Value.accName == player.Account.Name))
+            if (PlayerInfo.Exists(p => p.accName == player.Account.Name))
                 return true;
             return false;
         }
@@ -258,7 +259,7 @@ namespace SpleefResurgence
         public void CountPlayers()
         {
             PlayerCount = 0;
-            foreach (Playering plr in PlayerInfo.Values)
+            foreach (Playering plr in PlayerInfo)
             {
                 if (plr.isIngame == true)
                     PlayerCount++;
@@ -330,32 +331,30 @@ namespace SpleefResurgence
 
         public void UpdateScore()
         {
-            PlayerInfoList = PlayerInfo
-                .OrderByDescending(entry => entry.Value.score)
-                .ToList();
             statusScore = "[c/FF1493:Game score:]\n";
-            foreach (KeyValuePair<string, Playering> plr in PlayerInfoList)
+            PlayerInfo = PlayerInfo.OrderByDescending(p => p.score).ToList();
+            foreach (var plr in PlayerInfo)
             {
-                if (plr.Value.isIngame == true)
+                if (plr.isIngame == true)
                 {
-                    if (plr.Value.isAlive)
-                        statusScore += $"[c/FF8559:{plr.Key} : {plr.Value.score}] [i:58]";
+                    if (plr.isAlive)
+                        statusScore += $"[c/FF8559:{plr.Name} : {plr.score}] [i:58]";
                     else
                     {
-                        if (plr.Value.GetPlace(PlayerCount) == 1)
-                            statusScore += $"[c/FF8559:{plr.Key} : {plr.Value.score}] [i:4601]";
-                        else if (plr.Value.GetPlace(PlayerCount) == 2)
-                            statusScore += $"[c/FF8559:{plr.Key} : {plr.Value.score}] [i:4600]";
-                        else if (plr.Value.GetPlace(PlayerCount) == 3)
-                            statusScore += $"[c/FF8559:{plr.Key} : {plr.Value.score}] [i:4599]";
+                        if (plr.GetPlace(PlayerCount) == 1)
+                            statusScore += $"[c/FF8559:{plr.Name} : {plr.score}] [i:4601]";
+                        else if (plr.GetPlace(PlayerCount) == 2)
+                            statusScore += $"[c/FF8559:{plr.Name} : {plr.score}] [i:4600]";
+                        else if (plr.GetPlace(PlayerCount) == 3)
+                            statusScore += $"[c/FF8559:{plr.Name} : {plr.score}] [i:4599]";
                         else
-                            statusScore += $"[c/FF8559:{plr.Key} : {plr.Value.score}] [i:321]";
+                            statusScore += $"[c/FF8559:{plr.Name} : {plr.score}] [i:321]";
                     }
                 }
                 else
-                    statusScore += $"[c/898989:{plr.Key} : {plr.Value.score}]";
+                    statusScore += $"[c/898989:{plr.Name} : {plr.score}]";
                 if (isBettable)
-                    statusScore += $"\nBet Payout - {plr.Value.BetPayout:N3}";
+                    statusScore += $"\nBet Payout - {plr.BetPayout:N3}";
                 statusScore += "\n";
             }
         }
@@ -484,6 +483,7 @@ namespace SpleefResurgence
                         isBetsLocked = false;
                         TSPlayer.All.SendMessage("Start placing your bets! Bet with /bet add username amount", Color.SeaShell);
                     }
+                    RoundCounter = 0;
                     ServerApi.Hooks.ServerLeave.Register(pluginInstance, OnPlayerLeave);
                     ServerApi.Hooks.GameUpdate.Register(pluginInstance, OnWorldUpdate);
                     GeneralHooks.ReloadEvent += OnServerReload;
@@ -556,7 +556,7 @@ namespace SpleefResurgence
                     }
                     OtherLavaRiseCommand = map.OtherLavariseCommand;
                     StartRound(args, GameTypes, map, GimmickAmount);
-                    if (isBettable)
+                    if (isBettable && !isBetsLocked)
                     {
                         isBetsLocked = true;
                         TSPlayer.All.SendMessage("All bets are closed now!", Color.SeaShell);
@@ -577,7 +577,7 @@ namespace SpleefResurgence
                         return;
                     }
 
-                    if (args.Parameters[1] != "score" && args.Parameters[1] != "payout")
+                    if (args.Parameters[1] != "score" && args.Parameters[1] != "s" && args.Parameters[1] != "payout" && args.Parameters[1] != "p")
                     {
                         args.Player.SendErrorMessage("worg");
                         args.Player.SendInfoMessage("/game edit score <playername> <amount>");
@@ -588,17 +588,18 @@ namespace SpleefResurgence
                     string EditName = args.Parameters[2];
                     float Value = (float)Convert.ToDouble(args.Parameters[3]);
 
-                    if (PlayerInfo.ContainsKey(EditName))
+                    if (PlayerInfo.Exists(p => p.Name == EditName))
                     {
-                        if (args.Parameters[1] == "score")
+                        var plr = PlayerInfo.Find(p => p.Name == EditName);
+                        if (args.Parameters[1] == "score" || args.Parameters[1] == "s")
                         {
-                            PlayerInfo[EditName].score += (int)Value;
-                            TSPlayer.All.SendMessage($"{EditName} score is now {PlayerInfo[EditName].score}!", Color.ForestGreen);
+                            plr.score += (int)Value;
+                            TSPlayer.All.SendMessage($"{EditName} score is now {plr.score}!", Color.ForestGreen);
                         }
-                        else if (args.Parameters[1] == "payout")
+                        else if (args.Parameters[1] == "payout" || args.Parameters[1] == "p")
                         {
-                            PlayerInfo[EditName].BetPayout = Value;
-                            TSPlayer.All.SendInfoMessage($"{EditName} payout is now {PlayerInfo[EditName].BetPayout}! Better check your bets!", Color.ForestGreen);
+                            plr.BetPayout = Value;
+                            TSPlayer.All.SendInfoMessage($"{EditName} payout is now {plr.BetPayout}! Better check your bets!", Color.ForestGreen);
                         }
                         UpdateScore();
                         return;
@@ -612,17 +613,18 @@ namespace SpleefResurgence
 
                     var PlayerToEdit = TSPlayer.FindByNameOrID(EditName)[0];
 
-                    if (PlayerInfo.ContainsKey(PlayerToEdit.Name))
+                    if (PlayerInfo.Exists(p => p.Name == PlayerToEdit.Name))
                     {
-                        if (args.Parameters[1] == "score")
+                        var plr = PlayerInfo.Find(p => p.Name == PlayerToEdit.Name);
+                        if (args.Parameters[1] == "score" || args.Parameters[1] == "s")
                         {
-                            PlayerInfo[PlayerToEdit.Name].score += (int)Value;
-                            TSPlayer.All.SendMessage($"{PlayerToEdit.Name} score is now {PlayerInfo[PlayerToEdit.Name].score}!", Color.ForestGreen);
+                            plr.score += (int)Value;
+                            TSPlayer.All.SendMessage($"{PlayerToEdit.Name} score is now {plr.score}!", Color.ForestGreen);
                         }
-                        else if (args.Parameters[1] == "payout")
+                        else if (args.Parameters[1] == "payout" || args.Parameters[1] == "p")
                         {
-                            PlayerInfo[PlayerToEdit.Name].BetPayout = Value;
-                            TSPlayer.All.SendInfoMessage($"{PlayerToEdit.Name} payout is now {PlayerInfo[PlayerToEdit.Name].BetPayout}! Better check your bets!", Color.ForestGreen);
+                            plr.BetPayout = Value;
+                            TSPlayer.All.SendInfoMessage($"{PlayerToEdit.Name} payout is now {plr.BetPayout}! Better check your bets!", Color.ForestGreen);
                         }
                     }
                     else
@@ -650,9 +652,9 @@ namespace SpleefResurgence
                         return;
                     }
 
-                    if (PlayerInfo.ContainsKey(playername))
+                    if (PlayerInfo.Exists(p => p.Name == playername))
                     {
-                        Playering playerToAddBack = PlayerInfo[playername];
+                        Playering playerToAddBack = PlayerInfo.Find(p => p.Name == playername);
 
                         if (playerToAddBack.isIngame == true)
                         {
@@ -669,13 +671,12 @@ namespace SpleefResurgence
 
                     var playerToAdd = TSPlayer.FindByNameOrID(playername)[0];
 
-                    Playering newPlayering = new(playerToAdd.Account.Name);
+                    Playering newPlayering = new(playerToAdd.Name, playerToAdd.Account.Name);
 
                     playername = playerToAdd.Name;
-                    PlayerInfo.Add(playername, newPlayering);
+                    PlayerInfo.Add(newPlayering);
                     TSPlayer.All.SendMessage($"{playername} has been added to the game!", Color.Green);
                     UpdateScore();
-
                     break;
                 case "remove":
                     if (!isGaming)
@@ -692,18 +693,17 @@ namespace SpleefResurgence
                         return;
                     }
                     string name = args.Parameters[1];
-                    Playering playerToRemove;
-                    if (!PlayerInfo.TryGetValue($"{name}", out playerToRemove))
+                    if (!PlayerInfo.Exists(p => p.Name == name))
                     {
                         args.Player.SendErrorMessage("uh nuh uh");
                         return;
                     }
-                    playerToRemove = PlayerInfo[name];
+                    Playering playerToRemove = PlayerInfo.Find(p => p.Name == name);
                     int points = playerToRemove.score;
                     spleefCoin.AddCoins(playerToRemove.accName, points, false);
                     if (playerToRemove.isAlive)
                         counter++;
-                    PlayerInfo.Remove(name);
+                    PlayerInfo.Remove(playerToRemove);
                     args.Player.SendSuccessMessage($"removed {name} from the game and awarded {points} Spleef Coins!");
                     TSPlayer.All.SendMessage($"{name} has been completely removed from the game!", Color.Red);
                     UpdateScore();
@@ -738,23 +738,23 @@ namespace SpleefResurgence
 
                     SpleefCoin.MigrateUsersToSpleefDatabase();
                     AnnounceScore();
-                    TSPlayer.All.SendMessage($"Game ended, after {RoundCounter} rounds {PlayerInfoList[0].Key} WON!!!!!!!!!", Color.MediumTurquoise);
-                    foreach (KeyValuePair<string, Playering> player in PlayerInfoList)
+                    TSPlayer.All.SendMessage($"Game ended, after {RoundCounter} rounds {PlayerInfo[0].Name} WON!!!!!!!!!", Color.MediumTurquoise);
+                    foreach (Playering player in PlayerInfo)
                     {
-                        var players = TSPlayer.FindByNameOrID(player.Key);
-                        if (isPlayerOnline(player.Key))
+                        var players = TSPlayer.FindByNameOrID(player.Name);
+                        if (isPlayerOnline(player.Name))
                         {
-                            var plr = TSPlayer.FindByNameOrID(player.Key)[0];
-                            if (player.Value.accName == player.Key)
-                                spleefCoin.AddCoins(player.Value.accName, player.Value.score, false);
+                            var plr = TSPlayer.FindByNameOrID(player.Name)[0];
+                            if (player.accName == player.Name)
+                                spleefCoin.AddCoins(player.accName, player.score, false);
                             else
                             {
-                                spleefCoin.AddCoins(player.Value.accName, player.Value.score, true);
-                                plr.SendMessage($"Sent {player.Value.score} Spleef Coin to your account {player.Value.accName}", Color.Purple);
+                                spleefCoin.AddCoins(player.accName, player.score, true);
+                                plr.SendMessage($"Sent {player.score} Spleef Coin to your account {player.accName}", Color.Purple);
                             }
                         }
                         else
-                            spleefCoin.AddCoins(player.Value.accName, player.Value.score, false);
+                            spleefCoin.AddCoins(player.accName, player.score, false);
                     }
                     if (isBettable)
                         PayAllBets();
@@ -762,7 +762,7 @@ namespace SpleefResurgence
                     MapsInfo.Clear();
                     isGaming = false;
                     RoundCounter = 0;
-                    UpdateScore();
+                    statusScore = "";
                     blockSpam.FullTimerAnnounce();
                     GeneralHooks.ReloadEvent -= OnServerReload;
                     ServerApi.Hooks.ServerLeave.Deregister(pluginInstance, OnPlayerLeave);
@@ -794,6 +794,7 @@ namespace SpleefResurgence
                     if (args.Parameters[1] == "off")
                     {
                         isBettable = false;
+                        isBetsLocked = true;
                         Bets.Clear();
                         TSPlayer.All.SendMessage("All bets have been cleared! You can't place any more bets as well :C", Color.SeaShell);
                         return;
@@ -844,7 +845,9 @@ namespace SpleefResurgence
 
             public float GetBetPayout()
             {
-                return PlayerInfo[DissapointmentDisplayName].BetPayout;
+                if (PlayerInfo.Exists(p => p.accName == Dissapointment))
+                    return PlayerInfo.Find(p => p.accName == Dissapointment).BetPayout;
+                return -1;
             }
         }
 
@@ -861,25 +864,22 @@ namespace SpleefResurgence
 
         public void UpdatePayout() //only works for 2 players rn
         {
-            PlayerInfoList = PlayerInfo.ToList();
-            Playering player1 = PlayerInfoList[0].Value, player2 = PlayerInfoList[1].Value;
+            Playering player1 = PlayerInfo[0], player2 = PlayerInfo[1];
 
             player1.ELO = spleefELO.GetElo(player1.accName);
             player2.ELO = spleefELO.GetElo(player2.accName);
 
             player1.BetPayout = spleefELO.prob(player1.ELO, player2.ELO) / spleefELO.prob(player2.ELO, player1.ELO);
             player2.BetPayout = spleefELO.prob(player2.ELO, player1.ELO) / spleefELO.prob(player1.ELO, player2.ELO);
-
-            PlayerInfo = PlayerInfoList.ToDictionary(pair => pair.Key, pair => pair.Value);
         }
 
         public void PayAllBets()
         {
             foreach (Bet bet in Bets)
             {
-                if (bet.Dissapointment == PlayerInfoList[0].Value.accName)
+                if (bet.Dissapointment == PlayerInfo[0].accName)
                 {
-                    int payout = (int)Math.Round(bet.Amount * PlayerInfoList[0].Value.BetPayout);
+                    int payout = (int)Math.Round(bet.Amount * PlayerInfo[0].BetPayout);
                     spleefCoin.AddCoins(bet.Gambler, payout, false);
                     TSPlayer.All.SendMessage($"{bet.Gambler} bet on {bet.Dissapointment} {bet.Amount} Spleef Coin(s) and won {payout}!", Color.Chocolate);
                 }
@@ -929,6 +929,12 @@ namespace SpleefResurgence
             }
 
             string gamblerName = args.Player.Account.Name;
+
+            if (PlayerInfo.Exists(p => p.accName == gamblerName))
+            {
+                args.Player.SendErrorMessage("Hey! You're in the game, you can't bet!");
+                return;
+            }
 
             if (args.Parameters[0] == "check")
             {
@@ -1036,9 +1042,9 @@ namespace SpleefResurgence
 
             string playername = args.Player.Name;
 
-            if (PlayerInfo.ContainsKey(playername))
+            if (PlayerInfo.Exists(p => p.Name == playername))
             {
-                Playering playerToAdd = PlayerInfo[playername];
+                Playering playerToAdd = PlayerInfo.Find(p => p.Name == playername);
                 
                 if (playerToAdd.isIngame == true)
                 {
@@ -1053,9 +1059,9 @@ namespace SpleefResurgence
                 return;
             }
 
-            Playering newPlayering = new(args.Player.Account.Name);
+            Playering newPlayering = new(args.Player.Name, args.Player.Account.Name);
 
-            PlayerInfo.Add(playername, newPlayering);
+            PlayerInfo.Add(newPlayering);
             TSPlayer.All.SendMessage($"{playername} has joined the game!", Color.Green);
             UpdateScore();
         }
@@ -1069,24 +1075,24 @@ namespace SpleefResurgence
             }
 
             string playername = args.Player.Name;
-            Playering playerToRemove;
-            if (!PlayerInfo.TryGetValue($"{playername}", out playerToRemove))
+            
+            if (!PlayerInfo.Exists(p => p.Name == playername))
             {
                 args.Player.SendErrorMessage("You are not in the game!");
                 return;
             }
-
+            Playering playerToRemove = PlayerInfo.Find(p => p.Name == playername);
             if (playerToRemove.isIngame == false)
             {
                 args.Player.SendErrorMessage("You have already left!");
                 return;
             }
 
-            if (isRound && PlayerInfo[playername].isAlive)
+            if (isRound && playerToRemove.isAlive)
             {
-                PlayerInfo[playername].isAlive = false;
-                PlayerInfo[playername].place = counter;
-                PlayerInfo[playername].isIngame = false;
+                playerToRemove.isAlive = false;
+                playerToRemove.place = counter;
+                playerToRemove.isIngame = false;
                 counter++;
                 TSPlayer.All.SendMessage($"{playername} has left the game midround! What a stinker...", Color.Red);
                 CheckRound(counter);
@@ -1094,12 +1100,11 @@ namespace SpleefResurgence
                 return;
             }
             
-            playerToRemove = PlayerInfo[playername];
             playerToRemove.isIngame = false;
             TSPlayer.All.SendMessage($"{playername} has left the game!", Color.Red);
             UpdateScore();
         }
-
+        /*
         public void GetReady(CommandArgs args)
         {
             var playerReady = args.Player;
@@ -1108,8 +1113,9 @@ namespace SpleefResurgence
                 PlayerInfo[playerReady.Name].isReady = true;
             }
         }
+        */
 
-            public void CheckScore(CommandArgs args)
+        public void CheckScore(CommandArgs args)
         {
             if (!isGaming)
             {
@@ -1156,37 +1162,37 @@ namespace SpleefResurgence
                 suicideTimer.Stop();
                 if (suicideTimer.Elapsed.TotalSeconds < 3)
                     isSuicide = true;
-                PlayerInfoList = PlayerInfo
-                   .OrderByDescending(entry => entry.Value.isIngame)
-                   .ThenByDescending(entry => entry.Value.place)
-                   .ToList();
+                PlayerInfo = PlayerInfo.
+                    OrderByDescending(entry => entry.isIngame).
+                    ThenByDescending(entry => entry.place).
+                    ToList();
                 if (!isSuicide)
                 {
                     if (PlayerCount == 2)
                     {
-                        PlayerInfoList[0].Value.score += 1;
-                        TSPlayer.All.SendMessage($"Round ended! {PlayerInfoList[0].Key} won this round!", Color.LimeGreen);
+                        PlayerInfo[0].score += 1;
+                        TSPlayer.All.SendMessage($"Round ended! {PlayerInfo[0].Name} won this round!", Color.LimeGreen);
                     }
                     else if (PlayerCount >= 3 && PlayerCount <= 6)
                     {
-                        PlayerInfoList[0].Value.score += 2;
-                        PlayerInfoList[1].Value.score += 1;
-                        TSPlayer.All.SendMessage($"Round ended! {PlayerInfoList[0].Key} won this round and {PlayerInfoList[1].Key} got second place!", Color.LimeGreen);
+                        PlayerInfo[0].score += 2;
+                        PlayerInfo[1].score += 1;
+                        TSPlayer.All.SendMessage($"Round ended! {PlayerInfo[0].Name} won this round and {PlayerInfo[1].Name} got second place!", Color.LimeGreen);
                     }
                     else if (PlayerCount >= 7 && PlayerCount <= 9)
                     {
-                        PlayerInfoList[0].Value.score += 3;
-                        PlayerInfoList[1].Value.score += 2;
-                        PlayerInfoList[2].Value.score += 1;
-                        TSPlayer.All.SendMessage($"Round ended! {PlayerInfoList[0].Key} won this round {PlayerInfoList[1].Key} got second place and {PlayerInfoList[2].Key} got third place!", Color.LimeGreen);
+                        PlayerInfo[0].score += 3;
+                        PlayerInfo[1].score += 2;
+                        PlayerInfo[2].score += 1;
+                        TSPlayer.All.SendMessage($"Round ended! {PlayerInfo[0].Name} won this round {PlayerInfo[1].Name} got second place and {PlayerInfo[2].Name} got third place!", Color.LimeGreen);
                     }
                     else if (PlayerCount >= 10 && PlayerCount <= 13)
                     {
-                        PlayerInfoList[0].Value.score += 4;
-                        PlayerInfoList[1].Value.score += 3;
-                        PlayerInfoList[2].Value.score += 2;
-                        PlayerInfoList[3].Value.score += 1;
-                        TSPlayer.All.SendMessage($"Round ended! {PlayerInfoList[0].Key} won this round {PlayerInfoList[1].Key} got second place {PlayerInfoList[2].Key} got third place and {PlayerInfoList[3].Key} got fourth place!", Color.LimeGreen);
+                        PlayerInfo[0].score += 4;
+                        PlayerInfo[1].score += 3;
+                        PlayerInfo[2].score += 2;
+                        PlayerInfo[3].score += 1;
+                        TSPlayer.All.SendMessage($"Round ended! {PlayerInfo[0].Name} won this round {PlayerInfo[1].Name} got second place {PlayerInfo[2].Name} got third place and {PlayerInfo[3].Name} got fourth place!", Color.LimeGreen);
                     }
                 }
                 else
@@ -1197,27 +1203,26 @@ namespace SpleefResurgence
                     }
                     else if (PlayerCount >= 3 && PlayerCount <= 6)
                     {
-                        PlayerInfoList[0].Value.score += 1;
-                        PlayerInfoList[1].Value.score += 1;
-                        TSPlayer.All.SendMessage($"Round ended! It's a suicide so {PlayerInfoList[0].Key} and {PlayerInfoList[1].Key} both get 1 point!", Color.DarkRed);
+                        PlayerInfo[0].score += 1;
+                        PlayerInfo[1].score += 1;
+                        TSPlayer.All.SendMessage($"Round ended! It's a suicide so {PlayerInfo[0].Name} and {PlayerInfo[1].Name} both get 1 point!", Color.DarkRed);
                     }
                     else if (PlayerCount >= 7 && PlayerCount <= 9)
                     {
-                        PlayerInfoList[0].Value.score += 2;
-                        PlayerInfoList[1].Value.score += 2;
-                        PlayerInfoList[2].Value.score += 1;
-                        TSPlayer.All.SendMessage($"Round ended! It's a suicide so {PlayerInfoList[0].Key} and {PlayerInfoList[1].Key} get 2 points and {PlayerInfoList[2].Key} got third place!", Color.LimeGreen);
+                        PlayerInfo[0].score += 2;
+                        PlayerInfo[1].score += 2;
+                        PlayerInfo[2].score += 1;
+                        TSPlayer.All.SendMessage($"Round ended! It's a suicide so {PlayerInfo[0].Name} and {PlayerInfo[1].Name} get 2 points and {PlayerInfo[2].Name} got third place!", Color.LimeGreen);
                     }
                     else if (PlayerCount >= 10 && PlayerCount <= 13)
                     {
-                        PlayerInfoList[0].Value.score += 3;
-                        PlayerInfoList[1].Value.score += 3;
-                        PlayerInfoList[2].Value.score += 2;
-                        PlayerInfoList[3].Value.score += 1;
-                        TSPlayer.All.SendMessage($"Round ended! It's a suicide so {PlayerInfoList[0].Key} and {PlayerInfoList[1].Key} get 3 points {PlayerInfoList[2].Key} got third place and {PlayerInfoList[3].Key} got fourth place!", Color.LimeGreen);
+                        PlayerInfo[0].score += 3;
+                        PlayerInfo[1].score += 3;
+                        PlayerInfo[2].score += 2;
+                        PlayerInfo[3].score += 1;
+                        TSPlayer.All.SendMessage($"Round ended! It's a suicide so {PlayerInfo[0].Name} and {PlayerInfo[1].Name} get 3 points {PlayerInfo[2].Name} got third place and {PlayerInfo[3].Name} got fourth place!", Color.LimeGreen);
                     }
                 }
-                PlayerInfo = PlayerInfoList.ToDictionary(pair => pair.Key, pair => pair.Value);
 
                 TSPlayer.All.SendMessage($"You can join the game by typing /j", Color.LightPink);
                 TSPlayer.All.SendMessage($"If you want to leave the game type /l", Color.LightPink);
@@ -1260,15 +1265,15 @@ namespace SpleefResurgence
 
                 var plr = TShock.Players[playerID];
 
-                foreach (KeyValuePair<string, Playering> player in PlayerInfo)
+                foreach (Playering player in PlayerInfo)
                 {
-                    if (player.Value.isIngame)
+                    if (player.isIngame)
                     {
-                        var plrOG = TSPlayer.FindByNameOrID(player.Key)[0];
-                        if (plr == plrOG && player.Value.isAlive)
+                        var plrOG = TSPlayer.FindByNameOrID(player.Name)[0];
+                        if (plr == plrOG && player.isAlive)
                         {
-                            PlayerInfo[player.Key].isAlive = false;
-                            PlayerInfo[player.Key].place = counter;
+                            player.isAlive = false;
+                            player.place = counter;
                             counter++;
                             inventoryEdit.ClearPlayerEverything(plr);
                             inventoryEdit.AddItem(plr, 0, 1, 776);
@@ -1293,26 +1298,26 @@ namespace SpleefResurgence
                 Commands.HandleCommand(plr, "/l");
                 return;
             }
-            foreach (KeyValuePair<string, Playering> player in PlayerInfo)
+            foreach (Playering player in PlayerInfo)
             {
-                if (player.Value.isIngame)
+                if (player.isIngame)
                 {
-                    var plrOG = TSPlayer.FindByNameOrID(player.Key)[0];
+                    var plrOG = TSPlayer.FindByNameOrID(player.Name)[0];
                     if (plr == plrOG)
                     {
-                        if (player.Value.isAlive)
+                        if (player.isAlive)
                         {
-                            PlayerInfo[player.Key].isAlive = false;
-                            PlayerInfo[player.Key].place = counter;
-                            PlayerInfo[player.Key].isIngame = false;
+                            player.isAlive = false;
+                            player.place = counter;
+                            player.isIngame = false;
                             counter++;
-                            TSPlayer.All.SendMessage($"{player.Key} has left the game midround! What a stinker...", Color.LightYellow);
+                            TSPlayer.All.SendMessage($"{player.Name} has left the game midround! What a stinker...", Color.LightYellow);
                             CheckRound(counter);
                         }
                         else
                         {
-                            PlayerInfo[player.Key].isIngame = false;
-                            TSPlayer.All.SendMessage($"{player.Key} has left the game midround! But he died so it's alright.", Color.LightYellow);
+                            player.isIngame = false;
+                            TSPlayer.All.SendMessage($"{player.Name} has left the game midround! But he died so it's alright.", Color.LightYellow);
                         }
                     }   
                 }
@@ -1323,11 +1328,11 @@ namespace SpleefResurgence
 
         private void GiveEveryoneItems(int itemID, int stack, int slot = -1)
         {
-            foreach (KeyValuePair<string, Playering> player in PlayerInfo)
+            foreach (Playering player in PlayerInfo)
             {
-                if (player.Value.isIngame)
+                if (player.isIngame)
                 {
-                    var plr = TSPlayer.FindByNameOrID(player.Key)[0];
+                    var plr = TSPlayer.FindByNameOrID(player.Name)[0];
                     if (slot == -1)
                         slot = inventoryEdit.FindNextFreeSlot(plr);
                     inventoryEdit.AddItem(plr, slot, stack, itemID);
@@ -1337,11 +1342,11 @@ namespace SpleefResurgence
 
         private void GiveEveryoneMiscEquips(int itemID, int slot)
         {
-            foreach (KeyValuePair<string, Playering> player in PlayerInfo)
+            foreach (Playering player in PlayerInfo)
             {
-                if (player.Value.isIngame)
+                if (player.isIngame)
                 {
-                    var plr = TSPlayer.FindByNameOrID(player.Key)[0];
+                    var plr = TSPlayer.FindByNameOrID(player.Name)[0];
                     inventoryEdit.AddMiscEquip(plr, slot, itemID);
                 }
             }
@@ -1349,11 +1354,11 @@ namespace SpleefResurgence
 
         private void ClearEveryoneInventory()
         {
-            foreach (KeyValuePair<string, Playering> player in PlayerInfo)
+            foreach (Playering player in PlayerInfo)
             {
-                if (player.Value.isIngame)
+                if (player.isIngame)
                 {
-                    var plr = TSPlayer.FindByNameOrID(player.Key)[0];
+                    var plr = TSPlayer.FindByNameOrID(player.Name)[0];
                     inventoryEdit.ClearPlayerEverything(plr);
                 }
             }
@@ -1361,11 +1366,11 @@ namespace SpleefResurgence
 
         private void GiveEveryoneArmor(int itemID, int slot = -1)
         {
-            foreach (KeyValuePair<string, Playering> player in PlayerInfo)
+            foreach (Playering player in PlayerInfo)
             {
-                if (player.Value.isIngame)
+                if (player.isIngame)
                 {
-                    var plr = TSPlayer.FindByNameOrID(player.Key)[0];
+                    var plr = TSPlayer.FindByNameOrID(player.Name)[0];
                     if (slot == -1)
                         slot = inventoryEdit.FindNextFreeAccessorySlot(plr);
                     if (slot == -1)
@@ -1381,12 +1386,12 @@ namespace SpleefResurgence
 
         private void GiveEveryoneMusicBox(int itemID, int slot = -1)
         {
-            foreach (KeyValuePair<string, Playering> player in PlayerInfo)
+            foreach (Playering player in PlayerInfo)
             {
-                var settings = spleefSettings.GetSettings(player.Value.accName);
-                if (player.Value.isIngame && settings.GetMusicBox)
+                var settings = spleefSettings.GetSettings(player.accName);
+                if (player.isIngame && settings.GetMusicBox)
                 {
-                    var plr = TSPlayer.FindByNameOrID(player.Key)[0];
+                    var plr = TSPlayer.FindByNameOrID(player.Name)[0];
                     if (slot == -1)
                         slot = inventoryEdit.FindNextFreeAccessorySlot(plr);
                     if (slot == -1)
@@ -1402,11 +1407,11 @@ namespace SpleefResurgence
 
         private void SetEveryoneBuff(int BuffID, int time)
         {
-            foreach (KeyValuePair<string, Playering> player in PlayerInfo)
+            foreach (Playering player in PlayerInfo)
             {
-                if (player.Value.isIngame)
+                if (player.isIngame)
                 {
-                    var plr = TSPlayer.FindByNameOrID(player.Key)[0];
+                    var plr = TSPlayer.FindByNameOrID(player.Name)[0];
                     plr.SetBuff(BuffID, time);
                 }
             }
@@ -1418,22 +1423,22 @@ namespace SpleefResurgence
             {
                 foreach (var player in PlayerInfo)
                 {
-                    if (player.Value.isIngame)
-                        player.Value.isAlive = true;
+                    if (player.isIngame)
+                        player.isAlive = true;
                 }
                 return;
             }
 
-            var ShuffledList = PlayerInfo.ToList().OrderBy(a => rnd.Next()).ToList();
+            var ShuffledList = PlayerInfo.OrderBy(p => rnd.Next());
             int counter = 0;
-            foreach (KeyValuePair<string, Playering> player in ShuffledList)
+            foreach (Playering player in ShuffledList)
             {
-                if (player.Value.isIngame)
+                if (player.isIngame)
                 {
-                    var plr = TSPlayer.FindByNameOrID(player.Key)[0];
+                    var plr = TSPlayer.FindByNameOrID(player.Name)[0];
                     plr.Teleport(ArenaSpawns[counter % ArenaSpawns.Count].X * 16, ArenaSpawns[counter % ArenaSpawns.Count].Y * 16);
-                    plr.SetBuff(BuffID.Webbed, 100);
-                    player.Value.isAlive = true;
+                    plr.SetBuff(BuffID.Webbed, 200);
+                    player.isAlive = true;
                     counter++;
                 }
             }
