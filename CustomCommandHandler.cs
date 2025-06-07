@@ -168,8 +168,10 @@ namespace SpleefResurgence
             public CommandArgs Args;
             public bool isPaused = false;
             public string Parent;
-            public int? OneBreakTile;
-            public byte? Paint;
+            public int OneBreakTile = -1;
+            public byte Paint = 69;
+            public int? ParameterOneBreakTile;
+            public byte? ParameterPaint;
 
             public CustomCommand(string name, List<string> commands, CommandArgs args, string parent, int? tile, byte? paint)
             {
@@ -178,8 +180,8 @@ namespace SpleefResurgence
                 Stopwatch.Start();
                 Args = args;
                 Parent = parent;
-                OneBreakTile = tile;
-                Paint = paint;
+                ParameterOneBreakTile = tile;
+                ParameterPaint = paint;
             }
 
             public void PauseCommand()
@@ -347,9 +349,19 @@ namespace SpleefResurgence
                             parent = args.Parameters[i + 1];
                         }
                         else if (param == "-block" || param == "-tile")
-                            tile = Convert.ToInt32(args.Parameters[i + 1]);
+                        {
+                            if (int.TryParse(args.Parameters[i + 1], out int temptile))
+                                tile = temptile;
+                            else
+                                tile = -1; //means random
+                        }
                         else if (param == "-paint")
-                            paint = Convert.ToByte(args.Parameters[i + 1]);
+                        {
+                            if (byte.TryParse(args.Parameters[i + 1], out byte temppaint))
+                                paint = temppaint;
+                            else
+                                paint = 69; //means random
+                        }
                     }
                     if (!isForced)
                     {
@@ -472,14 +484,19 @@ namespace SpleefResurgence
                 int paintY1 = Convert.ToInt32(cmds[2]);
                 int paintX2 = Convert.ToInt32(cmds[3]);
                 int paintY2 = Convert.ToInt32(cmds[4]);
-                
-                if (command.Paint == null)
+
+                if (command.ParameterPaint == null)
                 {
-                    if (cmds[5] == "r")
+                    if (cmds.Count <= 5 || cmds[5] == "r")
                         command.Paint = (byte)rnd.Next(31);
                     else
                         command.Paint = Convert.ToByte(cmds[5]);
                 }
+                else if (command.ParameterPaint == 69)
+                    command.Paint = (byte)rnd.Next(31);
+                else
+                    command.Paint = (byte)command.ParameterPaint;
+
 
                 int paintLeft = Math.Min(paintX1, paintX2), paintRight = Math.Max(paintX1, paintX2);
                 int paintTop = Math.Min(paintY1, paintY2), paintBottom = Math.Max(paintY1, paintY2);
@@ -488,7 +505,7 @@ namespace SpleefResurgence
                 {
                     for (int k = paintTop; k <= paintBottom; k++)
                     {
-                        WorldGen.paintTile(j, k, (byte)command.Paint, true);
+                        WorldGen.paintTile(j, k, command.Paint, true);
                         NetMessage.SendTileSquare(-1, j, k, 1);
                     }
                 }
@@ -503,11 +520,14 @@ namespace SpleefResurgence
                 int paintLeft = Math.Min(paintX1, paintX2), paintRight = Math.Max(paintX1, paintX2);
                 int paintTop = Math.Min(paintY1, paintY2), paintBottom = Math.Max(paintY1, paintY2);
 
+                if (command.Paint == 69)
+                    command.Paint = (byte)rnd.Next(31);
+
                 for (int j = paintLeft; j <= paintRight; j++)
                 {
                     for (int k = paintTop; k <= paintBottom; k++)
                     {
-                        WorldGen.paintTile(j, k, (byte)command.Paint, true);
+                        WorldGen.paintTile(j, k, command.Paint, true);
                         NetMessage.SendTileSquare(-1, j, k, 1);
                     }
                 }
@@ -555,13 +575,17 @@ namespace SpleefResurgence
                 int x2 = Convert.ToInt32(cmds[3]);
                 int y2 = Convert.ToInt32(cmds[4]);
 
-                if (command.OneBreakTile == null)
+                if (command.ParameterOneBreakTile == null)
                 {
-                    if (cmds.Count != 6)
+                    if (cmds.Count <= 5 || cmds[5] == "r")
                         command.OneBreakTile = SpleefGame.OneBreakTiles[Spleef.rnd.Next(SpleefGame.OneBreakTiles.Length)];
                     else
                         command.OneBreakTile = Convert.ToInt32(cmds[5]);
                 }
+                else if (command.ParameterOneBreakTile == -1)
+                    command.OneBreakTile = SpleefGame.OneBreakTiles[Spleef.rnd.Next(SpleefGame.OneBreakTiles.Length)];
+                else
+                    command.OneBreakTile = (int)command.ParameterOneBreakTile;
 
                 int left = Math.Min(x1, x2), right = Math.Max(x1, x2);
                 int top = Math.Min(y1, y2), bottom = Math.Max(y1, y2);
@@ -572,7 +596,7 @@ namespace SpleefResurgence
                     {
                         if (Main.tile[j, k].active() && Main.tile[j, k].type == 0)
                         {
-                            WorldGen.PlaceTile(j, k, (int)command.OneBreakTile, true, true);
+                            WorldGen.PlaceTile(j, k, command.OneBreakTile, true, true);
                             NetMessage.SendTileSquare(-1, j, k, 1);
                         }
                     }
@@ -588,13 +612,16 @@ namespace SpleefResurgence
                 int left = Math.Min(x1, x2), right = Math.Max(x1, x2);
                 int top = Math.Min(y1, y2), bottom = Math.Max(y1, y2);
 
+                if (command.OneBreakTile == -1)
+                    command.OneBreakTile = SpleefGame.OneBreakTiles[Spleef.rnd.Next(SpleefGame.OneBreakTiles.Length)];
+
                 for (int j = left; j <= right; j++)
                 {
                     for (int k = top; k <= bottom; k++)
                     {
                         if (Main.tile[j, k].active() && Main.tile[j, k].type == 0)
                         {
-                            WorldGen.PlaceTile(j, k, (int)command.OneBreakTile, true, true);
+                            WorldGen.PlaceTile(j, k, command.OneBreakTile, true, true);
                             NetMessage.SendTileSquare(-1, j, k, 1);
                         }
                     }
