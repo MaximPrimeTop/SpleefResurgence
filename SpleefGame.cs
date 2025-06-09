@@ -304,7 +304,6 @@ namespace SpleefResurgence
                 isBetsLocked = true;
                 TSPlayer.All.SendMessage("All bets are closed now!", Color.SeaShell);
             }
-            }
             isRound = true;
             ServerApi.Hooks.NetGetData.Register(pluginInstance, OnGetData);
             ChooseArena(GameArena);
