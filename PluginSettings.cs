@@ -13,14 +13,11 @@ namespace SpleefResurgence
 
     public class ItemGimmick
     {
-        [JsonProperty("Type")]
         public string Type { get; set; } = "inventory";
-        [JsonProperty("ID")]
         public int ID { get; set; } = 0;
-        [JsonProperty("Stack")]
         public int Stack { get; set; } = 1;
-        [JsonProperty("Slot")]
         public int Slot { get; set; } = -1;
+        public int Time { get; set; } = 0;
     }
 
     public class BuffGimmick

@@ -109,12 +109,11 @@ namespace SpleefResurgence
                 args.Player.SendErrorMessage("huhhh wajth????11");
                 return;
             }
-            if (!SpleefGame.isPlayerOnline(args.Parameters[0]))
+            if (!SpleefGame.isPlayerOnline(args.Parameters[0], out TSPlayer player))
             {
                 args.Player.SendErrorMessage("this guy ain't online");
                 return;
             }
-            TSPlayer player = TSPlayer.FindByNameOrID(args.Parameters[0])[0];
             string message = string.Join(' ', args.Parameters.ToArray(), 1, args.Parameters.Count - 1);
             TSPlayer.All.SendMessage($"{player.Group.Prefix}{player.Name}: {message}", player.Group.Color);
         }
