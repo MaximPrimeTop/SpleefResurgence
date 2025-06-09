@@ -299,13 +299,11 @@ namespace SpleefResurgence
             for (int i = 0; i < GimmickAmount; i++)
                 if (GameType[i] == "random" || GameType[i] == "r")
                     GameType[i] = Convert.ToString(rnd.Next(Gimmicks.Count - 2));
-
-            isBetsLocked = true;
-                if (isBettable && !isBetsLocked)
-                {
-                    isBetsLocked = true;
-                    TSPlayer.All.SendMessage("All bets are closed now!", Color.SeaShell);
-                }
+            if (isBettable && !isBetsLocked)
+            {
+                isBetsLocked = true;
+                TSPlayer.All.SendMessage("All bets are closed now!", Color.SeaShell);
+            }
             }
             isRound = true;
             ServerApi.Hooks.NetGetData.Register(pluginInstance, OnGetData);
@@ -540,7 +538,7 @@ namespace SpleefResurgence
                     int GimmickAmount = 1;
                     string mapname;
                     
-                    for (int i = 0; i < args.Parameters.Count; i++)
+                    for (int i = 1; i < args.Parameters.Count; i++)
                     {
                         if (args.Parameters[i] == "-rise")
                             ParameterLavaRise = args.Parameters[i + 1];
@@ -757,11 +755,9 @@ namespace SpleefResurgence
                     SpleefCoin.MigrateUsersToSpleefDatabase();
                     AnnounceScore();
                     TSPlayer.All.SendMessage($"Game ended, after {RoundCounter} rounds {PlayerInfo[0].Name} WON!!!!!!!!!", Color.MediumTurquoise);
-                    {
-                        GiveAllScores();
-                        if (isBettable)
-                            PayAllBets();
-                    }
+                    GiveAllScores();
+                    if (isBettable)
+                        PayAllBets();
                     PlayerInfo.Clear();
                     MapsInfo.Clear();
                     statusScore = "";
@@ -1249,6 +1245,10 @@ namespace SpleefResurgence
             }
         }
 
+        private void OnWorldUpdate(EventArgs args)
+        {
+            SendScore();
+        }
         private void OnGetData(GetDataEventArgs args)
         {
             if (args.MsgID == PacketTypes.PlayerDeathV2)
