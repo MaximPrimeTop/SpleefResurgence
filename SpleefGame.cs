@@ -1321,7 +1321,7 @@ namespace SpleefResurgence
         {
             foreach (Playering player in PlayerInfo)
             {
-                if (player.isIngame)
+                if (player.isIngame && player.isAlive)
                 {
                     var plr = TSPlayer.FindByNameOrID(player.Name)[0];
                     if (slot == -1)
