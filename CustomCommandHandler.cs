@@ -328,6 +328,13 @@ namespace SpleefResurgence
                         {
                             CommandsTrack.Remove(command);
                             player.SendSuccessMessage($"stopped command {command.Name}");
+
+                            if (CommandsTrack.Exists(c => c.Parent == command.Name))
+                            {
+                                var ChildCommand = CommandsTrack.Find(c => c.Parent == command.Name);
+                                Commands.HandleCommand(TSPlayer.Server, $"/{ChildCommand.Name} stop");
+                            }
+
                             if (command.Parent != "null" && CommandsTrack.Exists(c => c.Name == command.Parent))
                             {
                                 var ParentCommand = CommandsTrack.Find(c => c.Name == command.Parent);

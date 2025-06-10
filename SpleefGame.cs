@@ -188,6 +188,7 @@ namespace SpleefResurgence
         public bool isRound = false;
         private bool isJoinable = false;
         private bool isBettable = false;
+        private bool isChallenge = false;
 
         private string CommandToStartRound;
         private string CommandToEndRound;
@@ -235,22 +236,23 @@ namespace SpleefResurgence
         private List<Map> MapsInfo = new();
         private static List<Playering> PlayerInfo = new();
 
-        public static bool isPlayerOnline(string playername)
+        public static bool isPlayerOnline(string playername, out TSPlayer player)
         {
             var players = TSPlayer.FindByNameOrID(playername);
             if (players == null || players.Count == 0)
             {
+                player = null;
                 return false;
             }
+            player = players[0];
             return true;
         }
 
         public bool isPlayerIngame(string playername)
         {
             //PlayerInfoList = PlayerInfo.ToList();
-            if (!isPlayerOnline(playername))
+            if (!isPlayerOnline(playername, out TSPlayer player))
                 return false;
-            var player = TSPlayer.FindByNameOrID(playername)[0];
             if (PlayerInfo.Exists(p => p.accName == player.Account.Name))
                 return true;
             return false;
@@ -297,8 +299,11 @@ namespace SpleefResurgence
             for (int i = 0; i < GimmickAmount; i++)
                 if (GameType[i] == "random" || GameType[i] == "r")
                     GameType[i] = Convert.ToString(rnd.Next(Gimmicks.Count - 2));
-
-            isBetsLocked = true;
+            if (isBettable && !isBetsLocked)
+            {
+                isBetsLocked = true;
+                TSPlayer.All.SendMessage("All bets are closed now!", Color.SeaShell);
+            }
             isRound = true;
             ServerApi.Hooks.NetGetData.Register(pluginInstance, OnGetData);
             ChooseArena(GameArena);
@@ -414,6 +419,26 @@ namespace SpleefResurgence
                 MapsInfo.Add(map);
         }
 
+        private void GiveAllScores()
+        {
+            foreach (Playering player in PlayerInfo)
+            {
+                var players = TSPlayer.FindByNameOrID(player.Name);
+                if (isPlayerOnline(player.Name, out TSPlayer plr))
+                {
+                    if (player.accName == player.Name)
+                        spleefCoin.AddCoins(player.accName, player.score, false);
+                    else
+                    {
+                        spleefCoin.AddCoins(player.accName, player.score, true);
+                        plr.SendMessage($"Sent {player.score} Spleef Coin to your account {player.accName}", Color.Purple);
+                    }
+                }
+                else
+                    spleefCoin.AddCoins(player.accName, player.score, false);
+            }
+        }
+
         public void TheGaming(CommandArgs args)
         {
             if (args.Parameters.Count < 1)
@@ -512,16 +537,15 @@ namespace SpleefResurgence
                     int GimmickAmount = 1;
                     string mapname;
                     
-                    List<string> parameters = args.Message.Split(' ').ToList();
-                    for (int i = 0; i < parameters.Count; i += 2)
+                    for (int i = 1; i < args.Parameters.Count; i++)
                     {
-                        if (parameters[i] == "-rise")
-                            ParameterLavaRise = parameters[i + 1];
-                        else if (parameters[i] == "-random")
-                            ParameterRandomizeDirt = parameters[i + 1];
+                        if (args.Parameters[i] == "-rise")
+                            ParameterLavaRise = args.Parameters[i + 1];
+                        else if (args.Parameters[i] == "-random")
+                            ParameterRandomizeDirt = args.Parameters[i + 1];
                     }
                     string[] GameTypes = new string[100];
-                    if (args.Parameters.Count - parameters.Count > 3)
+                    if (args.Parameters.Count > 3)
                     {
                         GimmickAmount = Convert.ToInt32(args.Parameters[1]);
                         mapname = args.Parameters[GimmickAmount + 2];
@@ -534,9 +558,6 @@ namespace SpleefResurgence
                         mapname = args.Parameters[2];
                         // /game start <gimmick> <map>
                     }
-
-                    if (args.Parameters.Count > GimmickAmount + 3)
-                    { }
 
                     Map map;
                     if (mapname == "r" || mapname == "random")
@@ -556,11 +577,6 @@ namespace SpleefResurgence
                     }
                     OtherLavaRiseCommand = map.OtherLavariseCommand;
                     StartRound(args, GameTypes, map, GimmickAmount);
-                    if (isBettable && !isBetsLocked)
-                    {
-                        isBetsLocked = true;
-                        TSPlayer.All.SendMessage("All bets are closed now!", Color.SeaShell);
-                    }
                     break;
                 case "edit":
                     if (!isGaming)
@@ -605,13 +621,11 @@ namespace SpleefResurgence
                         return;
                     }
 
-                    if (!isPlayerOnline(args.Parameters[2]))
+                    if (!isPlayerOnline(args.Parameters[2], out TSPlayer PlayerToEdit))
                     {
                         args.Player.SendErrorMessage("this guy does not exist bro");
                         return;
                     }
-
-                    var PlayerToEdit = TSPlayer.FindByNameOrID(EditName)[0];
 
                     if (PlayerInfo.Exists(p => p.Name == PlayerToEdit.Name))
                     {
@@ -646,11 +660,14 @@ namespace SpleefResurgence
                         return;
                     }
                     string playername = args.Parameters[1];
-                    if (!isPlayerOnline(playername))
+
+                    if (!isPlayerOnline(playername, out TSPlayer playerToAdd))
                     {
                         args.Player.SendErrorMessage("this guy does not exist bro");
                         return;
                     }
+
+                    playername = playerToAdd.Name;
 
                     if (PlayerInfo.Exists(p => p.Name == playername))
                     {
@@ -668,8 +685,6 @@ namespace SpleefResurgence
                         UpdateScore();
                         return;
                     }
-
-                    var playerToAdd = TSPlayer.FindByNameOrID(playername)[0];
 
                     Playering newPlayering = new(playerToAdd.Name, playerToAdd.Account.Name);
 
@@ -739,34 +754,17 @@ namespace SpleefResurgence
                     SpleefCoin.MigrateUsersToSpleefDatabase();
                     AnnounceScore();
                     TSPlayer.All.SendMessage($"Game ended, after {RoundCounter} rounds {PlayerInfo[0].Name} WON!!!!!!!!!", Color.MediumTurquoise);
-                    foreach (Playering player in PlayerInfo)
-                    {
-                        var players = TSPlayer.FindByNameOrID(player.Name);
-                        if (isPlayerOnline(player.Name))
-                        {
-                            var plr = TSPlayer.FindByNameOrID(player.Name)[0];
-                            if (player.accName == player.Name)
-                                spleefCoin.AddCoins(player.accName, player.score, false);
-                            else
-                            {
-                                spleefCoin.AddCoins(player.accName, player.score, true);
-                                plr.SendMessage($"Sent {player.score} Spleef Coin to your account {player.accName}", Color.Purple);
-                            }
-                        }
-                        else
-                            spleefCoin.AddCoins(player.accName, player.score, false);
-                    }
+                    GiveAllScores();
                     if (isBettable)
                         PayAllBets();
                     PlayerInfo.Clear();
                     MapsInfo.Clear();
+                    statusScore = "";
                     isGaming = false;
                     RoundCounter = 0;
-                    statusScore = "";
                     blockSpam.FullTimerAnnounce();
                     GeneralHooks.ReloadEvent -= OnServerReload;
                     ServerApi.Hooks.ServerLeave.Deregister(pluginInstance, OnPlayerLeave);
-                    ServerApi.Hooks.GameUpdate.Deregister(pluginInstance, OnWorldUpdate);
                     break;
                 case "bet":
                     if (!isGaming)
@@ -881,12 +879,12 @@ namespace SpleefResurgence
                 {
                     int payout = (int)Math.Round(bet.Amount * PlayerInfo[0].BetPayout);
                     spleefCoin.AddCoins(bet.Gambler, payout, false);
-                    TSPlayer.All.SendMessage($"{bet.Gambler} bet on {bet.Dissapointment} {bet.Amount} Spleef Coin(s) and won {payout}!", Color.Chocolate);
+                    TSPlayer.All.SendMessage($"{bet.Gambler} bet on {bet.DissapointmentDisplayName} {bet.Amount} Spleef Coin(s) and won {payout}!", Color.Chocolate);
                 }
                 else
                 {
                     spleefCoin.AddCoins(bet.Gambler, -bet.Amount, false);
-                    TSPlayer.All.SendMessage($"{bet.Gambler} bet on {bet.Dissapointment} {bet.Amount} Spleef Coin(s) and lost their bet, what a loser.", Color.Aquamarine);
+                    TSPlayer.All.SendMessage($"{bet.Gambler} bet on {bet.DissapointmentDisplayName} {bet.Amount} Spleef Coin(s) and lost their bet, what a loser.", Color.Aquamarine);
                 }
             }
             Bets.Clear();
@@ -1104,16 +1102,6 @@ namespace SpleefResurgence
             TSPlayer.All.SendMessage($"{playername} has left the game!", Color.Red);
             UpdateScore();
         }
-        /*
-        public void GetReady(CommandArgs args)
-        {
-            var playerReady = args.Player;
-            if (isGaming && !isRound)
-            {
-                PlayerInfo[playerReady.Name].isReady = true;
-            }
-        }
-        */
 
         public void CheckScore(CommandArgs args)
         {
@@ -1236,7 +1224,7 @@ namespace SpleefResurgence
         private string statusRound;
         private const string thethingy = "\n\n\n\n\n\n\n\n\n\n\n\n";
 
-        private void OnWorldUpdate(EventArgs args)
+        private void SendScore()
         {
             foreach (TSPlayer player in TShock.Players)
             {
@@ -1245,9 +1233,9 @@ namespace SpleefResurgence
                     PlayerSettings settings = spleefSettings.GetSettings(player.Account.Name);
                     if (settings.ShowScore)
                     {
-                         if (settings.ShowLavarise)
+                        if (settings.ShowLavarise)
                             player.SendData(PacketTypes.Status, thethingy + Spleef.statusLavariseTime + "\n\n" + statusScore + "\n" + statusRound, number2: 1);
-                         else
+                        else
                             player.SendData(PacketTypes.Status, thethingy + statusScore + "\n" + statusRound, number2: 1);
                     }
                     else if (settings.ShowLavarise)
@@ -1256,6 +1244,10 @@ namespace SpleefResurgence
             }
         }
 
+        private void OnWorldUpdate(EventArgs args)
+        {
+            SendScore();
+        }
         private void OnGetData(GetDataEventArgs args)
         {
             if (args.MsgID == PacketTypes.PlayerDeathV2)
@@ -1324,7 +1316,6 @@ namespace SpleefResurgence
             }
             UpdateScore();
         }
-
 
         private void GiveEveryoneItems(int itemID, int stack, int slot = -1)
         {
@@ -1519,7 +1510,12 @@ namespace SpleefResurgence
                 foreach (var item in GameArena.Items)
                 {
                     if (item.Type == "inventory")
-                        GiveEveryoneItems(item.ID, item.Stack, item.Slot);
+                    {
+                        if (item.Time > 0)
+                            Boulders("yeah", item.ID, item.Time, item.Stack);
+                        else
+                            GiveEveryoneItems(item.ID, item.Stack, item.Slot);
+                    }
                     else if (item.Type == "armor")
                         GiveEveryoneArmor(item.ID, item.Slot);
                     else if (item.Type == "misc")
@@ -1532,7 +1528,6 @@ namespace SpleefResurgence
                     SetEveryoneBuff(buff.ID, buff.TimeInSeconds * 60);
             }
         }
-
 
         private async void Boulders(string GameType, int itemID = -1, int timeInSeconds = 20, int itemAmount = 1)
         {
@@ -1553,7 +1548,7 @@ namespace SpleefResurgence
                     TSPlayer.All.SendMessage("[i:4390] Boulders have been given out! [i:4390]", Color.DeepPink);
                     break;
                 case "lavabomb":
-                    GiveEveryoneItems(4825, 1);
+                    GiveEveryoneItems(4825, 2);
                     TSPlayer.All.SendMessage("[i:4825] Lava bombs have been given out! Oh boy! [i:4825]", Color.DeepPink);
                     break;
                 default:
@@ -1579,6 +1574,7 @@ namespace SpleefResurgence
             TSPlayer.All.SendInfoMessage(gimmick.Statusmsg);
             gimmick.Action();
         }
+
         private void OnServerReload(ReloadEventArgs args)
         {
             try
