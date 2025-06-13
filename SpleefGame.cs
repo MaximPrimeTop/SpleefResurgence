@@ -278,6 +278,8 @@ namespace SpleefResurgence
                 return;
             }
 
+            ChooseArena(GameArena);
+
             #region default items and buffs
             ClearEveryoneInventory();
             GiveEveryoneItems(ItemID.CobaltPickaxe, 1, 0);
@@ -306,7 +308,6 @@ namespace SpleefResurgence
             }
             isRound = true;
             ServerApi.Hooks.NetGetData.Register(pluginInstance, OnGetData);
-            ChooseArena(GameArena);
             for (int i = 0; i < GimmickAmount; i++)
                 ChooseGimmick(GameType[i]);
 
