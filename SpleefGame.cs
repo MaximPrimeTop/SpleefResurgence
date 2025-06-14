@@ -278,7 +278,22 @@ namespace SpleefResurgence
                 return;
             }
 
-            ChooseArena(GameArena);
+            counter = 0;
+            RoundCounter++;
+            statusRound = $"[c/8FBC8F:Round {RoundCounter}]\n";
+            TSPlayer.All.SendMessage($"Round {RoundCounter} started", Color.DarkSeaGreen);
+            for (int i = 0; i < GimmickAmount; i++)
+                if (GameType[i] == "random" || GameType[i] == "r")
+                    GameType[i] = Convert.ToString(rnd.Next(Gimmicks.Count - 2));
+            if (isBettable && !isBetsLocked)
+            {
+                isBetsLocked = true;
+                TSPlayer.All.SendMessage("All bets are closed now!", Color.SeaShell);
+            }
+            isRound = true;
+            ServerApi.Hooks.NetGetData.Register(pluginInstance, OnGetData);
+
+            TpAndWebEveryone(GameArena.ArenaSpawns);
 
             #region default items and buffs
             ClearEveryoneInventory();
@@ -294,20 +309,7 @@ namespace SpleefResurgence
             SetEveryoneBuff(BuffID.Campfire, 1000000);
             #endregion
 
-            counter = 0;
-            RoundCounter++;
-            statusRound = $"[c/8FBC8F:Round {RoundCounter}]\n";
-            TSPlayer.All.SendMessage($"Round {RoundCounter} started", Color.DarkSeaGreen);
-            for (int i = 0; i < GimmickAmount; i++)
-                if (GameType[i] == "random" || GameType[i] == "r")
-                    GameType[i] = Convert.ToString(rnd.Next(Gimmicks.Count - 2));
-            if (isBettable && !isBetsLocked)
-            {
-                isBetsLocked = true;
-                TSPlayer.All.SendMessage("All bets are closed now!", Color.SeaShell);
-            }
-            isRound = true;
-            ServerApi.Hooks.NetGetData.Register(pluginInstance, OnGetData);
+            ChooseArena(GameArena);
             for (int i = 0; i < GimmickAmount; i++)
                 ChooseGimmick(GameType[i]);
 
@@ -317,6 +319,7 @@ namespace SpleefResurgence
                 Commands.HandleCommand(TSPlayer.Server, GameArena.OtherLavariseCommand);
             else
                 Commands.HandleCommand(TSPlayer.Server, CommandToStartRound);
+
             #region give music box
             GiveEveryoneArmor(0, 18);
             GiveEveryoneArmor(0, 19);
@@ -327,6 +330,7 @@ namespace SpleefResurgence
                 SongName = "Otherworldly " + SongName;
             TSPlayer.All.SendMessage($"[i:{MusicBox.netID}] Playing {SongName} [i:{MusicBox.netID}]", Color.LightPink);
             #endregion
+
             UpdateScore();
         }
         //im tired brah
@@ -1401,7 +1405,7 @@ namespace SpleefResurgence
         {
             foreach (Playering player in PlayerInfo)
             {
-                if (player.isIngame)
+                if (player.isIngame && player.isAlive)
                 {
                     var plr = TSPlayer.FindByNameOrID(player.Name)[0];
                     plr.SetBuff(BuffID, time);
@@ -1505,29 +1509,22 @@ namespace SpleefResurgence
                 Commands.HandleCommand(TSPlayer.Server, GameArena.OtherRandomizeDirtCommand + MoreParameters);
             else if (CommandToRandomizeDirt != "null")
                 Commands.HandleCommand(TSPlayer.Server, CommandToRandomizeDirt + MoreParameters);
-            TpAndWebEveryone(GameArena.ArenaSpawns);
-            if (GameArena.Items.Any())
+            foreach (var item in GameArena.Items)
             {
-                foreach (var item in GameArena.Items)
+                if (item.Type == "inventory")
                 {
-                    if (item.Type == "inventory")
-                    {
-                        if (item.Time > 0)
-                            Boulders("yeah", item.ID, item.Time, item.Stack);
-                        else
-                            GiveEveryoneItems(item.ID, item.Stack, item.Slot);
-                    }
-                    else if (item.Type == "armor")
-                        GiveEveryoneArmor(item.ID, item.Slot);
-                    else if (item.Type == "misc")
-                        GiveEveryoneMiscEquips(item.ID, item.Slot);
+                    if (item.Time > 0)
+                        Boulders("yeah", item.ID, item.Time, item.Stack);
+                    else
+                        GiveEveryoneItems(item.ID, item.Stack, item.Slot);
                 }
+                else if (item.Type == "armor")
+                    GiveEveryoneArmor(item.ID, item.Slot);
+                else if (item.Type == "misc")
+                    GiveEveryoneMiscEquips(item.ID, item.Slot);
             }
-            if (GameArena.Buffs.Any())
-            {
-                foreach (var buff in GameArena.Buffs)
-                    SetEveryoneBuff(buff.ID, buff.TimeInSeconds * 60);
-            }
+            foreach (var buff in GameArena.Buffs)
+                SetEveryoneBuff(buff.ID, buff.TimeInSeconds * 60);
         }
 
         private async void Boulders(string GameType, int itemID = -1, int timeInSeconds = 20, int itemAmount = 1)
