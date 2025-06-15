@@ -33,7 +33,7 @@ namespace SpleefResurgence
         {
             player.TPlayer.inventory[slot].SetDefaults(itemID);
             player.TPlayer.inventory[slot].stack = stack;
-            TSPlayer.All.SendData(PacketTypes.PlayerSlot, null, player.Index, slot);
+            player.SendData(PacketTypes.PlayerSlot, null, player.Index, slot);
         }
 
         public void AddArmor(TSPlayer player, int slot, int itemID)
@@ -41,7 +41,7 @@ namespace SpleefResurgence
             player.TPlayer.armor[slot].SetDefaults(itemID);
             player.TPlayer.armor[slot].stack = 1;
 
-            TSPlayer.All.SendData(PacketTypes.PlayerSlot, null, player.Index, 59 + slot);
+            player.SendData(PacketTypes.PlayerSlot, null, player.Index, 59 + slot);
         }
 
         public void AddMiscEquip(TSPlayer player, int slot, int itemID)
@@ -49,7 +49,7 @@ namespace SpleefResurgence
             player.TPlayer.miscEquips[slot].SetDefaults(itemID);
             player.TPlayer.miscEquips[slot].stack = 1;
 
-            TSPlayer.All.SendData(PacketTypes.PlayerSlot, null, player.Index, 89 + slot);
+            player.SendData(PacketTypes.PlayerSlot, null, player.Index, 89 + slot);
         }
 
         public void ClearPlayerEverything(TSPlayer player)
@@ -57,23 +57,23 @@ namespace SpleefResurgence
             for (int i = 0; i < player.TPlayer.inventory.Length; i++)
             {
                 player.TPlayer.inventory[i].TurnToAir();
-                TSPlayer.All.SendData(PacketTypes.PlayerSlot, null, player.Index, i);
+                player.SendData(PacketTypes.PlayerSlot, null, player.Index, i);
             }
 
             for (int i = 0; i < 10; i++)
             {
                 player.TPlayer.armor[i].TurnToAir();
-                TSPlayer.All.SendData(PacketTypes.PlayerSlot, null, player.Index, 59 + i);
+                player.SendData(PacketTypes.PlayerSlot, null, player.Index, 59 + i);
             }
 
             for (int i = 0; i < player.TPlayer.miscEquips.Length; i++)
             {
                 player.TPlayer.miscEquips[i].TurnToAir();
-                TSPlayer.All.SendData(PacketTypes.PlayerSlot, null, player.Index, 89 + i);
+                player.SendData(PacketTypes.PlayerSlot, null, player.Index, 89 + i);
             }
 
             player.TPlayer.trashItem.TurnToAir();
-            TSPlayer.All.SendData(PacketTypes.PlayerSlot, null, player.Index, 179);
+            player.SendData(PacketTypes.PlayerSlot, null, player.Index, 179);
         }
 
         public void InventoryReset(CommandArgs args)
