@@ -201,6 +201,7 @@ namespace SpleefResurgence
         private int PlayerCount;
         private int RoundCounter;
         private Item MusicBox = new();
+        private int PaintItemID;
 
         private Random rnd = new();
 
@@ -294,19 +295,26 @@ namespace SpleefResurgence
             ServerApi.Hooks.NetGetData.Register(pluginInstance, OnGetData);
 
             TpAndWebEveryone(GameArena.ArenaSpawns);
+            List<Playering> AlivePlayers = PlayerInfo.FindAll(p => p.isAlive);
+
+            #region give paint thing
+            List<Playering> PaintPlayers = AlivePlayers.FindAll(p => spleefSettings.GetSettings(p.accName).GetPaintSprayer);
+            GiveEveryoneArmor(ItemID.PaintSprayer, Players: PaintPlayers);
+            GiveEveryoneItems(PaintItemID, 9999, 20, PaintPlayers);
+            #endregion
 
             #region default items and buffs
-            ClearEveryoneInventory();
-            GiveEveryoneItems(ItemID.CobaltPickaxe, 1, 0);
-            GiveEveryoneItems(ItemID.Binoculars, 1, 9);
-            GiveEveryoneItems(ItemID.CobaltPickaxe, 1, 40);
-            GiveEveryoneArmor(ItemID.Fedora, 18);
-            GiveEveryoneArmor(ItemID.SolarDye, 19);
-            SetEveryoneBuff(BuffID.Honey, 1000000);
-            SetEveryoneBuff(BuffID.Shine, 1000000);
-            SetEveryoneBuff(BuffID.NightOwl, 1000000);
-            SetEveryoneBuff(BuffID.HeartLamp, 1000000);
-            SetEveryoneBuff(BuffID.Campfire, 1000000);
+            ClearEveryoneInventory(AlivePlayers);
+            GiveEveryoneItems(ItemID.CobaltPickaxe, 1, 0, AlivePlayers);
+            GiveEveryoneItems(ItemID.Binoculars, 1, 9, AlivePlayers);
+            GiveEveryoneItems(ItemID.CobaltPickaxe, 1, 40, AlivePlayers);
+            GiveEveryoneArmor(ItemID.Fedora, 18, AlivePlayers);
+            GiveEveryoneArmor(ItemID.SolarDye, 19, AlivePlayers);
+            SetEveryoneBuff(BuffID.Honey, 1000000, AlivePlayers);
+            SetEveryoneBuff(BuffID.Shine, 1000000, AlivePlayers);
+            SetEveryoneBuff(BuffID.NightOwl, 1000000, AlivePlayers);
+            SetEveryoneBuff(BuffID.HeartLamp, 1000000, AlivePlayers);
+            SetEveryoneBuff(BuffID.Campfire, 1000000, AlivePlayers);
             #endregion
 
             ChooseArena(GameArena);
@@ -321,16 +329,13 @@ namespace SpleefResurgence
                 Commands.HandleCommand(TSPlayer.Server, CommandToStartRound);
 
             #region give music box
-            GiveEveryoneArmor(0, 18);
-            GiveEveryoneArmor(0, 19);
             MusicBox.SetDefaults(MusicBoxIDs[rnd.Next(MusicBoxIDs.Length)]);
-            GiveEveryoneMusicBox(MusicBox.netID);
+            GiveEveryoneArmor(MusicBox.netID, Players: AlivePlayers.FindAll(p => spleefSettings.GetSettings(p.accName).GetMusicBox));
             string SongName = MusicBox.Name.Substring(MusicBox.Name.IndexOf('(') + 1, MusicBox.Name.IndexOf(')') - MusicBox.Name.IndexOf('(') - 1);
             if (MusicBox.Name.Split(' ')[0] == "Otherworldly")
                 SongName = "Otherworldly " + SongName;
             TSPlayer.All.SendMessage($"[i:{MusicBox.netID}] Playing {SongName} [i:{MusicBox.netID}]", Color.LightPink);
             #endregion
-
             UpdateScore();
         }
         //im tired brah
@@ -541,13 +546,22 @@ namespace SpleefResurgence
                     }
                     int GimmickAmount = 1;
                     string mapname;
-                    
+                    byte paintID = (byte)rnd.Next(31);
+                    PaintItemID = Spleef.PaintIDtoItemID(paintID);
+                    MoreParameters += $"-paint {paintID}";
                     for (int i = 1; i < args.Parameters.Count; i++)
                     {
                         if (args.Parameters[i] == "-rise")
                             ParameterLavaRise = args.Parameters[i + 1];
                         else if (args.Parameters[i] == "-random")
                             ParameterRandomizeDirt = args.Parameters[i + 1];
+                        else if (args.Parameters[i] == "-tile")
+                            MoreParameters += $" {args.Parameters[i]} {args.Parameters[i + 1]}";
+                        else if (args.Parameters[i] == "-paint")
+                        {
+                            PaintItemID = Spleef.PaintIDtoItemID(Convert.ToByte(args.Parameters[i + 1]));
+                            MoreParameters += $" {args.Parameters[i]} {args.Parameters[i + 1]}";
+                        }
                     }
                     string[] GameTypes = new string[100];
                     if (args.Parameters.Count > 3)
@@ -1322,47 +1336,46 @@ namespace SpleefResurgence
             UpdateScore();
         }
 
-        private void GiveEveryoneItems(int itemID, int stack, int slot = -1)
+        private void GiveEveryoneItems(int itemID, int stack, int slot = -1, List<Playering> Players = null)
         {
-            foreach (Playering player in PlayerInfo)
+            if (Players == null)
+                Players = PlayerInfo.FindAll(p => p.isAlive);
+            foreach (Playering player in Players)
             {
-                if (player.isIngame && player.isAlive)
-                {
-                    var plr = TSPlayer.FindByNameOrID(player.Name)[0];
-                    if (slot == -1)
-                        slot = inventoryEdit.FindNextFreeSlot(plr);
-                    inventoryEdit.AddItem(plr, slot, stack, itemID);
-                }
+                var plr = TSPlayer.FindByNameOrID(player.Name)[0];
+                if (slot == -1)
+                    slot = inventoryEdit.FindNextFreeSlot(plr);
+                inventoryEdit.AddItem(plr, slot, stack, itemID);
             }
         }
 
-        private void GiveEveryoneMiscEquips(int itemID, int slot)
+        private void GiveEveryoneMiscEquips(int itemID, int slot, List<Playering> Players = null)
         {
-            foreach (Playering player in PlayerInfo)
+            if (Players == null)
+                Players = PlayerInfo.FindAll(p => p.isAlive);
+            foreach (Playering player in Players)
             {
-                if (player.isIngame)
-                {
-                    var plr = TSPlayer.FindByNameOrID(player.Name)[0];
-                    inventoryEdit.AddMiscEquip(plr, slot, itemID);
-                }
+                var plr = TSPlayer.FindByNameOrID(player.Name)[0];
+                inventoryEdit.AddMiscEquip(plr, slot, itemID);
             }
         }
 
-        private void ClearEveryoneInventory()
+        private void ClearEveryoneInventory(List<Playering> Players = null)
         {
-            foreach (Playering player in PlayerInfo)
+            if (Players == null)
+                Players = PlayerInfo.FindAll(p => p.isAlive);
+            foreach (Playering player in Players)
             {
-                if (player.isIngame)
-                {
-                    var plr = TSPlayer.FindByNameOrID(player.Name)[0];
-                    inventoryEdit.ClearPlayerEverything(plr);
-                }
+                var plr = TSPlayer.FindByNameOrID(player.Name)[0];
+                inventoryEdit.ClearPlayerEverything(plr);
             }
         }
 
-        private void GiveEveryoneArmor(int itemID, int slot = -1)
+        private void GiveEveryoneArmor(int itemID, int slot = -1, List<Playering> Players = null)
         {
-            foreach (Playering player in PlayerInfo)
+            if (Players == null)
+                Players = PlayerInfo.FindAll(p => p.isAlive);
+            foreach (Playering player in Players)
             {
                 if (player.isIngame)
                 {
@@ -1380,63 +1393,39 @@ namespace SpleefResurgence
             }
         }
 
-        private void GiveEveryoneMusicBox(int itemID, int slot = -1)
+        private void SetEveryoneBuff(int BuffID, int time, List<Playering> Players = null)
         {
-            foreach (Playering player in PlayerInfo)
+            if (Players == null)
+                Players = PlayerInfo.FindAll(p => p.isAlive);
+            foreach (Playering player in Players)
             {
-                var settings = spleefSettings.GetSettings(player.accName);
-                if (player.isIngame && settings.GetMusicBox)
-                {
-                    var plr = TSPlayer.FindByNameOrID(player.Name)[0];
-                    if (slot == -1)
-                        slot = inventoryEdit.FindNextFreeAccessorySlot(plr);
-                    if (slot == -1)
-                    {
-                        slot = inventoryEdit.FindNextFreeSlot(plr);
-                        inventoryEdit.AddItem(plr, slot, 1, itemID);
-                    }
-                    else
-                        inventoryEdit.AddArmor(plr, slot, itemID);
-                }
+                var plr = TSPlayer.FindByNameOrID(player.Name)[0];
+                plr.SetBuff(BuffID, time);
             }
         }
 
-        private void SetEveryoneBuff(int BuffID, int time)
+        private void TpAndWebEveryone(List<ArenaSpawn> ArenaSpawns, List<Playering> Players = null)
         {
-            foreach (Playering player in PlayerInfo)
-            {
-                if (player.isIngame && player.isAlive)
-                {
-                    var plr = TSPlayer.FindByNameOrID(player.Name)[0];
-                    plr.SetBuff(BuffID, time);
-                }
-            }
-        }
-
-        private void TpAndWebEveryone(List<ArenaSpawn> ArenaSpawns)
-        {
+            if (Players == null)
+                Players = PlayerInfo.FindAll(p => p.isIngame);
             if (ArenaSpawns.Count == 0)
             {
-                foreach (var player in PlayerInfo)
+                foreach (var player in Players)
                 {
-                    if (player.isIngame)
-                        player.isAlive = true;
+                    player.isAlive = true;
                 }
                 return;
             }
 
-            var ShuffledList = PlayerInfo.OrderBy(p => rnd.Next());
+            var ShuffledList = Players.OrderBy(p => rnd.Next());
             int counter = 0;
             foreach (Playering player in ShuffledList)
             {
-                if (player.isIngame)
-                {
-                    var plr = TSPlayer.FindByNameOrID(player.Name)[0];
-                    plr.Teleport(ArenaSpawns[counter % ArenaSpawns.Count].X * 16, ArenaSpawns[counter % ArenaSpawns.Count].Y * 16);
-                    plr.SetBuff(BuffID.Webbed, 200);
-                    player.isAlive = true;
-                    counter++;
-                }
+                var plr = TSPlayer.FindByNameOrID(player.Name)[0];
+                plr.Teleport(ArenaSpawns[counter % ArenaSpawns.Count].X * 16, ArenaSpawns[counter % ArenaSpawns.Count].Y * 16);
+                plr.SetBuff(BuffID.Webbed, 200);
+                player.isAlive = true;
+                counter++;
             }
         }
 
@@ -1509,6 +1498,7 @@ namespace SpleefResurgence
                 Commands.HandleCommand(TSPlayer.Server, GameArena.OtherRandomizeDirtCommand + MoreParameters);
             else if (CommandToRandomizeDirt != "null")
                 Commands.HandleCommand(TSPlayer.Server, CommandToRandomizeDirt + MoreParameters);
+            MoreParameters = "";
             foreach (var item in GameArena.Items)
             {
                 if (item.Type == "inventory")
