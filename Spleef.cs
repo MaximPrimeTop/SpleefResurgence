@@ -101,15 +101,6 @@ namespace SpleefResurgence
             return 0;
         }
 
-        public static int ItemIDtoPaintID(int id)
-        {
-            if (id >= 1085 && id <= 1099)
-                return id - 1072;
-            if (id >= 1966 && id <= 1968)
-                return id - 1938;
-            return 0;
-        }
-
         public static string statusLavariseTime;
 
         private void Die(CommandArgs args)
