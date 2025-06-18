@@ -129,7 +129,7 @@ namespace SpleefResurgence
             }
         }
 
-        private static CancellationTokenSource? lavaRiseCts;
+        private static CancellationTokenSource lavaRiseCts;
         private static bool isLavaRisePaused = false;
         private static async Task LavaRiseTimer(int timeInSeconds, CancellationToken token = default, string text = "[i:207] Time until lava rises: ")
         {

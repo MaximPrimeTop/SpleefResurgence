@@ -90,6 +90,17 @@ namespace SpleefResurgence
             SpleefCoin.MigrateUsersToSpleefDatabase();
         }
 
+        public static int PaintIDtoItemID (byte id)
+        {
+            if (id > 30)
+                return 0;
+            if (id >= 28)
+                return id + 1938;
+            if (id > 0)
+                return id + 1072;
+            return 0;
+        }
+
         public static string statusLavariseTime;
 
         private void Die(CommandArgs args)

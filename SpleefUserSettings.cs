@@ -36,6 +36,7 @@ namespace SpleefResurgence
                         ShowLavarise INTEGER DEFAULT 1,
                         ChatLavarise INTEGER DEFAULT 0,
                         GetMusicBox INTEGER DEFAULT 1,
+                        GetPaint INTEGER DEFAULT 1,
                         BlockSpamDebug INTEGER DEFAULT 0
                         );";
 
@@ -91,7 +92,8 @@ namespace SpleefResurgence
                     settings.ShowLavarise = reader.GetInt32(3) == 1;
                     settings.ChatLavarise = reader.GetInt32(4) == 1;
                     settings.GetMusicBox = reader.GetInt32(5) == 1;
-                    settings.BlockSpamDebug = reader.GetInt32(6) == 1;
+                    settings.GetPaintSprayer = reader.GetInt32(6) == 1;
+                    settings.BlockSpamDebug = reader.GetInt32(7) == 1;
                     return settings;
                 }
             }
@@ -134,6 +136,11 @@ namespace SpleefResurgence
                 else
                     args.Player.SendInfoMessage($"[c/FF474C:Get music box is disabled!] Change it with /toggle musicbox enable");
 
+                if (userSettings.GetPaintSprayer)
+                    args.Player.SendInfoMessage("[c/88E788:Get paint sprayer is enabled!] Change it with /toggle paint disable");
+                else
+                    args.Player.SendInfoMessage($"[c/FF474C:Get paint sprayer is disabled!] Change it with /toggle paint enable");
+
                 if (userSettings.BlockSpamDebug)
                     args.Player.SendInfoMessage("[c/88E788:Blockspam debug is enabled!] Change it with /toggle debug disable");
                 else
@@ -143,7 +150,7 @@ namespace SpleefResurgence
 
             if (args.Parameters.Count == 2)
             {
-                if (args.Parameters[0] != "showscore" && args.Parameters[0] != "buff" && args.Parameters[0] != "showlavarise" && args.Parameters[0] != "chatlavarise" && args.Parameters[0] != "musicbox" && args.Parameters[0] != "debug")
+                if (args.Parameters[0] != "showscore" && args.Parameters[0] != "buff" && args.Parameters[0] != "showlavarise" && args.Parameters[0] != "chatlavarise" && args.Parameters[0] != "musicbox" && args.Parameters[0] != "paint" && args.Parameters[0] != "debug")
                 {
                     args.Player.SendErrorMessage($"{args.Parameters[0]} aint a setting");
                     return;
@@ -185,6 +192,8 @@ namespace SpleefResurgence
                     sql = $"UPDATE PlayerSettings SET ChatLavarise = @setting WHERE Username = @username";
                 else if (args.Parameters[0] == "musicbox")
                     sql = $"UPDATE PlayerSettings SET GetMusicBox = @setting WHERE Username = @username";
+                else if (args.Parameters[0] == "paint")
+                    sql = $"UPDATE PlayerSettings SET GetPaint = @setting WHERE Username = @username";
                 else
                 {
                     sql = $"UPDATE PlayerSettings SET BlockSpamDebug = @setting WHERE Username = @username";
