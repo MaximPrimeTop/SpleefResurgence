@@ -297,24 +297,22 @@ namespace SpleefResurgence
             TpAndWebEveryone(GameArena.ArenaSpawns);
             List<Playering> AlivePlayers = PlayerInfo.FindAll(p => p.isAlive);
 
-            #region give paint thing
-            List<Playering> PaintPlayers = AlivePlayers.FindAll(p => spleefSettings.GetSettings(p.accName).GetPaintSprayer);
-            GiveEveryoneArmor(ItemID.PaintSprayer, Players: PaintPlayers);
-            GiveEveryoneItems(PaintItemID, 9999, 20, PaintPlayers);
-            #endregion
-
             #region default items and buffs
             ClearEveryoneInventory(AlivePlayers);
             GiveEveryoneItems(ItemID.CobaltPickaxe, 1, 0, AlivePlayers);
             GiveEveryoneItems(ItemID.Binoculars, 1, 9, AlivePlayers);
             GiveEveryoneItems(ItemID.CobaltPickaxe, 1, 40, AlivePlayers);
-            GiveEveryoneArmor(ItemID.Fedora, 18, AlivePlayers);
-            GiveEveryoneArmor(ItemID.SolarDye, 19, AlivePlayers);
             SetEveryoneBuff(BuffID.Honey, 1000000, AlivePlayers);
             SetEveryoneBuff(BuffID.Shine, 1000000, AlivePlayers);
             SetEveryoneBuff(BuffID.NightOwl, 1000000, AlivePlayers);
             SetEveryoneBuff(BuffID.HeartLamp, 1000000, AlivePlayers);
             SetEveryoneBuff(BuffID.Campfire, 1000000, AlivePlayers);
+            #endregion
+
+            #region give paint thing
+            List<Playering> PaintPlayers = AlivePlayers.FindAll(p => spleefSettings.GetSettings(p.accName).GetPaintSprayer);
+            GiveEveryoneArmor(ItemID.PaintSprayer, Players: PaintPlayers);
+            GiveEveryoneItems(PaintItemID, 9999, 20, PaintPlayers);
             #endregion
 
             ChooseArena(GameArena);
@@ -548,7 +546,7 @@ namespace SpleefResurgence
                     string mapname;
                     byte paintID = (byte)rnd.Next(31);
                     PaintItemID = Spleef.PaintIDtoItemID(paintID);
-                    MoreParameters += $"-paint {paintID}";
+                    MoreParameters = $" -paint {paintID}";
                     for (int i = 1; i < args.Parameters.Count; i++)
                     {
                         if (args.Parameters[i] == "-rise")
@@ -1498,7 +1496,6 @@ namespace SpleefResurgence
                 Commands.HandleCommand(TSPlayer.Server, GameArena.OtherRandomizeDirtCommand + MoreParameters);
             else if (CommandToRandomizeDirt != "null")
                 Commands.HandleCommand(TSPlayer.Server, CommandToRandomizeDirt + MoreParameters);
-            MoreParameters = "";
             foreach (var item in GameArena.Items)
             {
                 if (item.Type == "inventory")
