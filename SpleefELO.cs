@@ -10,12 +10,10 @@ namespace SpleefResurgence
 {
     public class SpleefELO
     {
-        private string DbPath = Path.Combine(TShock.SavePath, "SpleefCoin.sqlite");
-        private readonly SpleefCoin spleefCoin;
+        private static string DbPath = Path.Combine(TShock.SavePath, "SpleefCoin.sqlite");
 
-        public SpleefELO(SpleefCoin spleefCoin)
+        static SpleefELO()
         {
-            this.spleefCoin = spleefCoin; 
             var sql = @"CREATE TABLE IF NOT EXISTS PlayerStats (
                         Username TEXT PRIMARY KEY,
                         ELO REAL DEFAULT 0.0
@@ -28,7 +26,7 @@ namespace SpleefResurgence
             command.ExecuteNonQuery();
         }
 
-        public float GetElo(string username)
+        public static float GetElo(string username)
         {
             var sql = "SELECT * FROM PlayerStats WHERE Username = @username";
             using var connection = new SqliteConnection($"Data Source={DbPath}");
@@ -50,10 +48,10 @@ namespace SpleefResurgence
             return -1;
         }
 
-        public void GetEloCommand(CommandArgs args)
+        public static void GetEloCommand(CommandArgs args)
         {
             string username = args.Parameters[0];
-            if (!spleefCoin.isUserInTable(username))
+            if (!SpleefCoin.isUserInTable(username))
             {
                 args.Player.SendErrorMessage($"{username} does not exist in the table");
                 return;
@@ -62,7 +60,7 @@ namespace SpleefResurgence
             args.Player.SendSuccessMessage($"{username} has {elo} ELO");
         }
 
-        public void SetElo (string username, float elo)
+        public static void SetElo (string username, float elo)
         {
             var sql = $"UPDATE PlayerStats SET ELO = @elo WHERE Username = @username";
 
@@ -75,10 +73,10 @@ namespace SpleefResurgence
             command.ExecuteNonQuery();
         }
 
-        public void SetEloCommand(CommandArgs args)
+        public static void SetEloCommand(CommandArgs args)
         {
             string username = args.Parameters[0];
-            if (!spleefCoin.isUserInTable(username))
+            if (!SpleefCoin.isUserInTable(username))
             {
                 args.Player.SendErrorMessage($"{username} does not exist in the table");
                 return;
@@ -88,17 +86,17 @@ namespace SpleefResurgence
             args.Player.SendSuccessMessage($"Set {username}'s elo to {elo}");
         }
 
-        private float final (float x, float y, float z)
+        private static float final (float x, float y, float z)
         {
             return (x * y * z);
         }
 
-        public float prob (float x, float y)
+        public static float prob (float x, float y)
         {
             return 1 / (1 + (float)Math.Pow(10, (x - y) / 400));
         }
 
-        public float EloAdd (float p1, float p2, float scale, int W)
+        public static float EloAdd (float p1, float p2, float scale, int W)
         {
             if (W == 1 && (p1 >= p2 || p1 < p2))
                 return final(p2, prob(p1, p2), scale);

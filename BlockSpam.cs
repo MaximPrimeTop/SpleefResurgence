@@ -14,15 +14,13 @@ enum State
 public class BlockSpam
 {
     private readonly Spleef pluginInstance;
-    private readonly SpleefUserSettings spleefSettings;
     private readonly SpleefGame spleefGame;
 
     private readonly Dictionary<string, Tracker> Trackers = new();
 
-    public BlockSpam(Spleef plugin, SpleefUserSettings spleefSettings, SpleefGame spleefGame)
+    public BlockSpam(Spleef plugin, SpleefGame spleefGame)
     {
         this.pluginInstance = plugin;
-        this.spleefSettings = spleefSettings;
         this.spleefGame = spleefGame;
         ServerApi.Hooks.NetGetData.Register(pluginInstance, OnTileEdit);
         ServerApi.Hooks.GameUpdate.Register(pluginInstance, CombinedUpdate);
@@ -80,7 +78,7 @@ public class BlockSpam
         {
             foreach (TSPlayer player in TShock.Players)
             {
-                if (player != null && player.Active && player.IsLoggedIn && player.Account.Name != null && spleefSettings.GetSettings(player.Account.Name).BlockSpamDebug)
+                if (player != null && player.Active && player.IsLoggedIn && player.Account.Name != null && SpleefUserSettings.GetSettings(player.Account.Name).BlockSpamDebug)
                 {
                     string name = tracker.Value.name;
                     if (tracker.Value.spamState != State.NotTracking) //is tracking
@@ -114,7 +112,7 @@ public class BlockSpam
     private void OnWorldUpdate()
     {
         foreach (TSPlayer player in TShock.Players)
-            if (player != null && player.Active && player.IsLoggedIn && player.Account.Name != null && spleefSettings.GetSettings(player.Account.Name).BlockSpamDebug)
+            if (player != null && player.Active && player.IsLoggedIn && player.Account.Name != null && SpleefUserSettings.GetSettings(player.Account.Name).BlockSpamDebug)
                 player.SendData(PacketTypes.Status, UpdateTracking(), number2: 1);
     }
     

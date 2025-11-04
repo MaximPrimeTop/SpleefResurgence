@@ -148,19 +148,11 @@ namespace SpleefResurgence
 
         public static PluginSettings Config => PluginSettings.Config;
         private readonly Spleef pluginInstance;
-        private readonly InventoryEdit inventoryEdit;
-        private readonly SpleefCoin spleefCoin;
-        private readonly SpleefUserSettings spleefSettings;
-        private readonly SpleefELO spleefELO;
         private BlockSpam blockSpam;
 
-        public SpleefGame(Spleef plugin, SpleefCoin spleefCoin, InventoryEdit inventoryEdit, SpleefUserSettings spleefSettings, SpleefELO spleefELO)
+        public SpleefGame(Spleef plugin)
         {
             this.pluginInstance = plugin;
-            this.inventoryEdit = inventoryEdit;
-            this.spleefCoin = spleefCoin;
-            this.spleefSettings = spleefSettings;
-            this.spleefELO = spleefELO;
             PutGimmicks();
         }
 
@@ -224,8 +216,7 @@ namespace SpleefResurgence
                 this.accName = accName;
                 BetPayout = betPayout;
                 var spleefCoin = new SpleefCoin();
-                var spleefELO = new SpleefELO(spleefCoin);
-                ELO = spleefELO.GetElo(accName);
+                ELO = SpleefELO.GetElo(accName);
             }
 
             public int GetPlace (int PlayerCount)
@@ -310,7 +301,7 @@ namespace SpleefResurgence
             #endregion
 
             #region give paint thing
-            List<Playering> PaintPlayers = AlivePlayers.FindAll(p => spleefSettings.GetSettings(p.accName).GetPaintSprayer);
+            List<Playering> PaintPlayers = AlivePlayers.FindAll(p => SpleefUserSettings.GetSettings(p.accName).GetPaintSprayer);
             GiveEveryoneArmor(ItemID.PaintSprayer, Players: PaintPlayers);
             GiveEveryoneItems(PaintItemID, 9999, 20, PaintPlayers);
             #endregion
@@ -328,7 +319,7 @@ namespace SpleefResurgence
 
             #region give music box
             MusicBox.SetDefaults(MusicBoxIDs[rnd.Next(MusicBoxIDs.Length)]);
-            GiveEveryoneArmor(MusicBox.netID, Players: AlivePlayers.FindAll(p => spleefSettings.GetSettings(p.accName).GetMusicBox));
+            GiveEveryoneArmor(MusicBox.netID, Players: AlivePlayers.FindAll(p => SpleefUserSettings.GetSettings(p.accName).GetMusicBox));
             string SongName = MusicBox.Name.Substring(MusicBox.Name.IndexOf('(') + 1, MusicBox.Name.IndexOf(')') - MusicBox.Name.IndexOf('(') - 1);
             if (MusicBox.Name.Split(' ')[0] == "Otherworldly")
                 SongName = "Otherworldly " + SongName;
@@ -435,15 +426,15 @@ namespace SpleefResurgence
                 if (isPlayerOnline(player.Name, out TSPlayer plr))
                 {
                     if (player.accName == player.Name)
-                        spleefCoin.AddCoins(player.accName, player.score, false);
+                        SpleefCoin.AddCoins(player.accName, player.score, false);
                     else
                     {
-                        spleefCoin.AddCoins(player.accName, player.score, true);
+                        SpleefCoin.AddCoins(player.accName, player.score, true);
                         plr.SendMessage($"Sent {player.score} Spleef Coin to your account {player.accName}", Color.Purple);
                     }
                 }
                 else
-                    spleefCoin.AddCoins(player.accName, player.score, false);
+                    SpleefCoin.AddCoins(player.accName, player.score, false);
             }
         }
 
@@ -732,7 +723,7 @@ namespace SpleefResurgence
                     }
                     Playering playerToRemove = PlayerInfo.Find(p => p.Name == name);
                     int points = playerToRemove.score;
-                    spleefCoin.AddCoins(playerToRemove.accName, points, false);
+                    SpleefCoin.AddCoins(playerToRemove.accName, points, false);
                     if (playerToRemove.isAlive)
                         counter++;
                     PlayerInfo.Remove(playerToRemove);
@@ -881,11 +872,11 @@ namespace SpleefResurgence
         {
             Playering player1 = PlayerInfo[0], player2 = PlayerInfo[1];
 
-            player1.ELO = spleefELO.GetElo(player1.accName);
-            player2.ELO = spleefELO.GetElo(player2.accName);
+            player1.ELO = SpleefELO.GetElo(player1.accName);
+            player2.ELO = SpleefELO.GetElo(player2.accName);
 
-            player1.BetPayout = spleefELO.prob(player1.ELO, player2.ELO) / spleefELO.prob(player2.ELO, player1.ELO);
-            player2.BetPayout = spleefELO.prob(player2.ELO, player1.ELO) / spleefELO.prob(player1.ELO, player2.ELO);
+            player1.BetPayout = SpleefELO.prob(player1.ELO, player2.ELO) / SpleefELO.prob(player2.ELO, player1.ELO);
+            player2.BetPayout = SpleefELO.prob(player2.ELO, player1.ELO) / SpleefELO.prob(player1.ELO, player2.ELO);
         }
 
         public void PayAllBets()
@@ -895,12 +886,12 @@ namespace SpleefResurgence
                 if (bet.Dissapointment == PlayerInfo[0].accName)
                 {
                     int payout = (int)Math.Round(bet.Amount * PlayerInfo[0].BetPayout);
-                    spleefCoin.AddCoins(bet.Gambler, payout, false);
+                    SpleefCoin.AddCoins(bet.Gambler, payout, false);
                     TSPlayer.All.SendMessage($"{bet.Gambler} bet on {bet.DissapointmentDisplayName} {bet.Amount} Spleef Coin(s) and won {payout}!", Color.Chocolate);
                 }
                 else
                 {
-                    spleefCoin.AddCoins(bet.Gambler, -bet.Amount, false);
+                    SpleefCoin.AddCoins(bet.Gambler, -bet.Amount, false);
                     TSPlayer.All.SendMessage($"{bet.Gambler} bet on {bet.DissapointmentDisplayName} {bet.Amount} Spleef Coin(s) and lost their bet, what a loser.", Color.Aquamarine);
                 }
             }
@@ -1008,7 +999,7 @@ namespace SpleefResurgence
                     return;
                 }
 
-                if (spleefCoin.GetCoins(bet.Gambler) < GetAllBets(bet.Gambler) + amount)
+                if (SpleefCoin.GetCoins(bet.Gambler) < GetAllBets(bet.Gambler) + amount)
                 {
                     args.Player.SendErrorMessage("You can't bet more than you have!");
                     return;
@@ -1025,7 +1016,7 @@ namespace SpleefResurgence
                 return;
             }
 
-            if (spleefCoin.GetCoins(gamblerName) < GetAllBets(gamblerName) + amount)
+            if (SpleefCoin.GetCoins(gamblerName) < GetAllBets(gamblerName) + amount)
             {
                 args.Player.SendErrorMessage("You can't bet more than you have!");
                 return;
@@ -1247,7 +1238,7 @@ namespace SpleefResurgence
             {
                 if (player != null && player.Active && player.IsLoggedIn && player.Account.Name != null)
                 {
-                    PlayerSettings settings = spleefSettings.GetSettings(player.Account.Name);
+                    PlayerSettings settings = SpleefUserSettings.GetSettings(player.Account.Name);
                     if (settings.ShowScore)
                     {
                         if (settings.ShowLavarise)
@@ -1284,12 +1275,12 @@ namespace SpleefResurgence
                             player.isAlive = false;
                             player.place = counter;
                             counter++;
-                            inventoryEdit.ClearPlayerEverything(plr);
-                            inventoryEdit.AddItem(plr, 0, 1, 776);
-                            inventoryEdit.AddItem(plr, 9, 1, 1299);
-                            inventoryEdit.AddItem(plr, 40, 1, 776);
-                            inventoryEdit.AddArmor(plr, 3, 158);
-                            inventoryEdit.AddArmor(plr, 4, MusicBox.netID);
+                            InventoryEdit.ClearPlayerEverything(plr);
+                            InventoryEdit.AddItem(plr, 0, 1, 776);
+                            InventoryEdit.AddItem(plr, 9, 1, 1299);
+                            InventoryEdit.AddItem(plr, 40, 1, 776);
+                            InventoryEdit.AddArmor(plr, 3, 158);
+                            InventoryEdit.AddArmor(plr, 4, MusicBox.netID);
                             CheckRound(counter);
                         }
                     }
@@ -1342,8 +1333,8 @@ namespace SpleefResurgence
             {
                 var plr = TSPlayer.FindByNameOrID(player.Name)[0];
                 if (slot == -1)
-                    slot = inventoryEdit.FindNextFreeSlot(plr);
-                inventoryEdit.AddItem(plr, slot, stack, itemID);
+                    slot = InventoryEdit.FindNextFreeSlot(plr);
+                InventoryEdit.AddItem(plr, slot, stack, itemID);
             }
         }
 
@@ -1354,7 +1345,7 @@ namespace SpleefResurgence
             foreach (Playering player in Players)
             {
                 var plr = TSPlayer.FindByNameOrID(player.Name)[0];
-                inventoryEdit.AddMiscEquip(plr, slot, itemID);
+                InventoryEdit.AddMiscEquip(plr, slot, itemID);
             }
         }
 
@@ -1365,7 +1356,7 @@ namespace SpleefResurgence
             foreach (Playering player in Players)
             {
                 var plr = TSPlayer.FindByNameOrID(player.Name)[0];
-                inventoryEdit.ClearPlayerEverything(plr);
+                InventoryEdit.ClearPlayerEverything(plr);
             }
         }
 
@@ -1379,14 +1370,14 @@ namespace SpleefResurgence
                 {
                     var plr = TSPlayer.FindByNameOrID(player.Name)[0];
                     if (slot == -1)
-                        slot = inventoryEdit.FindNextFreeAccessorySlot(plr);
+                        slot = InventoryEdit.FindNextFreeAccessorySlot(plr);
                     if (slot == -1)
                     {
-                        slot = inventoryEdit.FindNextFreeSlot(plr);
-                        inventoryEdit.AddItem(plr, slot, 1, itemID);
+                        slot = InventoryEdit.FindNextFreeSlot(plr);
+                        InventoryEdit.AddItem(plr, slot, 1, itemID);
                     }
                     else
-                        inventoryEdit.AddArmor(plr, slot, itemID);
+                        InventoryEdit.AddArmor(plr, slot, itemID);
                 }
             }
         }

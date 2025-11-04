@@ -23,12 +23,10 @@ namespace SpleefResurgence
 
     public class SpleefUserSettings
     {
-        private readonly string DbPath = Path.Combine(TShock.SavePath, "SpleefCoin.sqlite");
-        private readonly SpleefCoin spleefCoin;
+        private static readonly string DbPath = Path.Combine(TShock.SavePath, "SpleefCoin.sqlite");
 
-        public SpleefUserSettings(SpleefCoin spleefCoin)
+        static SpleefUserSettings()
         {
-            this.spleefCoin = spleefCoin;
             var sql = @"CREATE TABLE IF NOT EXISTS PlayerSettings (
                         Username TEXT PRIMARY KEY,
                         ShowScore INTEGER DEFAULT 1,
@@ -47,7 +45,7 @@ namespace SpleefResurgence
             command.ExecuteNonQuery();
         }
 
-        private void ExecuteMultipleStatements(string sql, Dictionary<string, object> parameters)
+        private static void ExecuteMultipleStatements(string sql, Dictionary<string, object> parameters)
         {
             using var connection = new SqliteConnection($"Data Source={DbPath}");
             connection.Open();
@@ -72,7 +70,7 @@ namespace SpleefResurgence
             transaction.Commit();
         }
 
-        public PlayerSettings GetSettings(string username)
+        public static PlayerSettings GetSettings(string username)
         {
             var sql = "SELECT * FROM PlayerSettings WHERE Username = @username";
             using var connection = new SqliteConnection($"Data Source={DbPath}");
@@ -100,7 +98,7 @@ namespace SpleefResurgence
             return new PlayerSettings();
         }
 
-        public void EditSettingsCommand(CommandArgs args)
+        public static void EditSettingsCommand(CommandArgs args)
         {
             string username = args.Player.Account.Name;
             

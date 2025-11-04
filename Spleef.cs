@@ -8,23 +8,25 @@ using Terraria.ID;
 using Steamworks;
 using System.Reflection;
 using Terraria.DataStructures;
+using SpleefResurgence.Game;
 
 namespace SpleefResurgence
 {
     [ApiVersion(2, 1)]
     public class Spleef : TerrariaPlugin
     {
+        public static Spleef Instance { get; private set; }
         public static PluginSettings Config => PluginSettings.Config;
-        private SpleefCoin spleefCoin;
         private readonly CustomCommandHandler commandHandler;
         private readonly TileTracker tileTracker;
-        private readonly InventoryEdit inventoryEdit;
-        private readonly SpleefUserSettings spleefSettings;
         private readonly SpleefGame spleefGame;
         private readonly BlockSpam blockSpam;
-        private readonly SpleefELO spleefELO;
 
         public static Random rnd = new();
+
+        public static readonly int[] MusicBoxIDs = { 562, 1600, 564, 1601, 1596, 1602, 1603, 1604, 4077, 4079, 1597, 566, 1964, 1610, 568, 569, 570, 1598, 2742, 571, 573, 3237, 1605, 1608, 567, 572, 574,
+            1599, 1607, 5112, 4979, 1606, 4985, 4990, 563, 1609, 3371, 3236, 3235, 1963, 1965, 3370, 3044, 3796, 3869, 4078, 4080, 4081, 4082, 4237, 4356, 4357, 4358, 4421, 4606, 4991, 4992, 5006,
+            5014, 5015, 5016, 5017, 5018, 5019, 5020, 5021, 5022, 5023,5024, 5025, 5026, 5027, 5028, 5029, 5030, 5031, 5032, 5033, 5034, 5035, 5036, 5037, 5038, 5039, 5040, 5362, 565 };
 
         public override string Author => "MaximPrime";
         public override string Name => "Spleef Resurgence Plugin";
@@ -33,18 +35,16 @@ namespace SpleefResurgence
 
         public Spleef(Main game) : base(game)
         {
-            spleefCoin = new SpleefCoin();
+            Instance = this;
             commandHandler = new CustomCommandHandler(this);
             tileTracker = new TileTracker(this);
-            inventoryEdit = new InventoryEdit();
-            spleefSettings = new SpleefUserSettings(spleefCoin);
-            spleefELO = new SpleefELO(spleefCoin);
-            spleefGame = new SpleefGame(this, spleefCoin, inventoryEdit, spleefSettings, spleefELO);
-            blockSpam = new BlockSpam(this, spleefSettings, spleefGame);
+            spleefGame = new SpleefGame(this);
+            blockSpam = new BlockSpam(this, spleefGame);
             spleefGame.SetBlockSpam(blockSpam);
         }
         public override void Initialize()
         {
+            GameConfig.SetupConfig();
             PluginSettings.Load();
             CustomCommandHandler.RegisterCommands();
             Commands.ChatCommands.Add(new Command("spleef.customcommand", commandHandler.AddCustomCommand, "addcommand", "addc"));
@@ -52,36 +52,39 @@ namespace SpleefResurgence
             Commands.ChatCommands.Add(new Command("spleef.customcommand", commandHandler.ListCustomCommand, "listcommand", "listc"));
             Commands.ChatCommands.Add(new Command("spleef.customcommand", commandHandler.ListActiveCommand, "listactive", "lista"));
 
+            Commands.ChatCommands.Add(new Command("spleef.game.hoster", GameCommands.GameCommand, "game"));
+            Commands.ChatCommands.Add(new Command("spleef.game.user", GameCommands.JoinGame, "join", "j"));
+            /*
             Commands.ChatCommands.Add(new Command("spleef.game.hoster", spleefGame.TheGaming, "game"));
             Commands.ChatCommands.Add(new Command("spleef.game.user", spleefGame.JoinGame, "join", "j"));
             Commands.ChatCommands.Add(new Command("spleef.game.user", spleefGame.LeaveGame, "leave", "l"));
             Commands.ChatCommands.Add(new Command("spleef.game.user", spleefGame.CheckScore, "score"));
             Commands.ChatCommands.Add(new Command("spleef.game.user", spleefGame.Betting, "bet"));
-
+            */
             Commands.ChatCommands.Add(new Command("spleef.tiletrack", tileTracker.ToggleTileTracking, "tilepos"));
             Commands.ChatCommands.Add(new Command("spleef.coolsay", Coolsay, "coolsay"));
             Commands.ChatCommands.Add(new Command("spleef.track", blockSpam.ToggleTrackingCommand, "track"));
 
-            Commands.ChatCommands.Add(new Command("spleef.coin.admin", spleefCoin.AddCoinsCommand, "addcoin"));
-            Commands.ChatCommands.Add(new Command("spleef.coin.user", spleefCoin.GetCoinsCommand, "coin", "c"));
-            Commands.ChatCommands.Add(new Command("spleef.coin.user", spleefCoin.GetLeaderboard, "leaderboard", "lb"));
-            Commands.ChatCommands.Add(new Command("spleef.coin.user", spleefCoin.TransferCoinsCommand, "transfer"));
+            Commands.ChatCommands.Add(new Command("spleef.coin.admin", SpleefCoin.AddCoinsCommand, "addcoin"));
+            Commands.ChatCommands.Add(new Command("spleef.coin.user", SpleefCoin.GetCoinsCommand, "coin", "c"));
+            Commands.ChatCommands.Add(new Command("spleef.coin.user", SpleefCoin.GetLeaderboard, "leaderboard", "lb"));
+            Commands.ChatCommands.Add(new Command("spleef.coin.user", SpleefCoin.TransferCoinsCommand, "transfer"));
 
-            Commands.ChatCommands.Add(new Command("spleef.elo.admin", spleefELO.SetEloCommand, "eloset"));
-            Commands.ChatCommands.Add(new Command("spleef.elo.user", spleefELO.GetEloCommand, "elo"));
+            Commands.ChatCommands.Add(new Command("spleef.elo.admin", SpleefELO.SetEloCommand, "eloset"));
+            Commands.ChatCommands.Add(new Command("spleef.elo.user", SpleefELO.GetEloCommand, "elo"));
             //Commands.ChatCommands.Add(new Command("spleef.elo.user", spleefELO.GetEloLeaderboard, "elo"));
 
             Commands.ChatCommands.Add(new Command("spleef.coin.user", PenguinPoints, "pp"));
             Commands.ChatCommands.Add(new Command("die", Die, "die"));
             Commands.ChatCommands.Add(new Command("spleef.impersonate", Impersonate, "impersonate", "imp"));
 
-            Commands.ChatCommands.Add(new Command("spleef.inventory", inventoryEdit.InventoryReset, "inventoryreset", "invreset"));
-            Commands.ChatCommands.Add(new Command("spleef.inventory", inventoryEdit.InventoryEditCommand, "inventoryedit", "invedit"));
-            Commands.ChatCommands.Add(new Command("spleef.inventory", inventoryEdit.ArmorEdit, "armoredit"));
-            Commands.ChatCommands.Add(new Command("spleef.inventory", inventoryEdit.MiscEquipsEdit, "miscedit"));
-            Commands.ChatCommands.Add(new Command("spleef.inventory", inventoryEdit.SetInventoryCommand, "inventoryset", "invset"));
+            Commands.ChatCommands.Add(new Command("spleef.inventory", InventoryEdit.InventoryReset, "inventoryreset", "invreset"));
+            Commands.ChatCommands.Add(new Command("spleef.inventory", InventoryEdit.InventoryEditCommand, "inventoryedit", "invedit"));
+            Commands.ChatCommands.Add(new Command("spleef.inventory", InventoryEdit.ArmorEdit, "armoredit"));
+            Commands.ChatCommands.Add(new Command("spleef.inventory", InventoryEdit.MiscEquipsEdit, "miscedit"));
+            Commands.ChatCommands.Add(new Command("spleef.inventory", InventoryEdit.SetInventoryCommand, "inventoryset", "invset"));
 
-            Commands.ChatCommands.Add(new Command("spleef.settings", spleefSettings.EditSettingsCommand, "settings", "toggle"));
+            Commands.ChatCommands.Add(new Command("spleef.settings", SpleefUserSettings.EditSettingsCommand, "settings", "toggle"));
 
             GeneralHooks.ReloadEvent += OnServerReload;
             ServerApi.Hooks.GamePostInitialize.Register(this, OnWorldLoad);
@@ -150,7 +153,7 @@ namespace SpleefResurgence
         {
             foreach (TSPlayer player in TShock.Players)
             {
-                if (player != null && player.Active && player.IsLoggedIn && player.IsLoggedIn && player.Account.Name != null && spleefSettings.GetSettings(player.Account.Name).GetBuffs)
+                if (player != null && player.Active && player.IsLoggedIn && player.Account.Name != null && SpleefUserSettings.GetSettings(player.Account.Name).GetBuffs)
                 {
                     player.SetBuff(BuffID.Honey, 1000000000);
                     player.SetBuff(BuffID.HeartLamp, 1000000000);

@@ -10,7 +10,7 @@ namespace SpleefResurgence
     {
         public static PluginSettings Config => PluginSettings.Config;
 
-        public int FindNextFreeSlot(TSPlayer player)
+        public static int FindNextFreeSlot(TSPlayer player)
         {
             var inventory = player.TPlayer.inventory;
 
@@ -20,7 +20,7 @@ namespace SpleefResurgence
             return -1;
         }
 
-        public int FindNextFreeAccessorySlot(TSPlayer player)
+        public static int FindNextFreeAccessorySlot(TSPlayer player)
         {
             var armor = player.TPlayer.armor;
             for (int i = 3; i <= 7; i++)
@@ -29,22 +29,25 @@ namespace SpleefResurgence
             return -1;
         }
 
-        public void AddItem(TSPlayer player, int slot, int stack, int itemID)
+        public static void AddItem(TSPlayer player, int slot, int stack, int itemID)
         {
             player.TPlayer.inventory[slot].SetDefaults(itemID);
             player.TPlayer.inventory[slot].stack = stack;
             player.SendData(PacketTypes.PlayerSlot, null, player.Index, slot);
         }
 
-        public void AddArmor(TSPlayer player, int slot, int itemID)
+        public static void AddArmor(TSPlayer player, int itemID, int slot = -1)
         {
+            if (slot == -1)
+                slot = FindNextFreeAccessorySlot(player);
+
             player.TPlayer.armor[slot].SetDefaults(itemID);
             player.TPlayer.armor[slot].stack = 1;
 
             player.SendData(PacketTypes.PlayerSlot, null, player.Index, 59 + slot);
         }
 
-        public void AddMiscEquip(TSPlayer player, int slot, int itemID)
+        public static void AddMiscEquip(TSPlayer player, int slot, int itemID)
         {
             player.TPlayer.miscEquips[slot].SetDefaults(itemID);
             player.TPlayer.miscEquips[slot].stack = 1;
@@ -52,7 +55,7 @@ namespace SpleefResurgence
             player.SendData(PacketTypes.PlayerSlot, null, player.Index, 89 + slot);
         }
 
-        public void ClearPlayerEverything(TSPlayer player)
+        public static void ClearPlayerEverything(TSPlayer player)
         {
             for (int i = 0; i < player.TPlayer.inventory.Length; i++)
             {
@@ -76,7 +79,7 @@ namespace SpleefResurgence
             player.SendData(PacketTypes.PlayerSlot, null, player.Index, 179);
         }
 
-        public void InventoryReset(CommandArgs args)
+        public static void InventoryReset(CommandArgs args)
         {
             string player = args.Parameters[0];
             var players = TSPlayer.FindByNameOrID(player);
@@ -89,7 +92,7 @@ namespace SpleefResurgence
             ClearPlayerEverything(plr);
         }
 
-        public void InventoryEditCommand(CommandArgs args)
+        public static void InventoryEditCommand(CommandArgs args)
         {
             string player = args.Parameters[0];
             var players = TSPlayer.FindByNameOrID(player);
@@ -105,7 +108,7 @@ namespace SpleefResurgence
             AddItem(plr, slot, stack, itemID);
         }
 
-        public void ArmorEdit(CommandArgs args)
+        public static void ArmorEdit(CommandArgs args)
         {
             string player = args.Parameters[0];
             var players = TSPlayer.FindByNameOrID(player);
@@ -120,7 +123,7 @@ namespace SpleefResurgence
             AddArmor(plr, slot, itemID);
         }
 
-        public void MiscEquipsEdit(CommandArgs args)
+        public static void MiscEquipsEdit(CommandArgs args)
         {
             string player = args.Parameters[0];
             var players = TSPlayer.FindByNameOrID(player);
@@ -135,7 +138,7 @@ namespace SpleefResurgence
             AddMiscEquip(plr, slot, itemID);
         }
 
-        public void SetInventory(List<InventorySlot> InvSlots, TSPlayer player)
+        public static void SetInventory(List<InventorySlot> InvSlots, TSPlayer player)
         {
             ClearPlayerEverything(player);
             foreach (InventorySlot InvSlot in InvSlots)
@@ -149,7 +152,7 @@ namespace SpleefResurgence
             }
         }
 
-        public void SetInventoryCommand(CommandArgs args)
+        public static void SetInventoryCommand(CommandArgs args)
         {
             var player = args.Player;
             string templateName = args.Parameters[0];

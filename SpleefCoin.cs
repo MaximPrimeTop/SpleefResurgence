@@ -15,9 +15,9 @@ namespace SpleefResurgence
 {
     public class SpleefCoin
     {
-        private readonly string DbPath = Path.Combine(TShock.SavePath, "SpleefCoin.sqlite");
+        private readonly static string DbPath = Path.Combine(TShock.SavePath, "SpleefCoin.sqlite");
 
-        public SpleefCoin()
+        static SpleefCoin()
         {
             var sql = @"CREATE TABLE IF NOT EXISTS PlayerCoins (
                         Username TEXT PRIMARY KEY,
@@ -45,7 +45,7 @@ namespace SpleefResurgence
             var rowInserted = command.ExecuteNonQuery();
         }
 
-        public bool isUserInTable(string username)
+        public static bool isUserInTable(string username)
         {
             var sql = "SELECT * FROM PlayerCoins WHERE Username = @username";
             using var connection = new SqliteConnection($"Data Source={DbPath}");
@@ -68,7 +68,7 @@ namespace SpleefResurgence
             return false;
         }
 
-        public void AddCoins(string username, int amount, bool isSilent)
+        public static void AddCoins(string username, int amount, bool isSilent)
         {
             var sql = $"UPDATE PlayerCoins SET Coins = Coins + @amount WHERE Username = @username";
 
@@ -99,7 +99,7 @@ namespace SpleefResurgence
             }
         }
 
-        public void AddCoinsCommand(CommandArgs args)
+        public static void AddCoinsCommand(CommandArgs args)
         {
             string username = args.Parameters[0];
             if (!isUserInTable(username))
@@ -112,7 +112,7 @@ namespace SpleefResurgence
             args.Player.SendSuccessMessage($"Gave {username} {amount} Spleef Coins!");
         }
 
-        public int GetCoins(string username)
+        public static int GetCoins(string username)
         {
             var sql = "SELECT * FROM PlayerCoins WHERE Username = @username";
             using var connection = new SqliteConnection($"Data Source={DbPath}");
@@ -134,7 +134,7 @@ namespace SpleefResurgence
             return -1;
         }
 
-        public void GetCoinsCommand(CommandArgs args)
+        public static void GetCoinsCommand(CommandArgs args)
         {
             string username;
             if (args.Parameters.Count >= 1)
@@ -155,7 +155,7 @@ namespace SpleefResurgence
                 args.Player.SendInfoMessage($"{username} has {coins} Spleef Coins.");
         }
 
-        public void GetLeaderboard(CommandArgs args)
+        public static void GetLeaderboard(CommandArgs args)
         {
             args.Player.SendMessage($"Spleef Coin leaderboard:", Color.Orange);
             int i = 1;
@@ -198,7 +198,7 @@ namespace SpleefResurgence
             }
         }
 
-        public void TransferCoins (string sender, string receiver, int coins)
+        public static void TransferCoins (string sender, string receiver, int coins)
         {
             AddCoins(receiver, coins, false);
             AddCoins(sender, -coins, true);
@@ -206,7 +206,7 @@ namespace SpleefResurgence
             TShock.Log.ConsoleInfo($"{sender} transferred {coins} Spleef Coins to {receiver}!");
         }
 
-        public void TransferCoinsCommand(CommandArgs args)
+        public static void TransferCoinsCommand(CommandArgs args)
         {
             string sender = args.Player.Account.Name;
             string receiver = args.Parameters[0];
