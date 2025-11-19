@@ -1,6 +1,7 @@
 ﻿using System;
 using TShockAPI;
 using Microsoft.Xna.Framework;
+using Terraria;
 namespace SpleefResurgence.Game
 {
     public class GameCommands
@@ -80,6 +81,16 @@ namespace SpleefResurgence.Game
                     }
 
                     string mapName = args.Parameters[1];
+                    int mapID;
+                    if (int.TryParse(mapName, out mapID))
+                    {
+                        if (mapID < 0 || mapID >= currentGame.Arena.Maps.Count)
+                        {
+                            args.Player.SendErrorMessage("invalid map id!");
+                            return;
+                        }
+                        mapName = currentGame.Arena.Maps[mapID];
+                    }
                     List<Gimmick> gimmicks = new List<Gimmick>();
                     for (int i = 2; i < args.Parameters.Count; i++)
                     {

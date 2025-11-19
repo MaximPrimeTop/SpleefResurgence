@@ -361,9 +361,9 @@ namespace SpleefResurgence.Game
         public void StopRound()
         {
             isRound = false;
-            RoundPlayers = RoundPlayers.OrderByDescending(p => p.Place).ToList();
-            bool isSuicide = SuicideTimer.Elapsed.TotalSeconds > 3;
-            int[] rewards = rewardTable.FirstOrDefault(r => RoundPlayers.Count >= r.Key.min && RoundPlayers.Count <= r.Key.max).Value;
+            RoundPlayers = RoundPlayers.OrderBy(p => p.Place).ToList();
+            bool isSuicide = SuicideTimer.Elapsed.TotalSeconds <= 3;
+            int[] rewards = rewardTable.FirstOrDefault(r => RoundPlayers.Count >= r.Key.min && RoundPlayers.Count <= r.Key.max).Value.ToArray();
             
             if (isSuicide)
                 rewards[0] = rewards[1];
@@ -371,12 +371,12 @@ namespace SpleefResurgence.Game
             for (int i = 0; i < rewards.Length; i++)
                 RoundPlayers[i].Score += rewards[i];
 
-            var placements = string.Join(" ", RoundPlayers.Take(rewards.Length).Select((p, i) => $"{p.Name} got place {i + 1} ({rewards[i + 1]} pts)"));
+            var placements = string.Join(" ", RoundPlayers.Take(rewards.Length).Select((p, i) => $"{p.Name} got place {i + 1} ({rewards[i]} pts)"));
 
             if (!isSuicide)
-                TShock.Utils.Broadcast($"Round {RoundCounter} ended! {placements}", Color.LimeGreen);
+                TShock.Utils.Broadcast($"Round {RoundCounter - 1} ended! {placements}", Color.LimeGreen);
             else
-                TShock.Utils.Broadcast($"Round {RoundCounter} ended! It's a suicide so {placements}", Color.DarkRed);
+                TShock.Utils.Broadcast($"Round {RoundCounter - 1} ended! It's a suicide so {placements}", Color.DarkRed);
             ServerApi.Hooks.NetGetData.Deregister(Spleef.Instance, OnGetData);
         }
 
@@ -403,14 +403,23 @@ namespace SpleefResurgence.Game
                     score += $"[c/FF8559:{p.Name} : {p.Score}] ";
                     switch (p.Place)
                     {
-                        case 1: score += "[i:4601]"; break;
-                        case 2: score += "[i:4600]"; break;
-                        case 3: score += "[i:4599]"; break;
-                        default: score += "[i:321]"; break;
+                        case 1: 
+                            score += "[i:4601]";
+                            break;
+                        case 2: 
+                            score += "[i:4600]";
+                            break;
+                        case 3: 
+                            score += "[i:4599]";
+                            break;
+                        default: 
+                            score += "[i:321]"; 
+                            break;
                     }
                 }
                 else
                     score += $"[c/898989:{p.Name} : {p.Score}]";
+                score += "\n";
             }
             player.SendInfoMessage(score);
         }

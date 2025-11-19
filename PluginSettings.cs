@@ -3,6 +3,7 @@ using TShockAPI;
 
 namespace SpleefResurgence
 {
+    
     public class DynamicCommand
     {
         public string Name { get; set; }
@@ -27,6 +28,7 @@ namespace SpleefResurgence
         [JsonProperty("Time")]
         public int TimeInSeconds { get; set; } = 60;
     }
+    
 
     public class ArenaSpawn
     {
