@@ -6,7 +6,6 @@ using Terraria.ID;
 using TerrariaApi.Server;
 using Terraria.DataStructures;
 using Microsoft.Xna.Framework;
-using SpleefResurgence.Utils;
 using IL.SteelSeries.GameSense.DeviceZone;
 using On.SteelSeries.GameSense.DeviceZone;
 using System.Text.Json.Serialization;

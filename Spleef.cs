@@ -9,6 +9,7 @@ using Steamworks;
 using System.Reflection;
 using Terraria.DataStructures;
 using SpleefResurgence.Game;
+using SpleefResurgence.CustomCommands;
 
 namespace SpleefResurgence
 {
@@ -21,6 +22,7 @@ namespace SpleefResurgence
         private readonly TileTracker tileTracker;
         private readonly SpleefGame spleefGame;
         private readonly BlockSpam blockSpam;
+
 
         public static Random rnd = new();
 
@@ -42,15 +44,41 @@ namespace SpleefResurgence
             blockSpam = new BlockSpam(this, spleefGame);
             spleefGame.SetBlockSpam(blockSpam);
         }
+
+        public static List<CustomCommand> CustomCommands = new();
+
+        private void RegisterCommands()
+        {
+            if (!Directory.Exists(CustomCommand.CommandsPath))
+            {
+                Directory.CreateDirectory(CustomCommand.CommandsPath);
+            }
+            string[] files = Directory.GetFiles(CustomCommand.CommandsPath, "*.json");
+            foreach (string file in files)
+            {
+                CustomCommand command = new CustomCommand(file);
+                if (CustomCommands.Any(c => c.Name.Equals(command.Name, StringComparison.InvariantCultureIgnoreCase)))
+                {
+                    TShock.Log.Warn($"Duplicate custom command name found: {command.Name}. Skipping registration.");
+                    continue;
+                }
+                CustomCommands.Add(command);
+                Commands.ChatCommands.Add(new Command(command.Permission, command.CommandLogic, command.Name));
+                TShock.Log.Info($"Registered custom command: {command.Name}");
+            }
+        }
+
         public override void Initialize()
         {
             GameConfig.SetupConfig();
             PluginSettings.Load();
-            CustomCommandHandler.RegisterCommands();
-            Commands.ChatCommands.Add(new Command("spleef.customcommand", commandHandler.AddCustomCommand, "addcommand", "addc"));
-            Commands.ChatCommands.Add(new Command("spleef.customcommand", commandHandler.RemoveCustomCommand, "delcommand", "delc"));
-            Commands.ChatCommands.Add(new Command("spleef.customcommand", commandHandler.ListCustomCommand, "listcommand", "listc"));
-            Commands.ChatCommands.Add(new Command("spleef.customcommand", commandHandler.ListActiveCommand, "listactive", "lista"));
+
+            RegisterCommands();
+            //CustomCommandHandler.RegisterCommands();
+            //Commands.ChatCommands.Add(new Command("spleef.customcommand", commandHandler.AddCustomCommand, "addcommand", "addc"));
+            //Commands.ChatCommands.Add(new Command("spleef.customcommand", commandHandler.RemoveCustomCommand, "delcommand", "delc"));
+            //Commands.ChatCommands.Add(new Command("spleef.customcommand", commandHandler.ListCustomCommand, "listcommand", "listc"));
+            //Commands.ChatCommands.Add(new Command("spleef.customcommand", commandHandler.ListActiveCommand, "listactive", "lista"));
 
             Commands.ChatCommands.Add(new Command("spleef.game.hoster", GameCommands.GameCommand, "game"));
             Commands.ChatCommands.Add(new Command("spleef.game.user", GameCommands.JoinGame, "join", "j"));
@@ -61,6 +89,7 @@ namespace SpleefResurgence
             Commands.ChatCommands.Add(new Command("spleef.game.user", spleefGame.CheckScore, "score"));
             Commands.ChatCommands.Add(new Command("spleef.game.user", spleefGame.Betting, "bet"));
             */
+
             Commands.ChatCommands.Add(new Command("spleef.tiletrack", tileTracker.ToggleTileTracking, "tilepos"));
             Commands.ChatCommands.Add(new Command("spleef.coolsay", Coolsay, "coolsay"));
             Commands.ChatCommands.Add(new Command("spleef.track", blockSpam.ToggleTrackingCommand, "track"));
