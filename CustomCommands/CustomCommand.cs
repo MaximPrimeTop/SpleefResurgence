@@ -10,6 +10,7 @@ namespace SpleefResurgence.CustomCommands
 {
     public class CustomCommand
     {
+        [JsonIgnore]
         public static string CommandsPath = Path.Combine(TShock.SavePath, "Spleef", "CustomCommands");
         private static string EditPermission = "spleef.customcommand";
 
@@ -17,7 +18,6 @@ namespace SpleefResurgence.CustomCommands
         public string Permission { get; set; }
         public List<string> CommandList { get; set; }
 
-        private ExecutingCommand executingCommand;
         private string HelpText;
 
         private string SetHelpText()
@@ -39,14 +39,11 @@ namespace SpleefResurgence.CustomCommands
             HelpText = SetHelpText();
         }
 
-        public CustomCommand(string filepath)
+        public static CustomCommand FromJson(string filepath)
         {
             string json = File.ReadAllText(filepath);
             CustomCommand command = JsonConvert.DeserializeObject<CustomCommand>(json);
-            Name = command.Name;
-            Permission = command.Permission;
-            CommandList = command.CommandList;
-            HelpText = SetHelpText();
+            return new(command.Name, command.Permission, command.CommandList);
         }
 
         public void ToJson()
@@ -56,11 +53,22 @@ namespace SpleefResurgence.CustomCommands
             File.WriteAllText(filepath, json);
         }
 
+        public void DeleteJson()
+        {
+            string filepath = Path.Combine(CommandsPath, $"{Name}.json");
+            File.Delete(filepath);
+        }
+
         public void CommandLogic(CommandArgs args)
         {
             TSPlayer player = args.Player;
             switch (args.Parameters.ElementAtOrDefault(0))
             {
+                case "help":
+                    if (!player.HasPermission(EditPermission))
+                        return;
+                    player.SendInfoMessage(HelpText);
+                    return;
                 case "permission":
                     if (!player.HasPermission(EditPermission))
                         return;
@@ -113,6 +121,21 @@ namespace SpleefResurgence.CustomCommands
                     if (!player.HasPermission(EditPermission))
                         return;
 
+                    if (Spleef.ActiveCommands.Count(c => c.Command.Name == Name) == 0)
+                    {
+                        player.SendErrorMessage("There is no active command!");
+                        return;
+                    }
+                    if (Spleef.ActiveCommands.Count(c => c.Command.Name == Name) == 1)
+                    {
+                        Stop();
+                        player.SendSuccessMessage($"Stopped {Name}!");
+                    }
+                    else
+                    {
+                        Stop();
+                        player.SendSuccessMessage($"Stopped all the {Name} commands!");
+                    }
                     return;
                 case "list":
                     if (!player.HasPermission(EditPermission))
@@ -120,7 +143,7 @@ namespace SpleefResurgence.CustomCommands
                     List(args.Player);
                     return;
                 default:
-                    // Execute commands logic here
+                    ExecuteCommands(player);
                     return;
             }
         }
@@ -141,18 +164,32 @@ namespace SpleefResurgence.CustomCommands
         public void List(TSPlayer player)
         {
             player.SendMessage($"List of commands for \"{Name}\"", Color.DarkGreen);
-            string Commands = string.Join("\n", Spleef.CustomCommands.Select((command, i) => $"{i+1}.{command}"));
+            string Commands = string.Join("\n", Spleef.CustomCommands.Select((command, i) => $"{i+1}.{command}").ToList());
             player.SendInfoMessage(Commands);
         }
 
         public void Stop()
         {
-
+            List<ExecutingCommand> allCommands = Spleef.ActiveCommands.FindAll(c => c.Command.Name == Name).ToList();
+            foreach (var command in allCommands)
+            {
+                command.StopExecution();
+                Spleef.ActiveCommands.Remove(command);
+            }
         }
 
         public void ExecuteCommands(TSPlayer player)
         {
-            
+            ExecutingCommand command = new(player, this);
+            Spleef.ActiveCommands.Add(command);
+            command.DoCommands();
+        }
+
+        public void ExecuteCommands(ExecutingCommand parent)
+        {
+            ExecutingCommand command = new(parent.Player, this, parent);
+            Spleef.ActiveCommands.Add(command);
+            command.DoCommands();
         }
     }
 }

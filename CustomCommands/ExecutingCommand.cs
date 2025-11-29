@@ -13,22 +13,16 @@ namespace SpleefResurgence.CustomCommands
         public CustomCommand Command;
         public TSPlayer Player;
         public Queue<string> CommandQueue = new Queue<string>();
-        public bool hasParent = false;
+        public bool hasParent => Parent != null;
         public ExecutingCommand Parent;
         public Timer Timer = new();
         public bool isStopped = false;
 
-        public ExecutingCommand(TSPlayer player, List<string> commandList)
+        public ExecutingCommand(TSPlayer player, CustomCommand command, ExecutingCommand parent = null)
         {
             Player = player;
-            CommandQueue = new(commandList);
-        }
-
-        public ExecutingCommand(TSPlayer player, List<string> commandList, ExecutingCommand parent)
-        {
-            Player = player;
-            CommandQueue = new(commandList);
-            hasParent = true;
+            Command = command;
+            CommandQueue = new(command.CommandList);
             Parent = parent;
         }
 
@@ -69,12 +63,13 @@ namespace SpleefResurgence.CustomCommands
             string command = CommandQueue.Dequeue();
             double waittime = 0;
             if (command[0..3] == "wait" && !double.TryParse(command.Split(' ')[1], out waittime))
-            {
-                Player.SendErrorMessage("Invalid time. Check the command's config. Using 0s.");
-            }
-            else
-                ExecuteCommand(command);
+                Player.SendErrorMessage("Invalid time. Check the command's config. Using 0s");
 
+            if (waittime == 0)
+            {
+                ExecuteCommand(command);
+                return;
+            }
             ResetTimer(ref Timer, (sender, e) => DoCommands(), waittime * 1000, false);
         }
 
@@ -88,6 +83,12 @@ namespace SpleefResurgence.CustomCommands
                 Parent.ContinueExecution();
                 Player.SendInfoMessage($"Continuing: {Command.Name}");
             }
+            Spleef.ActiveCommands.Remove(this);
+        }
+
+        public bool isCustomCommand(string name)
+        {
+            return Spleef.CustomCommands.Exists(c => c.Name == name);
         }
 
         private void ExecuteCommand(string command)
@@ -97,10 +98,33 @@ namespace SpleefResurgence.CustomCommands
             if (cmds.Count == 0)
                 return;
             if (command[0] == '/' || command[0] == '.')
-                Commands.HandleCommand(Player, command);
+            {
+                if (isCustomCommand(command))
+                {
+                    CustomCommand customcommand = Spleef.CustomCommands.Find(c => c.Name == cmds[0].Substring(1));
+                    customcommand.ExecuteCommands(this);
+                    PauseExecution();
+                }
+                else
+                {
+                    Commands.HandleCommand(Player, command);
+                    DoCommands();
+                }
+                return;
+            }
             switch (cmds[0])
             {
                 case "paint":
+                    break;
+                case "paintmore":
+                    break;
+                case "replaceblock":
+                    break;
+                case "replacemore":
+                    break;
+                case "replacerandom":
+                    break;
+                case "rise":
                     return;
             }
         }
