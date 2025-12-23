@@ -4,8 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Timers;
+using TerrariaApi.Server;
 using TShockAPI;
-using Timer = System.Timers.Timer;
+using Terraria.ID;
 namespace SpleefResurgence.CustomCommands
 {
     public class ExecutingCommand
@@ -15,8 +16,10 @@ namespace SpleefResurgence.CustomCommands
         public Queue<string> CommandQueue = new Queue<string>();
         public bool hasParent => Parent != null;
         public ExecutingCommand Parent;
-        public Timer Timer = new();
-        public bool isStopped = false;
+        public bool isPaused = false;
+        public int TickDelay = 0;
+
+        private bool skipTimeWait = false;
 
         public ExecutingCommand(TSPlayer player, CustomCommand command, ExecutingCommand parent = null)
         {
@@ -26,31 +29,45 @@ namespace SpleefResurgence.CustomCommands
             Parent = parent;
         }
 
-        public void PauseExecution()
+        public void Update()
         {
-            Timer.Stop();
-            isStopped = true;
-        }
+            if (isPaused)
+                return;
 
-        public void ContinueExecution()
-        {
-            if (isStopped)
+            if (TickDelay > 0)
             {
-                isStopped = false;
-                DoCommands();
+                TickDelay--;
+                if (TickDelay == 0)
+                    DoCommands();
             }
         }
 
-        public static void ResetTimer(ref Timer timer, ElapsedEventHandler handler, double interval, bool autoReset = true)
+        public void StartExecution()
         {
-            timer.Stop();
-            timer.Dispose();
-            timer = new Timer(interval)
+            Player.SendInfoMessage($"Starting command: {Command.Name}");
+            if (!TShock.Players.Any(p => p?.Active == true))
             {
-                AutoReset = autoReset,
-                Enabled = true
-            };
-            timer.Elapsed += handler;
+                skipTimeWait = true;
+                Player.SendWarningMessage("yo you think you're slick, but sorry time based commands only work when there are players online, so all the commands are gonna get run immediately :3");
+                return;
+            }
+            Spleef.ActiveCommands.Add(this);
+            DoCommands();
+        }
+
+        public void PauseExecution() => isPaused = true;
+
+        public void ContinueExecution() => isPaused = false;
+
+        public void StopExecution()
+        {
+            Player.SendSuccessMessage($"Finished command: {Command.Name}");
+            if (hasParent)
+            {
+                Parent.ContinueExecution();
+                Player.SendInfoMessage($"Continuing: {Command.Name}");
+            }
+            Spleef.ActiveCommands.Remove(this);
         }
 
         public void DoCommands()
@@ -61,29 +78,22 @@ namespace SpleefResurgence.CustomCommands
                 return;
             }
             string command = CommandQueue.Dequeue();
-            double waittime = 0;
-            if (command[0..3] == "wait" && !double.TryParse(command.Split(' ')[1], out waittime))
-                Player.SendErrorMessage("Invalid time. Check the command's config. Using 0s");
 
-            if (waittime == 0)
+            double waittime = 0;
+            if (!skipTimeWait && command.StartsWith("wait "))
             {
-                ExecuteCommand(command);
+                if (double.TryParse(command.Substring(5), out waittime))
+                    Player.SendInfoMessage($"Waiting {waittime} seconds before executing next command.");
+                else
+                    Player.SendErrorMessage("Invalid time. Check the command's config. Using 0s");
+            }
+
+            if (waittime > 0)
+            {
+                TickDelay = (int)(waittime * 60);
                 return;
             }
-            ResetTimer(ref Timer, (sender, e) => DoCommands(), waittime * 1000, false);
-        }
-
-        public void StopExecution()
-        {
-            Timer.Stop();
-            Timer.Dispose();
-            Player.SendSuccessMessage($"Finished command: {Command.Name}");
-            if (hasParent)
-            {
-                Parent.ContinueExecution();
-                Player.SendInfoMessage($"Continuing: {Command.Name}");
-            }
-            Spleef.ActiveCommands.Remove(this);
+            ExecuteCommand(command);
         }
 
         public bool isCustomCommand(string name)
@@ -115,16 +125,64 @@ namespace SpleefResurgence.CustomCommands
             switch (cmds[0])
             {
                 case "paint":
-                    break;
-                case "paintmore":
+                    if (cmds.Count < 6)
+                    {
+                        Player.SendErrorMessage("Invalid syntax for the replace command, check your config yo. Usage: replaceblock x1 y1 x2 y2 paintType");
+                        break;
+                    }
+                    WorldEdit.PaintArea(int.Parse(cmds[1]), int.Parse(cmds[2]), int.Parse(cmds[3]), int.Parse(cmds[4]), byte.Parse(cmds[5]));
                     break;
                 case "replaceblock":
-                    break;
-                case "replacemore":
+                    if (cmds.Count < 7)
+                    {
+                        Player.SendErrorMessage("Invalid syntax for the replace command, check your config yo. Usage: replaceblock x1 y1 x2 y2 blockType1 blockType2");
+                        break;
+                    }
+                    WorldEdit.ReplaceArea(int.Parse(cmds[1]), int.Parse(cmds[2]), int.Parse(cmds[3]), int.Parse(cmds[4]), ushort.Parse(cmds[5]), ushort.Parse(cmds[6]));
                     break;
                 case "replacerandom":
+                    if (cmds.Count < 7)
+                    {
+                        Player.SendErrorMessage("Invalid syntax for the random replace command, check your config yo. Usage: replacerandom x1 y1 x2 y2 blockType");
+                        break;
+                    }
+                    //WorldEdit.ReplaceRandom(int.Parse(cmds[1]), int.Parse(cmds[2]), int.Parse(cmds[3]), int.Parse(cmds[4]), ushort.Parse(cmds[5]));
                     break;
                 case "rise":
+                    if (cmds.Count < 6)
+                    {
+                        Player.SendErrorMessage("Invalid syntax for the rise command, check your config yo. Usage: rise x1 y1 x2 y2 liquidType");
+                        break;
+                    }
+
+                    byte type = 1; //lava
+                    if (cmds.Count > 6)
+                    {
+                        switch (cmds[5])
+                        {
+                            case "r":
+                                Random rnd = new Random();
+                                type = (byte)rnd.Next(LiquidID.Count);
+                                break;
+                            case "water":
+                            case "0":
+                                type = 0;
+                                break;
+                            case "lava":
+                            case "1":
+                                type = 1;
+                                break;
+                            case "honey":
+                            case "2":
+                                type = 2;
+                                break;
+                            case "shimmer":
+                            case "3":
+                                type = 3;
+                                break;
+                        }
+                    }
+                    WorldEdit.Rise(int.Parse(cmds[1]), int.Parse(cmds[2]), int.Parse(cmds[3]), int.Parse(cmds[4]), type);
                     return;
             }
         }

@@ -164,7 +164,7 @@ namespace SpleefResurgence.CustomCommands
         public void List(TSPlayer player)
         {
             player.SendMessage($"List of commands for \"{Name}\"", Color.DarkGreen);
-            string Commands = string.Join("\n", Spleef.CustomCommands.Select((command, i) => $"{i+1}.{command}").ToList());
+            string Commands = string.Join("\n", CommandList.Select((command, i) => $"{i+1}. {command}").ToList());
             player.SendInfoMessage(Commands);
         }
 
@@ -172,24 +172,19 @@ namespace SpleefResurgence.CustomCommands
         {
             List<ExecutingCommand> allCommands = Spleef.ActiveCommands.FindAll(c => c.Command.Name == Name).ToList();
             foreach (var command in allCommands)
-            {
                 command.StopExecution();
-                Spleef.ActiveCommands.Remove(command);
-            }
         }
 
         public void ExecuteCommands(TSPlayer player)
         {
             ExecutingCommand command = new(player, this);
-            Spleef.ActiveCommands.Add(command);
-            command.DoCommands();
+            command.StartExecution();
         }
 
         public void ExecuteCommands(ExecutingCommand parent)
         {
             ExecutingCommand command = new(parent.Player, this, parent);
-            Spleef.ActiveCommands.Add(command);
-            command.DoCommands();
+            command.StartExecution();
         }
     }
 }
