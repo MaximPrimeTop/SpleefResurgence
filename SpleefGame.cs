@@ -1338,12 +1338,14 @@ namespace SpleefResurgence
         {
             if (Players == null)
                 Players = PlayerInfo.FindAll(p => p.isAlive);
+            int playerslot;
             foreach (Playering player in Players)
             {
+                playerslot = slot;
                 var plr = TSPlayer.FindByNameOrID(player.Name)[0];
-                if (slot == -1)
-                    slot = inventoryEdit.FindNextFreeSlot(plr);
-                inventoryEdit.AddItem(plr, slot, stack, itemID);
+                if (playerslot == -1)
+                    playerslot = inventoryEdit.FindNextFreeSlot(plr);
+                inventoryEdit.AddItem(plr, playerslot, stack, itemID);
             }
         }
 
@@ -1373,20 +1375,22 @@ namespace SpleefResurgence
         {
             if (Players == null)
                 Players = PlayerInfo.FindAll(p => p.isAlive);
+            int playerslot;
             foreach (Playering player in Players)
             {
                 if (player.isIngame)
                 {
                     var plr = TSPlayer.FindByNameOrID(player.Name)[0];
-                    if (slot == -1)
-                        slot = inventoryEdit.FindNextFreeAccessorySlot(plr);
-                    if (slot == -1)
+                    playerslot = slot;
+                    if (playerslot == -1)
+                        playerslot = inventoryEdit.FindNextFreeAccessorySlot(plr);
+                    if (playerslot == -1)
                     {
-                        slot = inventoryEdit.FindNextFreeSlot(plr);
-                        inventoryEdit.AddItem(plr, slot, 1, itemID);
+                        playerslot = inventoryEdit.FindNextFreeSlot(plr);
+                        inventoryEdit.AddItem(plr, playerslot, 1, itemID);
                     }
                     else
-                        inventoryEdit.AddArmor(plr, slot, itemID);
+                        inventoryEdit.AddArmor(plr, playerslot, itemID);
                 }
             }
         }
