@@ -201,6 +201,7 @@ namespace SpleefResurgence
         private int PlayerCount;
         private int RoundCounter;
         private Item MusicBox = new();
+        private int CurrentMusicBoxID;
         private int PaintItemID;
 
         private Random rnd = new();
@@ -327,12 +328,13 @@ namespace SpleefResurgence
                 Commands.HandleCommand(TSPlayer.Server, CommandToStartRound);
 
             #region give music box
-            MusicBox.SetDefaults(MusicBoxIDs[rnd.Next(MusicBoxIDs.Length)]);
-            GiveEveryoneArmor(MusicBox.netID, Players: AlivePlayers.FindAll(p => spleefSettings.GetSettings(p.accName).GetMusicBox));
+            CurrentMusicBoxID = MusicBoxIDs[rnd.Next(MusicBoxIDs.Length)];
+            MusicBox.SetDefaults(CurrentMusicBoxID);
+            GiveEveryoneArmor(CurrentMusicBoxID, Players: AlivePlayers.FindAll(p => spleefSettings.GetSettings(p.accName).GetMusicBox));
             string SongName = MusicBox.Name.Substring(MusicBox.Name.IndexOf('(') + 1, MusicBox.Name.IndexOf(')') - MusicBox.Name.IndexOf('(') - 1);
             if (MusicBox.Name.Split(' ')[0] == "Otherworldly")
                 SongName = "Otherworldly " + SongName;
-            TSPlayer.All.SendMessage($"[i:{MusicBox.netID}] Playing {SongName} [i:{MusicBox.netID}]", Color.LightPink);
+            TSPlayer.All.SendMessage($"[i:{CurrentMusicBoxID}] Playing {SongName} [i:{CurrentMusicBoxID}]", Color.LightPink);
             #endregion
             UpdateScore();
         }
@@ -1289,7 +1291,7 @@ namespace SpleefResurgence
                             inventoryEdit.AddItem(plr, 9, 1, 1299);
                             inventoryEdit.AddItem(plr, 40, 1, 776);
                             inventoryEdit.AddArmor(plr, 3, 158);
-                            inventoryEdit.AddArmor(plr, 4, MusicBox.netID);
+                            inventoryEdit.AddArmor(plr, 4, CurrentMusicBoxID);
                             CheckRound(counter);
                         }
                     }
