@@ -305,8 +305,8 @@ namespace SpleefResurgence.Game
                 }
                 if (SpleefUserSettings.GetSettings(player.Account.Name).GetMusicBox)
                 {
-                    InventoryEdit.AddArmor(player, MusicBox.netID);
-                    player.SendMessage($"[i:{MusicBox.netID}] Playing {SongName} [i:{MusicBox.netID}]", Color.LightPink);
+                    InventoryEdit.AddArmor(player, CurrentMusicBoxID);
+                    player.SendMessage($"[i:{CurrentMusicBoxID}] Playing {SongName} [i:{CurrentMusicBoxID}]", Color.LightPink);
                 }
             });
             ServerApi.Hooks.NetGetData.Register(Spleef.Instance, OnGetData);

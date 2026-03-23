@@ -7,6 +7,7 @@ using System.Timers;
 using TerrariaApi.Server;
 using TShockAPI;
 using Terraria.ID;
+using System.Diagnostics;
 namespace SpleefResurgence.CustomCommands
 {
     public class ExecutingCommand
@@ -17,8 +18,8 @@ namespace SpleefResurgence.CustomCommands
         public bool hasParent => Parent != null;
         public ExecutingCommand Parent;
         public bool isPaused = false;
-        public int TickDelay = 0;
-
+        public double TimeDelay = 0;
+        public Stopwatch WaitTimer = new Stopwatch();
         private bool skipTimeWait = false;
 
         public ExecutingCommand(TSPlayer player, CustomCommand command, ExecutingCommand parent = null)
@@ -34,12 +35,19 @@ namespace SpleefResurgence.CustomCommands
             if (isPaused)
                 return;
 
-            if (TickDelay > 0)
+            if (TimeDelay > 0)
             {
-                TickDelay--;
-                if (TickDelay == 0)
-                    DoCommands();
+                if (!WaitTimer.IsRunning)
+                    WaitTimer.Start();
+                if (WaitTimer.Elapsed.TotalSeconds >= TimeDelay / 60.0)
+                {
+                    WaitTimer.Reset();
+                    TimeDelay = 0;
+                }
+                else
+                    return;
             }
+            DoCommands();
         }
 
         public void StartExecution()
@@ -55,9 +63,9 @@ namespace SpleefResurgence.CustomCommands
             DoCommands();
         }
 
-        public void PauseExecution() => isPaused = true;
+        public void PauseExecution() => WaitTimer.Stop();
 
-        public void ContinueExecution() => isPaused = false;
+        public void ContinueExecution() => WaitTimer.Start();
 
         public void StopExecution()
         {
@@ -90,7 +98,7 @@ namespace SpleefResurgence.CustomCommands
 
             if (waittime > 0)
             {
-                TickDelay = (int)(waittime * 60);
+                TimeDelay = waittime;
                 return;
             }
             ExecuteCommand(command);
