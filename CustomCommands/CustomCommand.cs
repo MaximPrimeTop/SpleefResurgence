@@ -121,19 +121,19 @@ namespace SpleefResurgence.CustomCommands
                     if (!player.HasPermission(EditPermission))
                         return;
 
-                    if (Spleef.ActiveCommands.Count(c => c.Command.Name == Name) == 0)
+                    if (Spleef.ActiveCommands.Count(c => c.Name == Name) == 0)
                     {
                         player.SendErrorMessage("There is no active command!");
                         return;
                     }
-                    if (Spleef.ActiveCommands.Count(c => c.Command.Name == Name) == 1)
+                    if (Spleef.ActiveCommands.Count(c => c.Name == Name) == 1)
                     {
-                        Stop();
+                        Stop(player);
                         player.SendSuccessMessage($"Stopped {Name}!");
                     }
                     else
                     {
-                        Stop();
+                        Stop(player);
                         player.SendSuccessMessage($"Stopped all the {Name} commands!");
                     }
                     return;
@@ -143,7 +143,7 @@ namespace SpleefResurgence.CustomCommands
                     List(args.Player);
                     return;
                 default:
-                    ExecuteCommands(player);
+                    ExecuteCommands(player, args.Parameters);
                     return;
             }
         }
@@ -168,23 +168,16 @@ namespace SpleefResurgence.CustomCommands
             player.SendInfoMessage(Commands);
         }
 
-        public void Stop()
+        public void Stop(TSPlayer player)
         {
-            List<ExecutingCommand> allCommands = Spleef.ActiveCommands.FindAll(c => c.Command.Name == Name).ToList();
+            List<CommandTracker.ExecutingCommand> allCommands = Spleef.ActiveCommands.FindAll(c => c.Name == Name).ToList();
             foreach (var command in allCommands)
-                command.StopExecution();
+                command.Stop();
         }
 
-        public void ExecuteCommands(TSPlayer player)
+        public void ExecuteCommands(TSPlayer player, List<string> parameters)
         {
-            ExecutingCommand command = new(player, this);
-            command.StartExecution();
-        }
-
-        public void ExecuteCommands(ExecutingCommand parent)
-        {
-            ExecutingCommand command = new(parent.Player, this, parent);
-            command.StartExecution();
+            CommandTracker.ExecuteNewCommand(Name, CommandList, player, parameters);
         }
     }
 }

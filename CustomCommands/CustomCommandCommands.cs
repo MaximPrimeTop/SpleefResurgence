@@ -78,7 +78,7 @@ namespace SpleefResurgence.CustomCommands
                 return;
             }
 
-            List<string> commandNames = Spleef.ActiveCommands.Select(c => c.Command.Name).ToList();
+            List<string> commandNames = Spleef.ActiveCommands.Select(c => c.Name).ToList();
             string commandList = string.Join(", ", commandNames);
 
             args.Player.SendMessage($"Custom Commands: {commandList}", Color.Orange);

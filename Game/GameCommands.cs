@@ -228,6 +228,7 @@ namespace SpleefResurgence.Game
 
         public static void LeaveGame(CommandArgs args)
         {
+
         }
     }
 }

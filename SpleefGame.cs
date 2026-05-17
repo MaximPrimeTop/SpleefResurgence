@@ -1483,7 +1483,7 @@ namespace SpleefResurgence
             if (ParameterRandomizeDirt != "null")
             {
                 Commands.HandleCommand(TSPlayer.Server, ParameterRandomizeDirt + MoreParameters);
-                var cmd = CustomCommandHandler.CommandsTrack.Find(c => c.Name == ParameterRandomizeDirt[1..]);
+                //var cmd = CustomCommandHandler.CommandsTrack.Find(c => c.Name == ParameterRandomizeDirt[1..]);
             }
             if (GameArena.OtherRandomizeDirtCommand != "null")
                 Commands.HandleCommand(TSPlayer.Server, GameArena.OtherRandomizeDirtCommand + MoreParameters);

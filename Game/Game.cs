@@ -33,10 +33,10 @@ namespace SpleefResurgence.Game
 
     public enum RiseType
     {
+        Water,
         Lava,
         Shimmer,
         Honey,
-        Water
     }
 
     public class Map

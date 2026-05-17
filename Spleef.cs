@@ -18,7 +18,6 @@ namespace SpleefResurgence
     {
         public static Spleef Instance { get; private set; }
         public static PluginSettings Config => PluginSettings.Config;
-        private readonly CustomCommandHandler commandHandler;
         private readonly TileTracker tileTracker;
         private readonly SpleefGame spleefGame;
         private readonly BlockSpam blockSpam;
@@ -38,7 +37,6 @@ namespace SpleefResurgence
         public Spleef(Main game) : base(game)
         {
             Instance = this;
-            commandHandler = new CustomCommandHandler(this);
             tileTracker = new TileTracker(this);
             spleefGame = new SpleefGame(this);
             blockSpam = new BlockSpam(this, spleefGame);
@@ -46,13 +44,20 @@ namespace SpleefResurgence
         }
 
         public static List<CustomCommand> CustomCommands = new();
-        public static List<ExecutingCommand> ActiveCommands = new(); 
+        public static List<CommandTracker.ExecutingCommand> ActiveCommands = new();
+
+        private void DeregisterCustomCommands()
+        {
+            foreach (var cmd in CustomCommands)
+                Commands.ChatCommands.RemoveAll(c => c.Name == cmd.Name);
+            CustomCommands.Clear();
+        }
 
         private void RegisterCustomCommands()
         {
             if (!Directory.Exists(CustomCommand.CommandsPath))
                 Directory.CreateDirectory(CustomCommand.CommandsPath);
-
+            DeregisterCustomCommands();
             string[] files = Directory.GetFiles(CustomCommand.CommandsPath, "*.json");
             foreach (string file in files)
             {
@@ -77,7 +82,6 @@ namespace SpleefResurgence
             Commands.ChatCommands.Add(new Command("spleef.customcommand", CCCommands.DeleteCustomCommand, "delcommand", "delc"));
             Commands.ChatCommands.Add(new Command("spleef.customcommand", CCCommands.ListCustomCommand, "listcommand", "listc"));
             Commands.ChatCommands.Add(new Command("spleef.customcommand", CCCommands.ListActiveCommand, "listactive", "lista"));
-            ServerApi.Hooks.GameUpdate.Register(this, OnWorldUpdateCommand);
 
             Commands.ChatCommands.Add(new Command("spleef.game.hoster", GameCommands.GameCommand, "game"));
             Commands.ChatCommands.Add(new Command("spleef.game.user", GameCommands.JoinGame, "join", "j"));
@@ -167,14 +171,6 @@ namespace SpleefResurgence
             TShock.Utils.Broadcast(message, 255, 255, 255);
         }
 
-        private void OnWorldUpdateCommand(EventArgs args)
-        {
-            foreach (ExecutingCommand cmd in ActiveCommands.ToArray())
-            {
-                cmd.Update();
-            }
-        }
-
         private void OnWorldUpdateRain(EventArgs args)
         {
             if (Main.raining)
@@ -214,9 +210,8 @@ namespace SpleefResurgence
 
             try
             {
-                CustomCommandHandler.DeRegisterCommands();
                 PluginSettings.Load();
-                CustomCommandHandler.RegisterCommands();
+                RegisterCustomCommands();
                 SpleefCoin.MigrateUsersToSpleefDatabase();
                 playerReloading.SendSuccessMessage("[SpleefResurgence] Config reloaded!");
             }

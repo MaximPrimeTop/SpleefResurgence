@@ -23,7 +23,6 @@ namespace SpleefResurgence.CustomCommands
 
         public static void PaintBlock(int x, int y, byte paint)
         {
-            Main.tile[x, y].color(paint);
             WorldGen.paintTile(x, y, paint, true);
             NetMessage.SendTileSquare(-1, x, y, 1);
         }
