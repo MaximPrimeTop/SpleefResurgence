@@ -5,7 +5,6 @@ using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using TShockAPI;
-using static SpleefResurgence.SpleefGame;
 
 namespace SpleefResurgence.Game
 {
@@ -52,6 +51,18 @@ namespace SpleefResurgence.Game
                 string json = File.ReadAllText(filePath);
                 return JsonConvert.DeserializeObject<Arena>(json);
             }
+
+            public static List<string> ListArenaNames()
+            {
+                List<string> arenaNames = new List<string>();
+                foreach (var arena in Directory.EnumerateFiles(ArenaPath))
+                {
+                    string fileName = Path.GetFileName(arena);
+                    fileName = fileName.Substring(0, fileName.Length - 5);
+                    arenaNames.Add(fileName);
+                }
+                return arenaNames;
+            }
         }
 
         public class GimmickJson
@@ -72,6 +83,18 @@ namespace SpleefResurgence.Game
 
                 return System.Text.Json.JsonSerializer.Deserialize<Gimmick>(json, options);
             }
+
+            public static List<string> ListGimmickNames()
+            {
+                List<string> gimmickNames = new List<string>();
+                foreach (var gimmick in Directory.EnumerateFiles(GimmickPath))
+                {
+                    string fileName = Path.GetFileName(gimmick);
+                    fileName = fileName.Substring(0, fileName.Length - 5);
+                    gimmickNames.Add(fileName);
+                }
+                return gimmickNames;
+            }
         }
 
         public class MapJson
@@ -90,6 +113,39 @@ namespace SpleefResurgence.Game
                 var options = new JsonSerializerOptions();
                 string json = File.ReadAllText(filePath);
                 return System.Text.Json.JsonSerializer.Deserialize<Map>(json, options);
+            }
+
+            public static List<string> ListMapNames(string arenaName)
+            {
+                List<string> mapNames = new List<string>();
+                string directoryPath = Path.Combine(MapPath, arenaName);
+                if (!Directory.Exists(directoryPath))
+                    return mapNames;
+                foreach (var map in Directory.EnumerateFiles(directoryPath))
+                {
+                    string fileName = Path.GetFileName(map);
+                    fileName = fileName.Substring(0, fileName.Length - 5);
+                    mapNames.Add(fileName);
+                }
+                return mapNames;
+            }
+
+            public static List<Tuple<string, List<string>>> ListAllMapNames()
+            {
+                List<Tuple<string, List<string>>> arenaMaps = new List<Tuple<string, List<string>>>();
+                foreach (var arena in Directory.EnumerateDirectories(MapPath))
+                {
+                    string arenaName = Path.GetFileName(arena);
+                    List<string> mapNames = new List<string>();
+                    foreach (var map in Directory.EnumerateFiles(arena))
+                    {
+                        string fileName = Path.GetFileName(map);
+                        fileName = fileName.Substring(0, fileName.Length - 5);
+                        mapNames.Add(fileName);
+                    }
+                    arenaMaps.Add(new Tuple<string, List<string>>(arenaName, mapNames));
+                }
+                return arenaMaps;
             }
         }
     }

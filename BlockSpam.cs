@@ -14,11 +14,11 @@ enum State
 public class BlockSpam
 {
     private readonly Spleef pluginInstance;
-    private readonly SpleefGame spleefGame;
+    private readonly SpleeGame spleefGame;
 
     private readonly Dictionary<string, Tracker> Trackers = new();
 
-    public BlockSpam(Spleef plugin, SpleefGame spleefGame)
+    public BlockSpam(Spleef plugin, SpleeGame spleefGame)
     {
         this.pluginInstance = plugin;
         this.spleefGame = spleefGame;
@@ -184,8 +184,8 @@ public class BlockSpam
                 if (!Trackers[player.Name].BlockSpamTimer.IsRunning)
                     Trackers[player.Name].BlockSpamTimer.Start();
 
-                if (!Trackers[player.Name].TotalBlockSpamTimer.IsRunning && spleefGame.isRound)
-                    Trackers[player.Name].TotalBlockSpamTimer.Start();
+                //if (!Trackers[player.Name].TotalBlockSpamTimer.IsRunning && spleefGame.isRound)
+                    //Trackers[player.Name].TotalBlockSpamTimer.Start();
             }
         }
     }

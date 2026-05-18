@@ -6,7 +6,7 @@ namespace SpleefResurgence.Game
 {
     public class GameCommands
     {
-        public static List<Game> Games = new();
+        public static List<SpleefGame> Games = new();
 
         public static void GameCommand(CommandArgs args)
         {
@@ -30,7 +30,45 @@ namespace SpleefResurgence.Game
                     args.Player.SendInfoMessage("/game bet open/close/off/pay - opens/closes bets, turns them off completely or pays out the bets immediately");
                     args.Player.SendInfoMessage("/game reload - reloads stuff duh, useful for bet payouts in 1v1s");
                     break;
-                case "list":
+                case "list": // /game list (gimmick, template, map <templatename>)
+                    if (args.Parameters.Count < 2)
+                    {
+                        args.Player.SendErrorMessage("you need to specify what you want to list!");
+                        args.Player.SendInfoMessage("/game list (gimmick, template, map <templatename>)");
+                        return;
+                    }
+                    switch (args.Parameters[1])
+                    {
+                        case "gimmick":
+                            List<string> gimmicksList = GameConfig.GimmickJson.ListGimmickNames();
+                            args.Player.SendMessage("Gimmicks:", Color.OrangeRed);
+                            args.Player.SendInfoMessage(string.Join(", ", gimmicksList));
+                            break;
+                        case "template":
+                            List<string> templates = GameConfig.ArenaJson.ListArenaNames();
+                            args.Player.SendMessage("Templates:", Color.OrangeRed);
+                            args.Player.SendInfoMessage(string.Join(", ", templates));
+                            break;
+                        case "map":
+                            if (args.Parameters.Count < 3)
+                            {
+                                List<Tuple<string, List<string>>> mapsList = GameConfig.MapJson.ListAllMapNames();
+                                foreach (var map in mapsList)
+                                {
+                                    args.Player.SendMessage($"{map.Item1}:", Color.OrangeRed);
+                                    args.Player.SendInfoMessage(string.Join(", ", map.Item2));
+                                }
+                                return;
+                            }
+                            string templateNameToList = args.Parameters[2];
+                            List<string> maps = GameConfig.MapJson.ListMapNames(templateNameToList);
+                            args.Player.SendMessage($"Maps for template {templateNameToList}:", Color.OrangeRed);
+                            args.Player.SendInfoMessage(string.Join(", ", maps));
+                            break;
+                        default:
+                            args.Player.SendErrorMessage("invalid list type! Use gimmick, template or map.");
+                            break;
+                    }
                     break;
                 case "template":
                     if (args.Parameters.Count < 2)
@@ -43,7 +81,7 @@ namespace SpleefResurgence.Game
                     bool isBettable = false;
 
                     Arena arena = GameConfig.ArenaJson.LoadArena(templateName);
-                    Game game = new Game(arena, args.Player.Account.Name, isJoinable, isBettable);
+                    SpleefGame game = new SpleefGame(arena, args.Player.Account.Name, isJoinable, isBettable);
                     Games.Add(game);
                     args.Player.SendSuccessMessage($"created a new game with the name {templateName}! It has the id {Games.Count - 1}");
                     break;
@@ -67,7 +105,7 @@ namespace SpleefResurgence.Game
                         return;
                     }
 
-                    Game currentGame = Games.Find(game => game.isPlayerHoster(args.Player.Name));
+                    SpleefGame currentGame = Games.Find(game => game.isPlayerHoster(args.Player.Name));
                     if (currentGame.isRound)
                     {
                         args.Player.SendErrorMessage("there's already a round going on!");
@@ -115,7 +153,7 @@ namespace SpleefResurgence.Game
 
                     if (Games.Exists(game => game.isPlayerHoster(args.Player.Name)))
                     {
-                        Game gameToStop = Games.Find(game => game.isPlayerHoster(args.Player.Name));
+                        SpleefGame gameToStop = Games.Find(game => game.isPlayerHoster(args.Player.Name));
 
                         if (gameToStop.isRound)
                         {
@@ -148,7 +186,7 @@ namespace SpleefResurgence.Game
 
                     if (Games.Exists(game => game.isPlayerHoster(args.Player.Name)))
                     {
-                        Game gameToAdd = Games.Find(game => game.isPlayerHoster(args.Player.Name));
+                        SpleefGame gameToAdd = Games.Find(game => game.isPlayerHoster(args.Player.Name));
                         string playerNameToAdd = string.Join(" ", args.Parameters.Skip(1));
 
                         if (!SpleefGame.isPlayerOnline(playerNameToAdd, out TSPlayer playerToAdd))
@@ -168,6 +206,50 @@ namespace SpleefResurgence.Game
                         args.Player.SendErrorMessage("You aren't a hoster in any of the maps!");
                     break;
                 case "remove": // /game remove <playername>
+                    if (Games.Count == 0)
+                    {
+                        args.Player.SendErrorMessage("there's no game going on");
+                        return;
+                    }
+
+                    if (args.Parameters.Count < 2)
+                    {
+                        args.Player.SendErrorMessage("not enough parameters!");
+                        args.Player.SendInfoMessage("/game remove <playername>");
+                        return;
+                    }
+
+                    if (Games.Exists(game => game.isPlayerHoster(args.Player.Name)))
+                    {
+                        SpleefGame gameToRemove = Games.Find(game => game.isPlayerHoster(args.Player.Name));
+                        string playerNameToRemove = string.Join(" ", args.Parameters.Skip(1));
+
+                        if (!SpleefGame.isPlayerOnline(playerNameToRemove, out TSPlayer playerToRemove))
+                        {
+                            if (gameToRemove.Players.Exists(p => p.Name == playerNameToRemove))
+                            {
+                                Player player = gameToRemove.Players.Find(p => p.Name == playerNameToRemove);
+                                gameToRemove.RemovePlayer(playerNameToRemove, player.AccountName);
+                                return;
+                            }
+                            args.Player.SendErrorMessage("this player isn't online");
+                            return;
+                        }
+
+                        if (gameToRemove.Players.Exists(p => p.Name == playerToRemove.Name && p.isIngame))
+                        {
+                            gameToRemove.RemovePlayer(playerToRemove.Name, playerToRemove.Account.Name);
+                            return;
+                        }
+
+                        if (gameToRemove.Players.Exists(p => p.Name == playerToRemove.Name && !p.isIngame))
+                        {
+                            gameToRemove.RemovePlayerCompletely(playerToRemove.Name, playerToRemove.Account.Name);
+                            return;
+                        }
+                    }
+                    else
+                        args.Player.SendErrorMessage("You aren't a hoster in any of the maps!");
                     break;
                 case "score": // /game score [game id]
                     if (Games.Count == 0)
@@ -180,6 +262,49 @@ namespace SpleefResurgence.Game
                     thegame.ShowScore(TSPlayer.All);
                     break;
                 case "edit": // /game edit score/payout <playername> <amount>
+                    if (Games.Count == 0)
+                    {
+                        args.Player.SendErrorMessage("there's no game going on");
+                        return;
+                    }
+
+                    if (args.Parameters.Count < 4)
+                    {
+                        args.Player.SendErrorMessage("not enough parameters!");
+                        args.Player.SendInfoMessage("/game edit score/payout <playername> <amount>");
+                        return;
+                    }
+
+                    if (Games.Exists(game => game.isPlayerHoster(args.Player.Name)))
+                    {
+                        SpleefGame gameToEdit = Games.Find(game => game.isPlayerHoster(args.Player.Name));
+                        string playerNameToEdit = args.Parameters[2];
+                        Player playerToEdit = gameToEdit.FindPlayer(playerNameToEdit);
+
+                        if (playerToEdit == null)
+                        {
+                            args.Player.SendErrorMessage("this player isn't in the game!");
+                            return;
+                        }
+                        if (!int.TryParse(args.Parameters[3], out int amount))
+                        {
+                            args.Player.SendErrorMessage("invalid amount specified!");
+                            return;
+                        }
+                        switch (args.Parameters[1])
+                        {
+                            case "score":
+                                gameToEdit.EditPlayerScore(playerToEdit.Name, playerToEdit.AccountName, amount);
+                                break;
+                            case "payout":
+                                break;
+                            default:
+                                args.Player.SendErrorMessage("invalid edit type specified! Use score or payout.");
+                                break;
+                        }
+                    }
+                    else
+                        args.Player.SendErrorMessage("You aren't a hoster in any of the maps!");
                     break;
                 case "bet": // /game bet open/close/off/pay
                     break;
@@ -197,6 +322,12 @@ namespace SpleefResurgence.Game
                 return;
             }
 
+            if (Games.Exists(g => g.Players.Exists(p => p.Name == args.Player.Name && p.isIngame)))
+            {
+                args.Player.SendErrorMessage("You are already in a game!");
+                return;
+            }
+
             if (Games.Count > 1 && args.Parameters.Count == 0)
             {
                 args.Player.SendErrorMessage("There are multiple games available. Please specify which game you want to join.");
@@ -209,7 +340,7 @@ namespace SpleefResurgence.Game
                 args.Player.SendErrorMessage("Invalid game ID specified.");
                 return;
             }
-            Game game = Games[gameIndex];
+            SpleefGame game = Games[gameIndex];
 
             if (!game.isJoinable)
             {
@@ -228,7 +359,18 @@ namespace SpleefResurgence.Game
 
         public static void LeaveGame(CommandArgs args)
         {
-
+            if (Games.Count == 0)
+            {
+                args.Player.SendErrorMessage("There is no game to leave!");
+                return;
+            }
+            SpleefGame game = Games.Find(g => g.Players.Exists(p => p.Name == args.Player.Name && p.isIngame));
+            if (game == null)
+            {
+                args.Player.SendErrorMessage("You are not in any game!");
+                return;
+            }
+            game.RemovePlayer(args.Player.Name, args.Player.Account.Name);
         }
     }
 }

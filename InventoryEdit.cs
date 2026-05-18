@@ -8,7 +8,7 @@ namespace SpleefResurgence
 {
     public class InventoryEdit
     {
-        public static PluginSettings Config => PluginSettings.Config;
+        //public static PluginSettings Config => PluginSettings.Config;
 
         public static int FindNextFreeSlot(TSPlayer player)
         {
@@ -137,7 +137,7 @@ namespace SpleefResurgence
             int itemID = Convert.ToInt32(args.Parameters[2]);
             AddMiscEquip(plr, slot, itemID);
         }
-
+        /*
         public static void SetInventory(List<InventorySlot> InvSlots, TSPlayer player)
         {
             ClearPlayerEverything(player);
@@ -165,5 +165,6 @@ namespace SpleefResurgence
             else
                 player.SendErrorMessage("that's not a real template");
         }
+        */
     }
 }

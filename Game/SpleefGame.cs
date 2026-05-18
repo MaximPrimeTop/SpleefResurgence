@@ -1,11 +1,13 @@
 ﻿using Microsoft.Xna.Framework;
 using Newtonsoft.Json;
 using System.Diagnostics;
+using System.Timers;
 using Terraria;
 using Terraria.ID;
 using TerrariaApi.Server;
 using TShockAPI;
-
+using static TShockAPI.GetDataHandlers;
+using Timer = System.Timers.Timer;
 namespace SpleefResurgence.Game
 {
     public class Player
@@ -17,7 +19,6 @@ namespace SpleefResurgence.Game
         public int Place = 0;
         public bool isIngame = true;
         public bool isAlive = false;
-
         public Player(string name, string accountName, float elo = 1000f)
         {
             Name = name;
@@ -107,7 +108,7 @@ namespace SpleefResurgence.Game
                 player.SetBuff(BuffID.Webbed, 200);
             }
         }
-        /*
+        
         public bool[,] GetAirTiles()
         {
             bool[,] airTiles = new bool[Width, Height];
@@ -123,7 +124,7 @@ namespace SpleefResurgence.Game
             }
             return airTiles;
         }
-        */
+        
         public void PasteMap()
         {
             if (CurrentMap == null || CurrentMap.SchematicName == null || CurrentMap.SchematicName == "")
@@ -144,10 +145,25 @@ namespace SpleefResurgence.Game
 
         public void StartRise()
         {
-            
+            //wanna do a custom rise function that does it differently depending on the map and its rise type but for now this'll do
+            Commands.HandleCommand(TSPlayer.Server, DefaultCustomLavariseCommand);
         }
 
-
+        public void FillArena(object sender, ElapsedEventArgs args)
+        {
+            for (int i = TilePositionX; i < TilePositionX+Width; i++)
+            {
+                for (int j = TilePositionY; j < TilePositionY+Height; j++)
+                {
+                    if (!Main.tile[i, j].active())
+                    {
+                        NetMessage.SendTileSquare(-1, i, j, 1);
+                        WorldGen.PlaceLiquid(i, j, 1, 255);
+                    }
+                }
+            }
+            Liquid.UpdateLiquid();
+        }
 
         /*
         public void SetRegions()
@@ -185,7 +201,7 @@ namespace SpleefResurgence.Game
         */
     }
 
-    public class Game
+    public class SpleefGame
     {
         public Arena Arena;
         public List<Player> Players = new();
@@ -198,8 +214,9 @@ namespace SpleefResurgence.Game
         public bool isRound;
         private int CurrentMusicBoxID;
         private Stopwatch SuicideTimer = new();
+        private Timer timer = new();
 
-        public Game(Arena arena, string hosterName, bool isJoinable = true, bool isBettable = false)
+        public SpleefGame(Arena arena, string hosterName, bool isJoinable = true, bool isBettable = false)
         {
             isRound = false;
             Arena = arena;
@@ -246,6 +263,18 @@ namespace SpleefResurgence.Game
             return Players.Exists(p => p.Name == name && p.isIngame);
         }
 
+        public Player FindPlayer(string name)
+        {
+            if (isPlayerIngame(name))
+            {
+                if (isPlayerOnline(name, out var player))
+                    return Players.Find(p => p.AccountName == player.Account.Name);
+                else
+                    return Players.Find(p => p.Name == name);
+            }
+            return null;
+        }
+
         public void AddPlayer(string name, string accountName)
         {
             if (Players.Exists(p => p.AccountName == accountName))
@@ -262,6 +291,41 @@ namespace SpleefResurgence.Game
             return;
         }
 
+        public void RemovePlayer(string name, string accountName)
+        {
+            if (Players.Exists(p => p.AccountName == accountName))
+            {
+                var playerToRemove = Players.Find(p => p.AccountName == accountName);
+                playerToRemove.isIngame = false;
+                TShock.Utils.Broadcast($"{name} has left the game!", Color.Red);
+                return;
+            }
+        }
+
+        public void RemovePlayerCompletely(string name, string accountName)
+        {
+            if (Players.Exists(p => p.AccountName == accountName))
+            {
+                var playerToRemove = Players.Find(p => p.AccountName == accountName);
+                SpleefCoin.MigrateUsersToSpleefDatabase();
+                SpleefCoin.AddCoins(playerToRemove.AccountName, playerToRemove.Score, false);
+                TShock.Utils.Broadcast($"{name} has been removed from the game!", Color.Red);
+                return;
+            }
+        }
+
+        public void EditPlayerScore(string name, string accountName, int amount)
+        {
+            if (Players.Exists(p => p.AccountName == accountName))
+            {
+                var playerToEdit = Players.Find(p => p.AccountName == accountName);
+                string diffString = amount > 0 ? $"+{amount}" : amount.ToString();
+                playerToEdit.Score += amount;
+                TShock.Utils.Broadcast($"{name}'s score has been edited to {playerToEdit.Score}! ({diffString})", Color.Orange);
+                return;
+            }
+        }
+
         public void StartRound(List<Gimmick> gimmicks, string mapName)
         {
             RoundPlayers = Players.FindAll(p => p.isIngame);
@@ -274,6 +338,7 @@ namespace SpleefResurgence.Game
             Arena.CurrentMap = GameConfig.MapJson.LoadMap(mapName, Arena.Name);
             Arena.PasteMap();
             Arena.TeleportPlayers(players);
+            Arena.StartRise();
 
             players.ForEach(player =>
             {
@@ -289,8 +354,7 @@ namespace SpleefResurgence.Game
             gimmicks.ForEach(gimmick => gimmick.ApplyGimmick(players));
             if (Arena.CurrentMap.AdditionalGimmicks != null && Arena.CurrentMap.AdditionalGimmicks.Count > 0)
                 Arena.CurrentMap.AdditionalGimmicks.ForEach(gimmick => gimmick.ApplyGimmick(players));
-
-            
+   
             CurrentMusicBoxID = Spleef.MusicBoxIDs[Spleef.rnd.Next(Spleef.MusicBoxIDs.Length)];
             Item MusicBox = new Item();
             MusicBox.SetDefaults(CurrentMusicBoxID);
@@ -298,6 +362,8 @@ namespace SpleefResurgence.Game
             if (MusicBox.Name.Split(' ')[0] == "Otherworldly")
                 SongName = "Otherworldly " + SongName;   
             Arena.CurrentPaint = (byte)Spleef.rnd.Next(31);
+            if (Arena.CurrentPaint == 13) //deep red paint
+                Arena.CurrentPaint = 29; //shadow paint goated
             var PaintItemID = Spleef.PaintIDtoItemID(Arena.CurrentPaint);
             players.ForEach(player =>
             {
@@ -351,11 +417,16 @@ namespace SpleefResurgence.Game
                 InventoryEdit.AddArmor(plr, CurrentMusicBoxID);
 
             if (PlaceCounter == 1)
+            {
                 SuicideTimer.Restart();
+                Commands.HandleCommand(TSPlayer.Server, $"{Arena.DefaultCustomLavariseCommand} stop");
+                Spleef.ResetTimer(ref timer, Arena.FillArena, 3000, false);
+            }
 
             if (PlaceCounter <= 0)
             {
                 SuicideTimer.Stop();
+                Arena.PasteMap();
                 StopRound();
             }
         }

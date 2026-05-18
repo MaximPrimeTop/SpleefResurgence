@@ -10,14 +10,14 @@ using System.Reflection;
 using Terraria.DataStructures;
 using SpleefResurgence.Game;
 using SpleefResurgence.CustomCommands;
-
+using Timer = System.Timers.Timer;
 namespace SpleefResurgence
 {
     [ApiVersion(2, 1)]
     public class Spleef : TerrariaPlugin
     {
         public static Spleef Instance { get; private set; }
-        private readonly SpleefGame spleefGame;
+        private readonly SpleeGame spleeGame;
         private readonly BlockSpam blockSpam;
 
 
@@ -35,9 +35,9 @@ namespace SpleefResurgence
         public Spleef(Main game) : base(game)
         {
             Instance = this;
-            spleefGame = new SpleefGame(this);
-            blockSpam = new BlockSpam(this, spleefGame);
-            spleefGame.SetBlockSpam(blockSpam);
+            //spleefGame = new SpleefGame(this);
+            blockSpam = new BlockSpam(this, spleeGame);
+            //spleefGame.SetBlockSpam(blockSpam);
         }
 
         public static List<CustomCommand> CustomCommands = new();
@@ -109,7 +109,7 @@ namespace SpleefResurgence
             Commands.ChatCommands.Add(new Command("spleef.inventory", InventoryEdit.InventoryEditCommand, "inventoryedit", "invedit"));
             Commands.ChatCommands.Add(new Command("spleef.inventory", InventoryEdit.ArmorEdit, "armoredit"));
             Commands.ChatCommands.Add(new Command("spleef.inventory", InventoryEdit.MiscEquipsEdit, "miscedit"));
-            Commands.ChatCommands.Add(new Command("spleef.inventory", InventoryEdit.SetInventoryCommand, "inventoryset", "invset"));
+            //Commands.ChatCommands.Add(new Command("spleef.inventory", InventoryEdit.SetInventoryCommand, "inventoryset", "invset"));
 
             Commands.ChatCommands.Add(new Command("spleef.settings", SpleefUserSettings.EditSettingsCommand, "settings", "toggle"));
 
@@ -130,6 +130,18 @@ namespace SpleefResurgence
             if (id > 0)
                 return id + 1072;
             return 0;
+        }
+
+        public static void ResetTimer(ref Timer timer, ElapsedEventHandler handler, double interval, bool autoReset = true)
+        {
+            timer.Stop();
+            timer.Dispose();
+            timer = new Timer(interval)
+            {
+                AutoReset = autoReset,
+                Enabled = true
+            };
+            timer.Elapsed += handler;
         }
 
         public static string statusLavariseTime;
