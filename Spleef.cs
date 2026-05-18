@@ -18,7 +18,6 @@ namespace SpleefResurgence
     {
         public static Spleef Instance { get; private set; }
         public static PluginSettings Config => PluginSettings.Config;
-        private readonly TileTracker tileTracker;
         private readonly SpleefGame spleefGame;
         private readonly BlockSpam blockSpam;
 
@@ -37,7 +36,6 @@ namespace SpleefResurgence
         public Spleef(Main game) : base(game)
         {
             Instance = this;
-            tileTracker = new TileTracker(this);
             spleefGame = new SpleefGame(this);
             blockSpam = new BlockSpam(this, spleefGame);
             spleefGame.SetBlockSpam(blockSpam);
@@ -93,7 +91,6 @@ namespace SpleefResurgence
             Commands.ChatCommands.Add(new Command("spleef.game.user", spleefGame.Betting, "bet"));
             */
 
-            Commands.ChatCommands.Add(new Command("spleef.tiletrack", tileTracker.ToggleTileTracking, "tilepos"));
             Commands.ChatCommands.Add(new Command("spleef.coolsay", Coolsay, "coolsay"));
             Commands.ChatCommands.Add(new Command("spleef.track", blockSpam.ToggleTrackingCommand, "track"));
 
