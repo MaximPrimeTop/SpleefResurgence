@@ -17,7 +17,6 @@ namespace SpleefResurgence
     public class Spleef : TerrariaPlugin
     {
         public static Spleef Instance { get; private set; }
-        public static PluginSettings Config => PluginSettings.Config;
         private readonly SpleefGame spleefGame;
         private readonly BlockSpam blockSpam;
 
@@ -74,7 +73,6 @@ namespace SpleefResurgence
         public override void Initialize()
         {
             GameConfig.SetupConfig();
-            PluginSettings.Load();
 
             Commands.ChatCommands.Add(new Command("spleef.customcommand", CCCommands.AddCustomCommand, "addcommand", "addc"));
             Commands.ChatCommands.Add(new Command("spleef.customcommand", CCCommands.DeleteCustomCommand, "delcommand", "delc"));
@@ -207,7 +205,6 @@ namespace SpleefResurgence
 
             try
             {
-                PluginSettings.Load();
                 RegisterCustomCommands();
                 SpleefCoin.MigrateUsersToSpleefDatabase();
                 playerReloading.SendSuccessMessage("[SpleefResurgence] Config reloaded!");

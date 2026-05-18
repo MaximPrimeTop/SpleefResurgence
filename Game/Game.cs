@@ -1,15 +1,10 @@
-﻿using System;
-using System.Net;
-using TShockAPI;
+﻿using Microsoft.Xna.Framework;
+using Newtonsoft.Json;
+using System.Diagnostics;
 using Terraria;
 using Terraria.ID;
 using TerrariaApi.Server;
-using Terraria.DataStructures;
-using Microsoft.Xna.Framework;
-using IL.SteelSeries.GameSense.DeviceZone;
-using On.SteelSeries.GameSense.DeviceZone;
-using System.Text.Json.Serialization;
-using System.Diagnostics;
+using TShockAPI;
 
 namespace SpleefResurgence.Game
 {
@@ -37,6 +32,14 @@ namespace SpleefResurgence.Game
         Lava,
         Shimmer,
         Honey,
+    }
+
+    public class ArenaSpawn
+    {
+        [JsonProperty("X")]
+        public int X { get; set; }
+        [JsonProperty("Y")]
+        public int Y { get; set; }
     }
 
     public class Map
