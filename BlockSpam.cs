@@ -189,6 +189,13 @@ public class BlockSpam
                 if (!Trackers[player.Name].TotalBlockSpamTimer.IsRunning && spleefGame.isRound)
                     Trackers[player.Name].TotalBlockSpamTimer.Start();
             }
+            else if (action == 0)
+            {
+                Trackers[player.Name].BlockSpamTimer.Reset();
+                Trackers[player.Name].TimeSinceTilePlaced.Reset();
+                Trackers[player.Name].spamState = State.Tracking;
+            }
+
         }
     }
 
@@ -211,9 +218,11 @@ public class BlockSpam
                 tr.spamState = State.Tracking;
             }
 
-            if (tr.spamState == State.Tracking && tr.BlockSpamTimer.ElapsedMilliseconds > 20000)
+            if (tr.spamState == State.Tracking && tr.BlockSpamTimer.ElapsedMilliseconds > 10000)
             {
-                TSPlayer.All.SendErrorMessage($"{tr.name} has been block spamming for 20 seconds, mods execute this guy");
+                foreach (TSPlayer player in TShock.Players)
+                    if (player.HasPermission("spleef.modalerts"))
+                        player.SendErrorMessage($"{tr.name} has been block spamming for 10 seconds, mods execute this guy");
                 tr.BlockSpamTimer.Reset();
                 tr.TimeSinceTilePlaced.Reset();
             }
