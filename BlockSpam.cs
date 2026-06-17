@@ -221,10 +221,10 @@ public class BlockSpam
             if (tr.spamState == State.Tracking && tr.BlockSpamTimer.ElapsedMilliseconds > 10000)
             {
                 foreach (TSPlayer player in TShock.Players)
-                    if (player.HasPermission("spleef.modalerts"))
+                    if (player != null && player.Active && player.HasPermission("spleef.modalerts"))
                         player.SendErrorMessage($"{tr.name} has been block spamming for 10 seconds, mods execute this guy");
-                tr.BlockSpamTimer.Reset();
-                tr.TimeSinceTilePlaced.Reset();
+                tr.BlockSpamTimer.Restart();
+                tr.TimeSinceTilePlaced.Restart();
             }
         }
     }
