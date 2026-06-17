@@ -301,7 +301,6 @@ namespace SpleefResurgence
             #region default items and buffs
             ClearEveryoneInventory(AlivePlayers);
             GiveEveryoneItems(ItemID.CobaltPickaxe, 1, 0, AlivePlayers);
-            GiveEveryoneItems(ItemID.ScryingOrb, 1, 8, AlivePlayers);
             GiveEveryoneItems(ItemID.Binoculars, 1, 9, AlivePlayers);
             GiveEveryoneItems(ItemID.CobaltPickaxe, 1, 40, AlivePlayers);
             SetEveryoneBuff(BuffID.Honey, 1000000, AlivePlayers);
@@ -1289,6 +1288,7 @@ namespace SpleefResurgence
                             counter++;
                             inventoryEdit.ClearPlayerEverything(plr);
                             inventoryEdit.AddItem(plr, 0, 1, 776);
+                            inventoryEdit.AddItem(plr, 8, 1, ItemID.ScryingOrb);
                             inventoryEdit.AddItem(plr, 9, 1, 1299);
                             inventoryEdit.AddItem(plr, 40, 1, 776);
                             inventoryEdit.AddArmor(plr, 3, 158);
