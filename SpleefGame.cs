@@ -1,11 +1,13 @@
 ﻿using Microsoft.Xna.Framework;
+using System.Diagnostics;
+using System.Security.Cryptography.X509Certificates;
+using System.Timers;
 using Terraria;
 using Terraria.ID;
 using TerrariaApi.Server;
 using TShockAPI;
-using System.Diagnostics;
-using System.Security.Cryptography.X509Certificates;
 using TShockAPI.Hooks;
+using Timer = System.Timers.Timer;
 
 namespace SpleefResurgence
 {
@@ -206,6 +208,7 @@ namespace SpleefResurgence
 
         private Random rnd = new();
 
+        private Timer OneSecTimer = new();
         private class Playering
         {
             public string Name;
@@ -268,6 +271,18 @@ namespace SpleefResurgence
                 if (plr.isIngame == true)
                     PlayerCount++;
             }
+        }
+
+        public static void ResetTimer(ref Timer timer, ElapsedEventHandler handler, double interval, bool autoReset = true)
+        {
+            timer.Stop();
+            timer.Dispose();
+            timer = new Timer(interval)
+            {
+                AutoReset = autoReset,
+                Enabled = true
+            };
+            timer.Elapsed += handler;
         }
 
         private void StartRound(CommandArgs args, string[] GameType, Map GameArena, int GimmickAmount)
@@ -520,7 +535,7 @@ namespace SpleefResurgence
                     }
                     RoundCounter = 0;
                     ServerApi.Hooks.ServerLeave.Register(pluginInstance, OnPlayerLeave);
-                    ServerApi.Hooks.GameUpdate.Register(pluginInstance, OnWorldUpdate);
+                    ResetTimer(ref OneSecTimer, OnOneSec, 1000);
                     GeneralHooks.ReloadEvent += OnServerReload;
                     UpdateScore();
                     break;
@@ -784,6 +799,8 @@ namespace SpleefResurgence
                     blockSpam.FullTimerAnnounce();
                     GeneralHooks.ReloadEvent -= OnServerReload;
                     ServerApi.Hooks.ServerLeave.Deregister(pluginInstance, OnPlayerLeave);
+                    OneSecTimer.Stop();
+                    OneSecTimer.Dispose();
                     break;
                 case "bet":
                     if (!isGaming)
@@ -1263,10 +1280,11 @@ namespace SpleefResurgence
             }
         }
 
-        private void OnWorldUpdate(EventArgs args)
+        private void OnOneSec(object sender, ElapsedEventArgs args)
         {
             SendScore();
         }
+
         private void OnGetData(GetDataEventArgs args)
         {
             if (args.MsgID == PacketTypes.PlayerDeathV2)
