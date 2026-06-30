@@ -309,13 +309,14 @@ namespace SpleefResurgence
             }
             isRound = true;
             ServerApi.Hooks.NetGetData.Register(pluginInstance, OnGetData);
-
-            TpAndWebEveryone(GameArena.ArenaSpawns);
             List<Playering> AlivePlayers = PlayerInfo.FindAll(p => p.isAlive);
+            ClearEveryoneBuffs(AlivePlayers);
+            TpAndWebEveryone(GameArena.ArenaSpawns);
+          
 
             #region default items and buffs
             ClearEveryoneInventory(AlivePlayers);
-            ClearEveryoneBuffs(AlivePlayers);
+
             GiveEveryoneItems(ItemID.CobaltPickaxe, 1, 0, AlivePlayers);
             GiveEveryoneItems(ItemID.Binoculars, 1, 9, AlivePlayers);
             GiveEveryoneItems(ItemID.CobaltPickaxe, 1, 40, AlivePlayers);
