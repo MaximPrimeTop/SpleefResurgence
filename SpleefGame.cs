@@ -315,6 +315,7 @@ namespace SpleefResurgence
 
             #region default items and buffs
             ClearEveryoneInventory(AlivePlayers);
+            ClearEveryoneBuffs(AlivePlayers);
             GiveEveryoneItems(ItemID.CobaltPickaxe, 1, 0, AlivePlayers);
             GiveEveryoneItems(ItemID.Binoculars, 1, 9, AlivePlayers);
             GiveEveryoneItems(ItemID.CobaltPickaxe, 1, 40, AlivePlayers);
@@ -1389,6 +1390,22 @@ namespace SpleefResurgence
             {
                 var plr = TSPlayer.FindByNameOrID(player.Name)[0];
                 inventoryEdit.ClearPlayerEverything(plr);
+            }
+        }
+
+        private void ClearEveryoneBuffs(List<Playering> Players = null)
+        {
+            if (Players == null)
+                Players = PlayerInfo.FindAll(p => p.isAlive);
+            foreach (Playering player in Players)
+            {
+                var plr = TSPlayer.FindByNameOrID(player.Name)[0];
+                for (int i = plr.TPlayer.buffType.Length - 1; i >= 0; i--)
+                {
+                    if (plr.TPlayer.buffType[i] > 0)
+                        plr.TPlayer.DelBuff(i);
+                }
+                NetMessage.SendData(MessageID.PlayerBuffs, number: plr.Index);
             }
         }
 

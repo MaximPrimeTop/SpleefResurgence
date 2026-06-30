@@ -1,14 +1,11 @@
 ﻿using Microsoft.Xna.Framework;
+using System.Timers;
 using Terraria;
+using Terraria.ID;
 using TerrariaApi.Server;
 using TShockAPI;
 using TShockAPI.Hooks;
-using System.Timers;
-using Terraria.ID;
-using Steamworks;
-using System.Reflection;
-using Terraria.DataStructures;
-
+using Timer = System.Timers.Timer;
 namespace SpleefResurgence
 {
     [ApiVersion(2, 1)]
@@ -23,7 +20,7 @@ namespace SpleefResurgence
         private readonly SpleefGame spleefGame;
         private readonly BlockSpam blockSpam;
         private readonly SpleefELO spleefELO;
-
+        private Timer OneSecTimer = new();
         public static Random rnd = new();
 
         public override string Author => "MaximPrime";
@@ -86,7 +83,7 @@ namespace SpleefResurgence
             GeneralHooks.ReloadEvent += OnServerReload;
             ServerApi.Hooks.GamePostInitialize.Register(this, OnWorldLoad);
             ServerApi.Hooks.GameUpdate.Register(this, OnWorldUpdateRain);
-            ServerApi.Hooks.GameUpdate.Register(this, OnWorldUpdateBuff);
+            SpleefGame.ResetTimer(ref OneSecTimer, OnOneSecBuff, 1000);
             SpleefCoin.MigrateUsersToSpleefDatabase();
         }
 
@@ -146,7 +143,7 @@ namespace SpleefResurgence
             }
         }
 
-        private void OnWorldUpdateBuff(EventArgs args)
+        private void OnOneSecBuff(object sender, ElapsedEventArgs args)
         {
             foreach (TSPlayer player in TShock.Players)
             {
