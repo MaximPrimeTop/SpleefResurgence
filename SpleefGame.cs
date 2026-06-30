@@ -309,17 +309,18 @@ namespace SpleefResurgence
             }
             isRound = true;
             ServerApi.Hooks.NetGetData.Register(pluginInstance, OnGetData);
-            List<Playering> AlivePlayers = PlayerInfo.FindAll(p => p.isAlive);
-            ClearEveryoneBuffs(AlivePlayers);
-            TpAndWebEveryone(GameArena.ArenaSpawns);
-          
+            
+            TpEveryoneAndSetAlive(GameArena.ArenaSpawns);
 
+            List<Playering> AlivePlayers = PlayerInfo.FindAll(p => p.isAlive);
             #region default items and buffs
+            ClearEveryoneBuffs(AlivePlayers);
             ClearEveryoneInventory(AlivePlayers);
 
             GiveEveryoneItems(ItemID.CobaltPickaxe, 1, 0, AlivePlayers);
             GiveEveryoneItems(ItemID.Binoculars, 1, 9, AlivePlayers);
             GiveEveryoneItems(ItemID.CobaltPickaxe, 1, 40, AlivePlayers);
+            SetEveryoneBuff(BuffID.Webbed, 200, AlivePlayers);
             SetEveryoneBuff(BuffID.Honey, 1000000, AlivePlayers);
             SetEveryoneBuff(BuffID.Shine, 1000000, AlivePlayers);
             SetEveryoneBuff(BuffID.NightOwl, 1000000, AlivePlayers);
@@ -1445,7 +1446,7 @@ namespace SpleefResurgence
             }
         }
 
-        private void TpAndWebEveryone(List<ArenaSpawn> ArenaSpawns, List<Playering> Players = null)
+        private void TpEveryoneAndSetAlive(List<ArenaSpawn> ArenaSpawns, List<Playering> Players = null)
         {
             if (Players == null)
                 Players = PlayerInfo.FindAll(p => p.isIngame);
@@ -1464,7 +1465,6 @@ namespace SpleefResurgence
             {
                 var plr = TSPlayer.FindByNameOrID(player.Name)[0];
                 plr.Teleport(ArenaSpawns[counter % ArenaSpawns.Count].X * 16, ArenaSpawns[counter % ArenaSpawns.Count].Y * 16);
-                plr.SetBuff(BuffID.Webbed, 200);
                 player.isAlive = true;
                 counter++;
             }
