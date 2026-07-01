@@ -538,7 +538,7 @@ namespace SpleefResurgence
                     }
                     RoundCounter = 0;
                     ServerApi.Hooks.ServerLeave.Register(pluginInstance, OnPlayerLeave);
-                    ResetTimer(ref OneSecTimer, OnOneSec, 1000);
+                    ServerApi.Hooks.GameUpdate.Register(pluginInstance, OnWorldUpdate);
                     GeneralHooks.ReloadEvent += OnServerReload;
                     UpdateScore();
                     break;
@@ -802,8 +802,7 @@ namespace SpleefResurgence
                     blockSpam.FullTimerAnnounce();
                     GeneralHooks.ReloadEvent -= OnServerReload;
                     ServerApi.Hooks.ServerLeave.Deregister(pluginInstance, OnPlayerLeave);
-                    OneSecTimer.Stop();
-                    OneSecTimer.Dispose();
+                    ServerApi.Hooks.GameUpdate.Deregister(pluginInstance, OnWorldUpdate);
                     break;
                 case "bet":
                     if (!isGaming)
@@ -1263,6 +1262,8 @@ namespace SpleefResurgence
         private string statusRound;
         private const string thethingy = "\n\n\n\n\n\n\n\n\n\n\n\n";
 
+        private string prevsidebar1 = "", prevsidebar2 = "", prevsidebar3 = "";
+        private Stopwatch timeafterupdate1 = new(), timeafterupdate2 = new();
         private void SendScore()
         {
             foreach (TSPlayer player in TShock.Players)
@@ -1273,17 +1274,40 @@ namespace SpleefResurgence
                     if (settings.ShowScore)
                     {
                         if (settings.ShowLavarise)
-                            player.SendData(PacketTypes.Status, thethingy + Spleef.statusLavariseTime + "\n\n" + statusScore + "\n" + statusRound, number2: 1);
+                        {
+                            string texttosend = thethingy + Spleef.statusLavariseTime + "\n\n" + statusScore + "\n" + statusRound;
+                            if (texttosend != prevsidebar1 || timeafterupdate1.Elapsed.Seconds > 3)
+                            {
+                                player.SendData(PacketTypes.Status, texttosend, number2: 1);
+                                prevsidebar1 = texttosend;
+                                timeafterupdate1.Restart();
+                            }
+                        }
                         else
-                            player.SendData(PacketTypes.Status, thethingy + statusScore + "\n" + statusRound, number2: 1);
+                        {
+                            string texttosend = thethingy + statusScore + "\n" + statusRound;
+                            if (texttosend != prevsidebar2 || timeafterupdate2.Elapsed.Seconds > 3)
+                            {
+                                player.SendData(PacketTypes.Status, texttosend, number2: 1);
+                                prevsidebar2 = texttosend;
+                                timeafterupdate2.Restart();
+                            }
+                        }
                     }
                     else if (settings.ShowLavarise)
-                        player.SendData(PacketTypes.Status, thethingy + Spleef.statusLavariseTime, number2: 1);
+                    {
+                        string texttosend = thethingy + Spleef.statusLavariseTime;
+                        if (texttosend != prevsidebar3)
+                        {
+                            player.SendData(PacketTypes.Status, texttosend, number2: 1);
+                            prevsidebar3 = texttosend;
+                        }
+                    }
                 }
             }
         }
 
-        private void OnOneSec(object sender, ElapsedEventArgs args)
+        private void OnWorldUpdate(EventArgs args)
         {
             SendScore();
         }
