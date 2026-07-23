@@ -112,6 +112,11 @@ namespace SpleefResurgence
             Commands.ChatCommands.Add(new Command("spleef.inventory", InventoryEdit.MiscEquipsEdit, "miscedit"));
             //Commands.ChatCommands.Add(new Command("spleef.inventory", InventoryEdit.SetInventoryCommand, "inventoryset", "invset"));
 
+            Commands.ChatCommands.Add(new Command("spleef.game.hoster", SchematicJson.SaveSchematicCommand, "saveschematic", "savesch"));
+            Commands.ChatCommands.Add(new Command("spleef.game.hoster", SchematicJson.LoadSchematicCommand, "loadschematic", "loadsch"));
+            Commands.ChatCommands.Add(new Command("spleef.game.hoster", SchematicJson.ListSchematicsCommand, "listschematic", "listsch"));
+            Commands.ChatCommands.Add(new Command("spleef.game.hoster", SchematicJson.DeleteSchematicCommand, "deleteschematic", "deletesch"));
+
             Commands.ChatCommands.Add(new Command("spleef.settings", SpleefUserSettings.EditSettingsCommand, "settings", "toggle"));
 
             RegisterCustomCommands();
