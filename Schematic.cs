@@ -39,7 +39,7 @@ public class Schematic
         {
             for (int j = 0; j < height; j++)
             {
-                schematicArea[i + height * j] = new Tile(Main.tile[i + x, j + y]);
+                schematicArea[i + width * j] = new Tile(Main.tile[i + x, j + y]);
             }
         }
 
