@@ -500,10 +500,13 @@ namespace SpleefResurgence
                         command.Paint = Convert.ToByte(cmds[5]);
                 }
                 else if (command.ParameterPaint == 69)
+                {
                     command.Paint = (byte)rnd.Next(31);
+                    if (command.Paint >= 13 && command.Paint <= 15)
+                        command.Paint = 0;
+                }
                 else
                     command.Paint = (byte)command.ParameterPaint;
-
 
                 int paintLeft = Math.Min(paintX1, paintX2), paintRight = Math.Max(paintX1, paintX2);
                 int paintTop = Math.Min(paintY1, paintY2), paintBottom = Math.Max(paintY1, paintY2);
