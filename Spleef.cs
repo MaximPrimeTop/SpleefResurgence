@@ -21,6 +21,7 @@ namespace SpleefResurgence
         private readonly SpleeGame spleeGame;
         private readonly BlockSpam blockSpam;
         private readonly ArenaEditor arenaEditor = new();
+        private readonly GimmickEditor gimmickEditor = new();
 
         public static Random rnd = new();
 
@@ -56,25 +57,29 @@ namespace SpleefResurgence
             if (!Directory.Exists(CustomCommand.CommandsPath))
                 Directory.CreateDirectory(CustomCommand.CommandsPath);
             DeregisterCustomCommands();
+            TShock.Log.Info($"[Spleef CC] Deregistered all custom commands");
             string[] files = Directory.GetFiles(CustomCommand.CommandsPath, "*.json");
             foreach (string file in files)
             {
                 CustomCommand command = CustomCommand.FromJson(file);
                 if (CustomCommands.Any(c => c.Name.Equals(command.Name)))
                 {
-                    TShock.Log.Warn($"Duplicate custom command name found: {command.Name}. Skipping registration.");
+                    TShock.Log.ConsoleWarn($"[Spleef CC] Duplicate custom command name found: {command.Name}. Skipping registration.");
                     continue;
                 }
                 CustomCommands.Add(command);
                 Commands.ChatCommands.Add(new Command(command.Permission, command.CommandLogic, command.Name));
-                TShock.Log.Info($"Registered custom command: {command.Name}");
+                TShock.Log.Info($"[Spleef CC] Registered custom command: {command.Name}");
             }
         }
 
         public override void Initialize()
         {
             GameConfig.SetupConfig();
+
             arenaEditor.Initialize();
+            gimmickEditor.Initialize();
+
             Commands.ChatCommands.Add(new Command("spleef.customcommand", CCCommands.AddCustomCommand, "addcommand", "addc"));
             Commands.ChatCommands.Add(new Command("spleef.customcommand", CCCommands.DeleteCustomCommand, "delcommand", "delc"));
             Commands.ChatCommands.Add(new Command("spleef.customcommand", CCCommands.ListCustomCommand, "listcommand", "listc"));
