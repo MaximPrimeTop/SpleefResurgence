@@ -42,7 +42,13 @@ namespace SpleefResurgence.Game
 
         public override void Action(List<TSPlayer> players) => players.ForEach(player => InventoryEdit.AddItem(player, Slot, Stack, ItemID));
 
-        public override string GetInfo() => $"ItemID: {ItemID}, Stack: {Stack}, Slot: {Slot}";
+        public override string GetInfo()
+        {
+            if (Slot == -1)
+                return $"ItemID: {ItemID}, Stack: {Stack}, Slot: -1 (first free slot)";
+            else
+                return $"ItemID: {ItemID}, Stack: {Stack}, Slot: {Slot}";
+        }
 
         public GimmickItem(int itemID, int waitTime, int stack = 1, int slot = -1)
         {
@@ -60,7 +66,13 @@ namespace SpleefResurgence.Game
 
         public override void Action(List<TSPlayer> players) => players.ForEach(player => InventoryEdit.AddArmor(player, Slot, ItemID));
 
-        public override string GetInfo() => $"ItemID: {ItemID}, Slot: {Slot}";
+        public override string GetInfo()
+        {
+            if (Slot == -1)
+                return $"ItemID: {ItemID}, Slot: -1 (first free slot)";
+            else
+                return $"ItemID: {ItemID}, Slot: {Slot-2}";
+        }
 
         public GimmickAccessory(int itemID, int waitTime, int slot = -1)
         {

@@ -191,6 +191,7 @@ namespace SpleefResurgence.Game.Editor
                         args.Player.SendErrorMessage("Slot must be between 1 and 5 or be -1.");
                         return;
                     }
+                    accSlot += 2;
 
                     var gimmickAccessory = new GimmickAccessory(accItemID, accWaitTime, accSlot);
                     GameConfig.GimmickJson.SaveGimmick(name, gimmickAccessory);
@@ -334,7 +335,7 @@ namespace SpleefResurgence.Game.Editor
             }
             
             args.Player.SendInfoMessage($"Gimmick Info for '{name}':");
-            args.Player.SendInfoMessage($"Type: {gimmick.GetType().Name}");
+            args.Player.SendInfoMessage($"Type: {gimmick.GetType().Name.Skip(7)}");
             args.Player.SendInfoMessage($"Details: {gimmick.GetInfo()}");
             args.Player.SendInfoMessage($"Wait Time: {gimmick.WaitTime} s");
         }
