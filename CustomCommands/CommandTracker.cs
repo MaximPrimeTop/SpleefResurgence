@@ -13,9 +13,6 @@ namespace SpleefResurgence.CustomCommands
 {
     public class CommandTracker
     {
-
-        private static bool isTracking = false;
-
         public static bool isCustomCommand(string name)
         {
             return Spleef.CustomCommands.Exists(c => c.Name == name);
@@ -28,6 +25,8 @@ namespace SpleefResurgence.CustomCommands
 
         public class ExecutingCommand
         {
+
+            public bool isExecuting = false;
             public string Name; 
             public Queue<string> CommandQueue = new();
             public Stopwatch WaitStopwatch = new();
@@ -37,6 +36,12 @@ namespace SpleefResurgence.CustomCommands
             public ExecutingCommand Parent;
             public TSPlayer Player;
             public byte CurrentPaintID;
+
+            public bool isLoop = false;
+            public bool isFirstLoop = true;
+            public int LoopCount = 0;
+            public List<string> LoopCommands = new();
+            public Queue<string> LoopCommandQueue = new(); 
 
             public ExecutingCommand(string name, List<string> commandList, TSPlayer player)
             {
@@ -70,9 +75,24 @@ namespace SpleefResurgence.CustomCommands
 
             public void Execute()
             {
+                isExecuting = true;
                 WaitTimeSeconds = 0;
                 WaitStopwatch.Reset();
-                string cmdLine = CommandQueue.Dequeue();
+                string cmdLine;
+                if (!isLoop)
+                    cmdLine = CommandQueue.Dequeue();
+                else
+                {
+                    if (isFirstLoop)
+                    {
+                        cmdLine = CommandQueue.Dequeue();
+                        LoopCommands.Add(cmdLine);
+                    }
+                    else
+                    {
+                        cmdLine = LoopCommandQueue.Dequeue();
+                    }
+                }
                 if (cmdLine[0] == '/' || cmdLine[0] == '.')
                 {
                     string name;
@@ -98,10 +118,36 @@ namespace SpleefResurgence.CustomCommands
                 List<string> cmds = cmdLine.Split(' ').ToList();
                 switch (cmds[0])
                 {
+                    case "loop":
+                        if (cmds.Count < 2)
+                        {
+                            Player.SendErrorMessage("Invalid syntax for the loop command, check your config yo. Usage: loop count");
+                            break;
+                        }
+                        isLoop = true;
+                        isFirstLoop = true;
+                        LoopCount = int.Parse(cmds[1]);
+                        LoopCommands = new();
+                        break; ;
+                    case "endloop":
+                        LoopCount--;
+                        if (LoopCount > 0)
+                        {
+                            if (isFirstLoop)
+                                isFirstLoop = false;
+                            LoopCommandQueue = new Queue<string>(LoopCommands);
+                            break;
+                        }
+                        else
+                        {
+                            isLoop = false;
+                            LoopCommands.Clear();
+                        }
+                        break; ;
                     case "wait":
                         WaitTimeSeconds = double.Parse(cmds[1]);
                         WaitStopwatch.Start();
-                        return;
+                        break;
                     case "paint":
                         if (cmds.Count < 6)
                         {
@@ -161,8 +207,9 @@ namespace SpleefResurgence.CustomCommands
                             }
                         }
                         WorldEdit.Rise(int.Parse(cmds[1]), int.Parse(cmds[2]), int.Parse(cmds[3]), int.Parse(cmds[4]), type);
-                        return;
+                        break;
                 }
+                isExecuting = false;
             }
 
             public void Stop()
@@ -222,22 +269,20 @@ namespace SpleefResurgence.CustomCommands
 
         public static void ExecuteNewCommand(string name, List<string> commandList, TSPlayer player, List<string> parameters)
         {
-            if (!isTracking)
-            {
-                ServerApi.Hooks.GameUpdate.Register(Spleef.Instance, CommandUpdate);
-                isTracking = true;
-            }
             List<string> newCommandList = ConvertCmdListWithParametersOrSmth(commandList, parameters, player);
             ExecutingCommand newCommand = new(name, newCommandList, player);
             Spleef.ActiveCommands.Add(newCommand);
             newCommand.Execute();
         }
 
-        private static void CommandUpdate(EventArgs args)
+        public static void CommandUpdate(EventArgs args)
         {
             for (int i = 0; i < Spleef.ActiveCommands.Count; i++)
             {
                 var command = Spleef.ActiveCommands[i];
+
+                if (command.isExecuting)
+                    continue;
 
                 if (command.isPaused)
                     continue;
@@ -245,7 +290,7 @@ namespace SpleefResurgence.CustomCommands
                 if (command.WaitStopwatch.Elapsed.TotalSeconds < command.WaitTimeSeconds)
                     continue;
 
-                if (command.CommandQueue.Count == 0)
+                if (command.CommandQueue.Count == 0 && command.LoopCommandQueue.Count == 0)
                 {
                     command.Player.SendSuccessMessage($"Finished command: {command.Name}");
 
@@ -257,11 +302,6 @@ namespace SpleefResurgence.CustomCommands
                 }
 
                 command.Execute();
-            }
-            if (Spleef.ActiveCommands.Count == 0)
-            {
-                ServerApi.Hooks.GameUpdate.Deregister(Spleef.Instance, CommandUpdate);
-                isTracking = false;
             }
         }
     }

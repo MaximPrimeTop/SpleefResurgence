@@ -84,6 +84,8 @@ namespace SpleefResurgence
             Commands.ChatCommands.Add(new Command("spleef.customcommand", CCCommands.DeleteCustomCommand, "delcommand", "delc"));
             Commands.ChatCommands.Add(new Command("spleef.customcommand", CCCommands.ListCustomCommand, "listcommand", "listc"));
             Commands.ChatCommands.Add(new Command("spleef.customcommand", CCCommands.ListActiveCommand, "listactive", "lista"));
+            ServerApi.Hooks.GameUpdate.Register(this, CommandTracker.CommandUpdate);    
+
 
             Commands.ChatCommands.Add(new Command("spleef.game.hoster", GameCommands.GameCommand, "game"));
             Commands.ChatCommands.Add(new Command("spleef.game.user", GameCommands.JoinGame, "join", "j"));
