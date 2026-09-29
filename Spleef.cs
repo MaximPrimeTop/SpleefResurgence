@@ -1,4 +1,5 @@
 ﻿using Microsoft.Xna.Framework;
+using SpleefResurgence.uh;
 using System.Timers;
 using Terraria;
 using Terraria.ID;
@@ -6,6 +7,7 @@ using TerrariaApi.Server;
 using TShockAPI;
 using TShockAPI.Hooks;
 using Timer = System.Timers.Timer;
+
 namespace SpleefResurgence
 {
     [ApiVersion(2, 1)]
@@ -23,6 +25,8 @@ namespace SpleefResurgence
         private Timer OneSecTimer = new();
         public static Random rnd = new();
 
+        private BridgeWebsocket? bridge;
+
         public override string Author => "MaximPrime";
         public override string Name => "Spleef Resurgence Plugin";
         public override string Description => "ok i think it works yipee.";
@@ -34,11 +38,13 @@ namespace SpleefResurgence
             commandHandler = new CustomCommandHandler(this);
             tileTracker = new TileTracker(this);
             inventoryEdit = new InventoryEdit();
-            spleefSettings = new SpleefUserSettings(spleefCoin);
+            spleefSettings = new SpleefUserSettings();
             spleefELO = new SpleefELO(spleefCoin);
             spleefGame = new SpleefGame(this, spleefCoin, inventoryEdit, spleefSettings, spleefELO);
             blockSpam = new BlockSpam(this, spleefSettings, spleefGame);
             spleefGame.SetBlockSpam(blockSpam);
+
+
         }
         public override void Initialize()
         {
@@ -84,7 +90,34 @@ namespace SpleefResurgence
             ServerApi.Hooks.GamePostInitialize.Register(this, OnWorldLoad);
             ServerApi.Hooks.GameUpdate.Register(this, OnWorldUpdateRain);
             SpleefGame.ResetTimer(ref OneSecTimer, OnOneSecBuff, 1000);
+
+            BridgeUserSettings.CreateTable();
             SpleefCoin.MigrateUsersToSpleefDatabase();
+
+            BridgeConfig bridgeConfig = BridgeConfig.Load();
+            if (bridgeConfig.isEnabled)
+            {
+                TShock.Log.ConsoleInfo("[Spleef] websocket enabled");
+                bridge = new BridgeWebsocket(bridgeConfig.IP, bridgeConfig.Port, bridgeConfig.apiKey, this);
+                _ = Task.Run(async () =>
+                {
+                    await bridge.ConnectAsync();
+                });
+            }
+            else
+                TShock.Log.ConsoleInfo("[Spleef] websocket disabled");
+
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (bridge != null)
+            {
+                bridge.Dispose();
+                bridge = null;
+            }
+
+            base.Dispose(disposing);
         }
 
         public static int PaintIDtoItemID (byte id)

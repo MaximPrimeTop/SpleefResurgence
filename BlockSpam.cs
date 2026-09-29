@@ -65,13 +65,17 @@ public class BlockSpam
 
     private void OnPlayerJoin(JoinEventArgs args)
     {
-        var player = TShock.Players[args.Who];
-        ToggleTracking(player, true, true);
+        if (!Trackers.ContainsKey(TShock.Players[args.Who].Name))
+        {
+            var player = TShock.Players[args.Who];
+            ToggleTracking(player, true, true);
+        }
     }
 
     private void OnPlayerLeave(LeaveEventArgs args)
     {
-        Trackers.Remove(TShock.Players[args.Who].Name);
+        if (Trackers.ContainsKey(TShock.Players[args.Who].Name))
+            Trackers.Remove(TShock.Players[args.Who].Name);
     }
 
     public void FullTimerAnnounce()

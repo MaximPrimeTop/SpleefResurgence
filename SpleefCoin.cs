@@ -259,7 +259,8 @@ namespace SpleefResurgence
                         string insertQuery = @"
                                 INSERT OR IGNORE INTO PlayerCoins (Username, Coins) VALUES (@Username, 0);
                                 INSERT OR IGNORE INTO PlayerSettings (Username, ShowScore, GetBuffs, ShowLavarise, Chatlavarise, GetMusicBox, GetPaint, BlockSpamDebug) VALUES (@Username, 1, 1, 1, 0, 1, 1, 0);
-                                INSERT OR IGNORE INTO PlayerStats (Username, ELO) VALUES (@Username, 0.0);";
+                                INSERT OR IGNORE INTO PlayerStats (Username, ELO) VALUES (@Username, 0.0);
+                                INSERT OR IGNORE INTO PlayerBridgeInfo (Username, Associated_uid, Notify) VALUES (@Username, NULL, 1);";
                             ;
 
                         using var insertCommand = new SqliteCommand(insertQuery, spleefConnection);

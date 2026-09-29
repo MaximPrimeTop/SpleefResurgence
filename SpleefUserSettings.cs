@@ -24,11 +24,9 @@ namespace SpleefResurgence
     public class SpleefUserSettings
     {
         private readonly string DbPath = Path.Combine(TShock.SavePath, "SpleefCoin.sqlite");
-        private readonly SpleefCoin spleefCoin;
 
-        public SpleefUserSettings(SpleefCoin spleefCoin)
+        public SpleefUserSettings()
         {
-            this.spleefCoin = spleefCoin;
             var sql = @"CREATE TABLE IF NOT EXISTS PlayerSettings (
                         Username TEXT PRIMARY KEY,
                         ShowScore INTEGER DEFAULT 1,

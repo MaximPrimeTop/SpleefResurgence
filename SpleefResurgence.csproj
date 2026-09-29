@@ -3,10 +3,11 @@
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="TShock" Version="6.1.0" />
+    <PackageReference Include="TShock" Version="6.2.1" />
   </ItemGroup>
 
 </Project>
