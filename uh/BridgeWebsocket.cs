@@ -174,6 +174,7 @@ namespace SpleefResurgence.uh
                 HeartbeatTask = HeartbeatLoop();
                 ReceiveTask = ReceiveLoop();
 
+                ReconnectAttempts = 0;
             }
             catch (Exception ex)
             {
@@ -580,6 +581,7 @@ namespace SpleefResurgence.uh
                             ReconnectAttempts = 0;
                             TShock.Log.ConsoleInfo("Too many attempts on trying to reconnect, the ws server is either offline or the info is incorrect. You will have to manually reconnect with /cb");
                             StopReconnect();
+                            return;
                         }
                         ReconnectAttempts++;
                         TShock.Log.ConsoleInfo("Trying to reconnect...");
@@ -632,6 +634,8 @@ namespace SpleefResurgence.uh
         {
             if (_reconnectCts != null)
                 return;
+
+            ReconnectAttempts = 0;
 
             _reconnectCts = new CancellationTokenSource();
 
