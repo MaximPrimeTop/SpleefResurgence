@@ -80,10 +80,10 @@ namespace SpleefResurgence
             arenaEditor.Initialize();
             gimmickEditor.Initialize();
 
-            Commands.ChatCommands.Add(new Command("spleef.customcommand", CCCommands.AddCustomCommand, "addcommand", "addc"));
-            Commands.ChatCommands.Add(new Command("spleef.customcommand", CCCommands.DeleteCustomCommand, "delcommand", "delc"));
-            Commands.ChatCommands.Add(new Command("spleef.customcommand", CCCommands.ListCustomCommand, "listcommand", "listc"));
-            Commands.ChatCommands.Add(new Command("spleef.customcommand", CCCommands.ListActiveCommand, "listactive", "lista"));
+            Commands.ChatCommands.Add(new Command("spleef.customcommand", UserCommands.AddCustomCommand, "addcommand", "addc"));
+            Commands.ChatCommands.Add(new Command("spleef.customcommand", UserCommands.DeleteCustomCommand, "delcommand", "delc"));
+            Commands.ChatCommands.Add(new Command("spleef.customcommand", UserCommands.ListCustomCommand, "listcommand", "listc"));
+            Commands.ChatCommands.Add(new Command("spleef.customcommand", UserCommands.ListActiveCommand, "listactive", "lista"));
             ServerApi.Hooks.GameUpdate.Register(this, CommandTracker.CommandUpdate);    
 
 

@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using TShockAPI;
+﻿using TShockAPI;
 
 namespace SpleefResurgence.Game.Editor
 {
@@ -335,9 +330,9 @@ namespace SpleefResurgence.Game.Editor
             }
             
             args.Player.SendInfoMessage($"Gimmick Info for '{name}':");
-            args.Player.SendInfoMessage($"Type: {gimmick.GetType().Name.Skip(7)}");
+            args.Player.SendInfoMessage($"Type: {gimmick.GetType().Name.Remove(0, 7)}");
             args.Player.SendInfoMessage($"Details: {gimmick.GetInfo()}");
-            args.Player.SendInfoMessage($"Wait Time: {gimmick.WaitTime} s");
+            args.Player.SendInfoMessage($"Wait Time: {gimmick.WaitTime}s");
         }
     }
 }

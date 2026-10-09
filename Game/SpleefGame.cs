@@ -1,7 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 using Newtonsoft.Json;
 using System.Diagnostics;
-using System.Security.Policy;
 using System.Timers;
 using Terraria;
 using Terraria.ID;
@@ -244,9 +243,9 @@ namespace SpleefResurgence.Game
             Hosters = new() { hosterName };
         }
 
-        public bool isPlayerHoster(string accountname)
+        public bool isPlayerHoster(TSPlayer player)
         {
-            return Hosters.Contains(accountname);
+            return player == null|| Hosters.Contains(player.Account.Name);
         }
 
         public readonly int[] MusicBoxIDs = { 562, 1600, 564, 1601, 1596, 1602, 1603, 1604, 4077, 4079, 1597, 566, 1964, 1610, 568, 569, 570, 1598, 2742, 571, 573, 3237, 1605, 1608, 567, 572, 574,

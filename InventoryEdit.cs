@@ -59,23 +59,23 @@ namespace SpleefResurgence
         {
             for (int i = 0; i < player.TPlayer.inventory.Length; i++)
             {
-                player.TPlayer.inventory[i].TurnToAir();
+                player.TPlayer.inventory[i].SetDefaults(0);
                 player.SendData(PacketTypes.PlayerSlot, null, player.Index, i);
             }
 
             for (int i = 0; i < 10; i++)
             {
-                player.TPlayer.armor[i].TurnToAir();
+                player.TPlayer.armor[i].SetDefaults(0);
                 player.SendData(PacketTypes.PlayerSlot, null, player.Index, 59 + i);
             }
 
             for (int i = 0; i < player.TPlayer.miscEquips.Length; i++)
             {
-                player.TPlayer.miscEquips[i].TurnToAir();
+                player.TPlayer.miscEquips[i].SetDefaults(0);
                 player.SendData(PacketTypes.PlayerSlot, null, player.Index, 89 + i);
             }
 
-            player.TPlayer.trashItem.TurnToAir();
+            player.TPlayer.trashItem.SetDefaults(0);
             player.SendData(PacketTypes.PlayerSlot, null, player.Index, 179);
         }
 

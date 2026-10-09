@@ -158,7 +158,8 @@ namespace SpleefResurgence.Game.Editor
                 args.Player.SendErrorMessage("Usage: /arena help");
                 return;
             }
-
+            if (!PlayerEditors.ContainsKey(player.Index))
+                PlayerEditors.Add(player.Index, new PlayerEditor());
             if (args.Parameters[0] == "help")
             {
                 player.SendInfoMessage("help mesgeae");
@@ -397,144 +398,147 @@ namespace SpleefResurgence.Game.Editor
             {
                 editor.GimmickEditStep = GimmickEditStep.Type;
                 player.SendInfoMessage("Set the type of gimmick you want to add (1 - item, 2 - accessory, 3 - buff, 4 - mount, 5 - mob");
-                if (editor.GimmickEditStep == GimmickEditStep.Type)
+                return;
+            }
+            if (editor.GimmickEditStep == GimmickEditStep.Type)
+            {
+                editor.GimmickEditStep = GimmickEditStep.Values;
+                switch (text)
                 {
-                    editor.GimmickEditStep = GimmickEditStep.Values;
-                    switch (text)
-                    {
-                        case "1":
-                        case "item":
-                            editor.CurrentGimmickType = GimmickType.Item;
-                            player.SendInfoMessage("Set the item ID and wait time (in seconds) for the gimmick, separated by a space");
-                            break;
-                        case "2":
-                        case "accessory":
-                            editor.CurrentGimmickType = GimmickType.Accessory;
-                            player.SendInfoMessage("Set the item ID, wait time (in seconds), and slot for the gimmick, separated by spaces");
-                            player.SendInfoMessage("Set slot to -1 to let the game choose the next free slot of a player");
-                            break;
-                        case "3":
-                        case "buff":
-                            editor.CurrentGimmickType = GimmickType.Buff;
-                            player.SendInfoMessage("Set the buff ID, buff duration (in seconds), and wait time (in seconds) for the gimmick, separated by spaces");
-                            break;
-                        case "4":
-                        case "mount":
-                            editor.CurrentGimmickType = GimmickType.Mount;
-                            player.SendInfoMessage("Set the item ID and wait time (in seconds) for the gimmick, separated by a space");
-                            break;
-                        case "5":
-                        case "mob":
-                            editor.CurrentGimmickType = GimmickType.Mob;
-                            player.SendInfoMessage("Set the mob ID, mob amount, mob spawn tile X, mob spawn tile Y, and wait time (in seconds) for the gimmick, separated by spaces");
-                            break;
-                        default:
-                            editor.GimmickEditStep = GimmickEditStep.Type;
-                            player.SendErrorMessage("Invalid gimmick type, please choose from 1 - item, 2 - accessory, 3 - buff, 4 - mount, 5 - mob");
-                            break;
-                    }
+                    case "1":
+                    case "item":
+                        editor.CurrentGimmickType = GimmickType.Item;
+                        player.SendInfoMessage("Set the item ID and wait time (in seconds) for the gimmick, separated by a space");
+                        break;
+                    case "2":
+                    case "accessory":
+                        editor.CurrentGimmickType = GimmickType.Accessory;
+                        player.SendInfoMessage("Set the item ID, wait time (in seconds), and slot for the gimmick, separated by spaces");
+                        player.SendInfoMessage("Set slot to -1 to let the game choose the next free slot of a player");
+                        break;
+                    case "3":
+                    case "buff":
+                        editor.CurrentGimmickType = GimmickType.Buff;
+                        player.SendInfoMessage("Set the buff ID, buff duration (in seconds), and wait time (in seconds) for the gimmick, separated by spaces");
+                        break;
+                    case "4":
+                    case "mount":
+                        editor.CurrentGimmickType = GimmickType.Mount;
+                        player.SendInfoMessage("Set the item ID and wait time (in seconds) for the gimmick, separated by a space");
+                        break;
+                    case "5":
+                    case "mob":
+                        editor.CurrentGimmickType = GimmickType.Mob;
+                        player.SendInfoMessage("Set the mob ID, mob amount, mob spawn tile X, mob spawn tile Y, and wait time (in seconds) for the gimmick, separated by spaces");
+                        break;
+                    default:
+                        editor.GimmickEditStep = GimmickEditStep.Type;
+                        player.SendErrorMessage("Invalid gimmick type, please choose from 1 - item, 2 - accessory, 3 - buff, 4 - mount, 5 - mob");
+                        break;
                 }
-                if (editor.GimmickEditStep == GimmickEditStep.Values)
+            }
+            if (editor.GimmickEditStep == GimmickEditStep.Values)
+            {
+                switch (editor.CurrentGimmickType)
                 {
-                    switch (editor.CurrentGimmickType)
-                    {
-                        case GimmickType.Item:
-                            var itemValues = text.Split(' ');
-                            if (itemValues.Length != 2)
-                            {
-                                player.SendErrorMessage("Invalid number of values for the item gimmick, please provide item ID and wait time (in seconds)");
-                                return;
-                            }
-                            if (!int.TryParse(itemValues[0], out int itemID) || !int.TryParse(itemValues[1], out int waitTime))
-                            {
-                                player.SendErrorMessage("Invalid values for the item gimmick, please provide valid integers for item ID and wait time (in seconds)");
-                                return;
-                            }
-                            var itemGimmick = new GimmickItem(itemID, waitTime);
-                            mapToEdit.AdditionalGimmicks.Add(itemGimmick);
-                            GameConfig.MapJson.SaveMap(mapToEdit, arenaName);
-                            player.SendSuccessMessage($"Added an item gimmick with item ID {itemID} and wait time {waitTime} seconds");
-                            break;
-                        case GimmickType.Accessory:
-                            var accessoryValues = text.Split(' ');
-                            if (accessoryValues.Length != 3)
-                            {
-                                player.SendErrorMessage("Invalid number of values for the accessory gimmick, please provide item ID, wait time (in seconds), and slot");
-                                return;
-                            }
-                            if (!int.TryParse(accessoryValues[0], out int accessoryItemID) || !int.TryParse(accessoryValues[1], out int accessoryWaitTime) || !int.TryParse(accessoryValues[2], out int slot))
-                            {
-                                player.SendErrorMessage("Invalid values for the accessory gimmick, please provide valid integers for item ID, wait time (in seconds), and slot");
-                                return;
-                            }
-                            var accessoryGimmick = new GimmickAccessory(accessoryItemID, accessoryWaitTime, slot);
-                            mapToEdit.AdditionalGimmicks.Add(accessoryGimmick);
-                            GameConfig.MapJson.SaveMap(mapToEdit, arenaName);
-                            player.SendSuccessMessage($"Added an accessory gimmick with item ID {accessoryItemID}, wait time {accessoryWaitTime} seconds, and slot {slot}");
-                            break;
-                        case GimmickType.Buff:
-                            var buffValues = text.Split(' ');
-                            if (buffValues.Length != 3)
-                            {
-                                player.SendErrorMessage("Invalid number of values for the buff gimmick, please provide buff ID, buff duration (in seconds), and wait time (in seconds)");
-                                return;
-                            }
-                            if (!int.TryParse(buffValues[0], out int buffID) || !int.TryParse(buffValues[1], out int buffDuration) || !int.TryParse(buffValues[2], out int buffWaitTime))
-                            {
-                                player.SendErrorMessage("Invalid values for the buff gimmick, please provide valid integers for buff ID, buff duration (in seconds), and wait time (in seconds)");
-                                return;
-                            }
-                            var buffGimmick = new GimmickBuff(buffID, buffDuration, buffWaitTime);
-                            mapToEdit.AdditionalGimmicks.Add(buffGimmick);
-                            GameConfig.MapJson.SaveMap(mapToEdit, arenaName);
-                            player.SendSuccessMessage($"Added a buff gimmick with buff ID {buffID}, buff duration {buffDuration} seconds, and wait time {buffWaitTime} seconds");
-                            break;
-                        case GimmickType.Mount:
-                            var mountValues = text.Split(' ');
-                            if (mountValues.Length != 2)
-                            {
-                                player.SendErrorMessage("Invalid number of values for the mount gimmick, please provide item ID and wait time (in seconds)");
-                                return;
-                            }
-                            if (!int.TryParse(mountValues[0], out int mountItemID) || !int.TryParse(mountValues[1], out int mountWaitTime))
-                            {
-                                player.SendErrorMessage("Invalid values for the mount gimmick, please provide valid integers for item ID and wait time (in seconds)");
-                                return;
-                            }
-                            var mountGimmick = new GimmickMount(mountItemID, mountWaitTime);
-                            mapToEdit.AdditionalGimmicks.Add(mountGimmick);
-                            GameConfig.MapJson.SaveMap(mapToEdit, arenaName);
-                            player.SendSuccessMessage($"Added a mount gimmick with item ID {mountItemID} and wait time {mountWaitTime} seconds");
-                            break;
-                        case GimmickType.Mob:
-                            var mobValues = text.Split(' ');
-                            if (mobValues.Length != 5)
-                            {
-                                player.SendErrorMessage("Invalid number of values for the mob gimmick, please provide mob ID, mob amount, mob spawn tile X, mob spawn tile Y, and wait time (in seconds)");
-                                return;
-                            }
-                            if (!int.TryParse(mobValues[0], out int mobID) || !int.TryParse(mobValues[1], out int mobAmount) || !int.TryParse(mobValues[2], out int mobSpawnX) || !int.TryParse(mobValues[3], out int mobSpawnY) || !int.TryParse(mobValues[4], out int mobWaitTime))
-                            {
-                                player.SendErrorMessage("Invalid values for the mob gimmick, please provide valid integers for mob ID, mob amount, mob spawn tile X, mob spawn tile Y, and wait time (in seconds)");
-                                return;
-                            }
-                            var mobGimmick = new GimmickMob(mobID, mobAmount, mobWaitTime, mobSpawnX, mobSpawnY);
-                            mapToEdit.AdditionalGimmicks.Add(mobGimmick);
-                            GameConfig.MapJson.SaveMap(mapToEdit, arenaName);
-                            player.SendSuccessMessage($"Added a mob gimmick with mob ID {mobID}, amount {mobAmount}, spawn point ({mobSpawnX},{mobSpawnY}), and wait time {mobWaitTime} seconds");
-                            break;
+                    case GimmickType.Item:
+                        var itemValues = text.Split(' ');
+                        if (itemValues.Length != 2)
+                        {
+                            player.SendErrorMessage("Invalid number of values for the item gimmick, please provide item ID and wait time (in seconds)");
+                            return;
+                        }
+                        if (!int.TryParse(itemValues[0], out int itemID) || !int.TryParse(itemValues[1], out int waitTime))
+                        {
+                            player.SendErrorMessage("Invalid values for the item gimmick, please provide valid integers for item ID and wait time (in seconds)");
+                            return;
+                        }
+                        var itemGimmick = new GimmickItem(itemID, waitTime);
+                        mapToEdit.AdditionalGimmicks.Add(itemGimmick);
+                        GameConfig.MapJson.SaveMap(mapToEdit, arenaName);
+                        player.SendSuccessMessage($"Added an item gimmick with item ID {itemID} and wait time {waitTime} seconds");
+                        break;
+                    case GimmickType.Accessory:
+                        var accessoryValues = text.Split(' ');
+                        if (accessoryValues.Length != 3)
+                        {
+                            player.SendErrorMessage("Invalid number of values for the accessory gimmick, please provide item ID, wait time (in seconds), and slot");
+                            return;
+                        }
+                        if (!int.TryParse(accessoryValues[0], out int accessoryItemID) || !int.TryParse(accessoryValues[1], out int accessoryWaitTime) || !int.TryParse(accessoryValues[2], out int slot))
+                        {
+                            player.SendErrorMessage("Invalid values for the accessory gimmick, please provide valid integers for item ID, wait time (in seconds), and slot");
+                            return;
+                        }
+                        var accessoryGimmick = new GimmickAccessory(accessoryItemID, accessoryWaitTime, slot);
+                        mapToEdit.AdditionalGimmicks.Add(accessoryGimmick);
+                        GameConfig.MapJson.SaveMap(mapToEdit, arenaName);
+                        player.SendSuccessMessage($"Added an accessory gimmick with item ID {accessoryItemID}, wait time {accessoryWaitTime} seconds, and slot {slot}");
+                        break;
+                    case GimmickType.Buff:
+                        var buffValues = text.Split(' ');
+                        if (buffValues.Length != 3)
+                        {
+                            player.SendErrorMessage("Invalid number of values for the buff gimmick, please provide buff ID, buff duration (in seconds), and wait time (in seconds)");
+                            return;
+                        }
+                        if (!int.TryParse(buffValues[0], out int buffID) || !int.TryParse(buffValues[1], out int buffDuration) || !int.TryParse(buffValues[2], out int buffWaitTime))
+                        {
+                            player.SendErrorMessage("Invalid values for the buff gimmick, please provide valid integers for buff ID, buff duration (in seconds), and wait time (in seconds)");
+                            return;
+                        }
+                        var buffGimmick = new GimmickBuff(buffID, buffDuration, buffWaitTime);
+                        mapToEdit.AdditionalGimmicks.Add(buffGimmick);
+                        GameConfig.MapJson.SaveMap(mapToEdit, arenaName);
+                        player.SendSuccessMessage($"Added a buff gimmick with buff ID {buffID}, buff duration {buffDuration} seconds, and wait time {buffWaitTime} seconds");
+                        break;
+                    case GimmickType.Mount:
+                        var mountValues = text.Split(' ');
+                        if (mountValues.Length != 2)
+                        {
+                            player.SendErrorMessage("Invalid number of values for the mount gimmick, please provide item ID and wait time (in seconds)");
+                            return;
+                        }
+                        if (!int.TryParse(mountValues[0], out int mountItemID) || !int.TryParse(mountValues[1], out int mountWaitTime))
+                        {
+                            player.SendErrorMessage("Invalid values for the mount gimmick, please provide valid integers for item ID and wait time (in seconds)");
+                            return;
+                        }
+                        var mountGimmick = new GimmickMount(mountItemID, mountWaitTime);
+                        mapToEdit.AdditionalGimmicks.Add(mountGimmick);
+                        GameConfig.MapJson.SaveMap(mapToEdit, arenaName);
+                        player.SendSuccessMessage($"Added a mount gimmick with item ID {mountItemID} and wait time {mountWaitTime} seconds");
+                        break;
+                    case GimmickType.Mob:
+                        var mobValues = text.Split(' ');
+                        if (mobValues.Length != 5)
+                        {
+                            player.SendErrorMessage("Invalid number of values for the mob gimmick, please provide mob ID, mob amount, mob spawn tile X, mob spawn tile Y, and wait time (in seconds)");
+                            return;
+                        }
+                        if (!int.TryParse(mobValues[0], out int mobID) || !int.TryParse(mobValues[1], out int mobAmount) || !int.TryParse(mobValues[2], out int mobSpawnX) || !int.TryParse(mobValues[3], out int mobSpawnY) || !int.TryParse(mobValues[4], out int mobWaitTime))
+                        {
+                            player.SendErrorMessage("Invalid values for the mob gimmick, please provide valid integers for mob ID, mob amount, mob spawn tile X, mob spawn tile Y, and wait time (in seconds)");
+                            return;
+                        }
+                        var mobGimmick = new GimmickMob(mobID, mobAmount, mobWaitTime, mobSpawnX, mobSpawnY);
+                        mapToEdit.AdditionalGimmicks.Add(mobGimmick);
+                        GameConfig.MapJson.SaveMap(mapToEdit, arenaName);
+                        player.SendSuccessMessage($"Added a mob gimmick with mob ID {mobID}, amount {mobAmount}, spawn point ({mobSpawnX},{mobSpawnY}), and wait time {mobWaitTime} seconds");
+                        break;
 
-                    }
-                    editor.GimmickEditStep = GimmickEditStep.None;
-                    editor.CurrentGimmickType = GimmickType.None;
-                    editor.Mode = EditMode.MapEdit;
                 }
+                editor.GimmickEditStep = GimmickEditStep.None;
+                editor.CurrentGimmickType = GimmickType.None;
+                editor.Mode = EditMode.MapEdit;
             }
         }
 
         public void MapEdit(CommandArgs args) //haha mapedit from penguin games
         {
             var player = args.Player;
+            if (!PlayerEditors.ContainsKey(player.Index))
+                PlayerEditors.Add(player.Index, new PlayerEditor());
             if (args.Parameters.Count < 1)
             {
                 args.Player.SendErrorMessage("Usage: /map help");
@@ -647,7 +651,7 @@ namespace SpleefResurgence.Game.Editor
             if (PlayerEditors[args.Player.Index].Mode == EditMode.None)
                 return;
 
-            if (PlayerEditors[args.Player.Index].TileEditCallback != null)
+            if (PlayerEditors[args.Player.Index].TileEditCallback == null)
                 return;
 
             PlayerEditors[args.Player.Index].TileEditCallback(args.Player, args.X, args.Y);
@@ -663,7 +667,7 @@ namespace SpleefResurgence.Game.Editor
             if (PlayerEditors[args.Who].Mode == EditMode.None)
                 return;
 
-            if (PlayerEditors[args.Who].ChatCallback != null)
+            if (PlayerEditors[args.Who].ChatCallback == null)
                 return;
 
             if (args.Text.StartsWith("/"))
@@ -678,10 +682,10 @@ namespace SpleefResurgence.Game.Editor
                 return;
             }
 
-            if (args.Text == "undo" &&
-                PlayerEditors[args.Who].Mode == EditMode.MapEditSpawnAdd ||
+            if (args.Text == "undo" && 
+                (PlayerEditors[args.Who].Mode == EditMode.MapEditSpawnAdd ||
                 PlayerEditors[args.Who].Mode == EditMode.MapEditSpawnEdit ||
-                PlayerEditors[args.Who].Mode == EditMode.MapEditSpawnMoving)
+                PlayerEditors[args.Who].Mode == EditMode.MapEditSpawnMoving))
             {
                 PlayerEditors[args.Who].Mode = EditMode.MapEdit;
                 PlayerEditors[args.Who].MapSpawnPointID = -1;

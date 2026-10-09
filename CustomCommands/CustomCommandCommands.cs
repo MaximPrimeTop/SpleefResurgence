@@ -1,15 +1,9 @@
 ﻿using Microsoft.Xna.Framework;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using TShockAPI;
-using static Org.BouncyCastle.Math.EC.ECCurve;
 
 namespace SpleefResurgence.CustomCommands
 {
-    public class CCCommands
+    public class UserCommands
     {
         public static void AddCustomCommand(CommandArgs args)
         {

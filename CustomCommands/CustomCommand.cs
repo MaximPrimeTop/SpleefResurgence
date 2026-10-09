@@ -1,9 +1,5 @@
-﻿using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using TShockAPI;
-using System.Timers;
 using Microsoft.Xna.Framework;
 
 namespace SpleefResurgence.CustomCommands
@@ -80,7 +76,9 @@ namespace SpleefResurgence.CustomCommands
                         player.SendErrorMessage($"Invalid syntax! /{Name} add command");
                         return;
                     }
-                    Add(string.Join(' ', args.Parameters.Skip(1)));       
+                    var command = string.Join(' ', args.Parameters.Skip(1));
+                    Add(command);
+                    player.SendSuccessMessage($"Added {CommandList.Count}.{command}");
                     return;
                 case "delete":
                 case "del":

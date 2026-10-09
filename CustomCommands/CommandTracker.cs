@@ -1,14 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Timers;
-using TerrariaApi.Server;
-using TShockAPI;
+﻿using TShockAPI;
 using Terraria.ID;
 using System.Diagnostics;
-using TShockAPI.Hooks;
 namespace SpleefResurgence.CustomCommands
 {
     public class CommandTracker
@@ -36,12 +28,6 @@ namespace SpleefResurgence.CustomCommands
             public ExecutingCommand Parent;
             public TSPlayer Player;
             public byte CurrentPaintID;
-
-            public bool isLoop = false;
-            public bool isFirstLoop = true;
-            public int LoopCount = 0;
-            public List<string> LoopCommands = new();
-            public Queue<string> LoopCommandQueue = new(); 
 
             public ExecutingCommand(string name, List<string> commandList, TSPlayer player)
             {
@@ -76,23 +62,8 @@ namespace SpleefResurgence.CustomCommands
             public void Execute()
             {
                 isExecuting = true;
-                WaitTimeSeconds = 0;
-                WaitStopwatch.Reset();
                 string cmdLine;
-                if (!isLoop)
-                    cmdLine = CommandQueue.Dequeue();
-                else
-                {
-                    if (isFirstLoop)
-                    {
-                        cmdLine = CommandQueue.Dequeue();
-                        LoopCommands.Add(cmdLine);
-                    }
-                    else
-                    {
-                        cmdLine = LoopCommandQueue.Dequeue();
-                    }
-                }
+                cmdLine = CommandQueue.Dequeue();
                 if (cmdLine[0] == '/' || cmdLine[0] == '.')
                 {
                     string name;
@@ -113,107 +84,84 @@ namespace SpleefResurgence.CustomCommands
                     }
                     else
                         Commands.HandleCommand(TSPlayer.Server, cmdLine);
-                    return;
                 }
-                List<string> cmds = cmdLine.Split(' ').ToList();
-                switch (cmds[0])
+                else
                 {
-                    case "loop":
-                        if (cmds.Count < 2)
-                        {
-                            Player.SendErrorMessage("Invalid syntax for the loop command, check your config yo. Usage: loop count");
+                    List<string> cmds = cmdLine.Split(' ').ToList();
+                    switch (cmds[0])
+                    {               
+                        case "wait": // BIG REMINDER THAT WAITING DOESNT WORK WITHOUT A PLAYER ONLINE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                            WaitTimeSeconds = double.Parse(cmds[1]);
+                            WaitStopwatch.Restart();
                             break;
-                        }
-                        isLoop = true;
-                        isFirstLoop = true;
-                        LoopCount = int.Parse(cmds[1]);
-                        LoopCommands = new();
-                        break; ;
-                    case "endloop":
-                        LoopCount--;
-                        if (LoopCount > 0)
-                        {
-                            if (isFirstLoop)
-                                isFirstLoop = false;
-                            LoopCommandQueue = new Queue<string>(LoopCommands);
-                            break;
-                        }
-                        else
-                        {
-                            isLoop = false;
-                            LoopCommands.Clear();
-                        }
-                        break; ;
-                    case "wait":
-                        WaitTimeSeconds = double.Parse(cmds[1]);
-                        WaitStopwatch.Start();
-                        break;
-                    case "paint":
-                        if (cmds.Count < 6)
-                        {
-                            Player.SendErrorMessage("Invalid syntax for the replace command, check your config yo. Usage: replaceblock x1 y1 x2 y2 paintType");
-                            break;
-                        }
-                        WorldEdit.PaintArea(int.Parse(cmds[1]), int.Parse(cmds[2]), int.Parse(cmds[3]), int.Parse(cmds[4]), byte.Parse(cmds[5]));
-                        break;
-                    case "replaceblock":
-                        if (cmds.Count < 7)
-                        {
-                            Player.SendErrorMessage("Invalid syntax for the replace command, check your config yo. Usage: replaceblock x1 y1 x2 y2 blockType1 blockType2");
-                            break;
-                        }
-                        WorldEdit.ReplaceArea(int.Parse(cmds[1]), int.Parse(cmds[2]), int.Parse(cmds[3]), int.Parse(cmds[4]), ushort.Parse(cmds[5]), ushort.Parse(cmds[6]));
-                        break;
-                    case "replacerandom":
-                        if (cmds.Count < 7)
-                        {
-                            Player.SendErrorMessage("Invalid syntax for the random replace command, check your config yo. Usage: replacerandom x1 y1 x2 y2 blockType");
-                            break;
-                        }
-                        //WorldEdit.ReplaceRandom(int.Parse(cmds[1]), int.Parse(cmds[2]), int.Parse(cmds[3]), int.Parse(cmds[4]), ushort.Parse(cmds[5]));
-                        break;
-                    case "rise":
-                        if (cmds.Count < 5)
-                        {
-                            Player.SendErrorMessage("Invalid syntax for the rise command, check your config yo. Usage: rise x1 y1 x2 y2 liquidType");
-                            break;
-                        }
-
-                        byte type = 1; //lava
-                        if (cmds.Count > 6)
-                        {
-                            switch (cmds[5])
+                        case "paint":
+                            if (cmds.Count < 6)
                             {
-                                case "r":
-                                    Random rnd = new Random();
-                                    type = (byte)rnd.Next(LiquidID.Count);
-                                    break;
-                                case "water":
-                                case "0":
-                                    type = 0;
-                                    break;
-                                case "lava":
-                                case "1":
-                                    type = 1;
-                                    break;
-                                case "honey":
-                                case "2":
-                                    type = 2;
-                                    break;
-                                case "shimmer":
-                                case "3":
-                                    type = 3;
-                                    break;
+                                Player.SendErrorMessage("Invalid syntax for the replace command, check your config yo. Usage: replaceblock x1 y1 x2 y2 paintType");
+                                break;
                             }
-                        }
-                        WorldEdit.Rise(int.Parse(cmds[1]), int.Parse(cmds[2]), int.Parse(cmds[3]), int.Parse(cmds[4]), type);
-                        break;
+                            WorldEdit.PaintArea(int.Parse(cmds[1]), int.Parse(cmds[2]), int.Parse(cmds[3]), int.Parse(cmds[4]), byte.Parse(cmds[5]));
+                            break;
+                        case "replaceblock":
+                            if (cmds.Count < 7)
+                            {
+                                Player.SendErrorMessage("Invalid syntax for the replace command, check your config yo. Usage: replaceblock x1 y1 x2 y2 blockType1 blockType2");
+                                break;
+                            }
+                            WorldEdit.ReplaceArea(int.Parse(cmds[1]), int.Parse(cmds[2]), int.Parse(cmds[3]), int.Parse(cmds[4]), ushort.Parse(cmds[5]), ushort.Parse(cmds[6]));
+                            break;
+                        case "replacerandom":
+                            if (cmds.Count < 7)
+                            {
+                                Player.SendErrorMessage("Invalid syntax for the random replace command, check your config yo. Usage: replacerandom x1 y1 x2 y2 blockType");
+                                break;
+                            }
+                            //WorldEdit.ReplaceRandom(int.Parse(cmds[1]), int.Parse(cmds[2]), int.Parse(cmds[3]), int.Parse(cmds[4]), ushort.Parse(cmds[5]));
+                            break;
+                        case "rise":
+                            if (cmds.Count < 5)
+                            {
+                                Player.SendErrorMessage("Invalid syntax for the rise command, check your config yo. Usage: rise x1 y1 x2 y2 liquidType");
+                                break;
+                            }
+
+                            byte type = 1; //lava
+                            if (cmds.Count > 5)
+                            {
+                                switch (cmds[5])
+                                {
+                                    case "r":
+                                        Random rnd = new Random();
+                                        type = (byte)rnd.Next(LiquidID.Count);
+                                        break;
+                                    case "water":
+                                    case "0":
+                                        type = 0;
+                                        break;
+                                    case "lava":
+                                    case "1":
+                                        type = 1;
+                                        break;
+                                    case "honey":
+                                    case "2":
+                                        type = 2;
+                                        break;
+                                    case "shimmer":
+                                    case "3":
+                                        type = 3;
+                                        break;
+                                }
+                            }
+                            WorldEdit.Rise(int.Parse(cmds[1]), int.Parse(cmds[2]), int.Parse(cmds[3]), int.Parse(cmds[4]), type);
+                            break;
+                    }
                 }
                 isExecuting = false;
             }
 
             public void Stop()
             {
+                isPaused = false;
                 CommandQueue.Clear();
                 WaitTimeSeconds = 0;
             }
@@ -290,7 +238,7 @@ namespace SpleefResurgence.CustomCommands
                 if (command.WaitStopwatch.Elapsed.TotalSeconds < command.WaitTimeSeconds)
                     continue;
 
-                if (command.CommandQueue.Count == 0 && command.LoopCommandQueue.Count == 0)
+                if (command.CommandQueue.Count == 0)
                 {
                     command.Player.SendSuccessMessage($"Finished command: {command.Name}");
 

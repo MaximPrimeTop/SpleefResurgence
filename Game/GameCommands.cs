@@ -1,6 +1,4 @@
 ﻿using Microsoft.Xna.Framework;
-using System;
-using Terraria;
 using TShockAPI;
 using static SpleefResurgence.Game.GameConfig;
 namespace SpleefResurgence.Game
@@ -100,13 +98,13 @@ namespace SpleefResurgence.Game
                         return;
                     }
 
-                    if (!Games.Exists(game => game.isPlayerHoster(args.Player.Name)))
+                    if (!Games.Exists(game => game.isPlayerHoster(args.Player)))
                     {
                         args.Player.SendErrorMessage("You aren't a hoster in any of the maps!");
                         return;
                     }
 
-                    SpleefGame currentGame = Games.Find(game => game.isPlayerHoster(args.Player.Name));
+                    SpleefGame currentGame = Games.Find(game => game.isPlayerHoster(args.Player));
                     if (currentGame.isRound)
                     {
                         args.Player.SendErrorMessage("there's already a round going on!");
@@ -163,9 +161,9 @@ namespace SpleefResurgence.Game
                         return;
                     }
 
-                    if (Games.Exists(game => game.isPlayerHoster(args.Player.Name)))
+                    if (Games.Exists(game => game.isPlayerHoster(args.Player)))
                     {
-                        SpleefGame gameToStop = Games.Find(game => game.isPlayerHoster(args.Player.Name));
+                        SpleefGame gameToStop = Games.Find(game => game.isPlayerHoster(args.Player));
 
                         if (gameToStop.isRound)
                         {
@@ -196,9 +194,9 @@ namespace SpleefResurgence.Game
                         return;
                     }
 
-                    if (Games.Exists(game => game.isPlayerHoster(args.Player.Name)))
+                    if (Games.Exists(game => game.isPlayerHoster(args.Player)))
                     {
-                        SpleefGame gameToAdd = Games.Find(game => game.isPlayerHoster(args.Player.Name));
+                        SpleefGame gameToAdd = Games.Find(game => game.isPlayerHoster(args.Player));
                         string playerNameToAdd = string.Join(" ", args.Parameters.Skip(1));
 
                         if (!SpleefGame.isPlayerOnline(playerNameToAdd, out TSPlayer playerToAdd))
@@ -231,9 +229,9 @@ namespace SpleefResurgence.Game
                         return;
                     }
 
-                    if (Games.Exists(game => game.isPlayerHoster(args.Player.Name)))
+                    if (Games.Exists(game => game.isPlayerHoster(args.Player)))
                     {
-                        SpleefGame gameToRemove = Games.Find(game => game.isPlayerHoster(args.Player.Name));
+                        SpleefGame gameToRemove = Games.Find(game => game.isPlayerHoster(args.Player));
                         string playerNameToRemove = string.Join(" ", args.Parameters.Skip(1));
 
                         if (!SpleefGame.isPlayerOnline(playerNameToRemove, out TSPlayer playerToRemove))
@@ -287,9 +285,9 @@ namespace SpleefResurgence.Game
                         return;
                     }
 
-                    if (Games.Exists(game => game.isPlayerHoster(args.Player.Name)))
+                    if (Games.Exists(game => game.isPlayerHoster(args.Player)))
                     {
-                        SpleefGame gameToEdit = Games.Find(game => game.isPlayerHoster(args.Player.Name));
+                        SpleefGame gameToEdit = Games.Find(game => game.isPlayerHoster(args.Player));
                         string playerNameToEdit = args.Parameters[2];
                         Player playerToEdit = gameToEdit.FindPlayer(playerNameToEdit);
 
@@ -319,6 +317,35 @@ namespace SpleefResurgence.Game
                         args.Player.SendErrorMessage("You aren't a hoster in any of the maps!");
                     break;
                 case "bet": // /game bet open/close/off/pay
+                    break;
+                case "host": // /game host <playername>
+                    if (args.Parameters.Count < 2)
+                    {
+                        args.Player.SendErrorMessage("you need to specify the player's name that you want to give hoster perms for this");
+                    }
+
+                    if (Games.Count == 0)
+                    {
+                        args.Player.SendErrorMessage("there's no game going on");
+                        return;
+                    }
+
+                    if (!Games.Exists(game => game.isPlayerHoster(args.Player)))
+                    {
+                        args.Player.SendErrorMessage("You aren't a hoster in any of the maps!");
+                        return;
+                    }
+
+                    SpleefGame hostAddGame = Games.Find(game => game.isPlayerHoster(args.Player));
+                    var playerNameToHost = args.Parameters[1];
+                    if (!SpleefGame.isPlayerOnline(playerNameToHost, out TSPlayer playerToHost))
+                    {
+                        args.Player.SendErrorMessage("this player isn't online");
+                        return;
+                    }
+                    hostAddGame.Hosters.Add(playerToHost.Account.Name);
+                    args.Player.SendSuccessMessage($"Gave {playerToHost.Name} hoster perms for this game!");
+                    playerToHost.SendSuccessMessage("You now have hoster perms for this game!");
                     break;
                 default:
                     args.Player.SendErrorMessage("erm no");
