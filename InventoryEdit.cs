@@ -1,9 +1,5 @@
-﻿using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using Terraria;
-using TShockAPI;
-
+﻿using TShockAPI;
+using Terraria.ID;
 namespace SpleefResurgence
 {
     public class InventoryEdit
@@ -33,7 +29,7 @@ namespace SpleefResurgence
         {
             player.TPlayer.inventory[slot].SetDefaults(itemID);
             player.TPlayer.inventory[slot].stack = stack;
-            player.SendData(PacketTypes.PlayerSlot, null, player.Index, slot);
+            player.SendData(PacketTypes.PlayerSlot, null, player.Index, PlayerItemSlotID.Inventory0 + slot);
         }
 
         public static void AddArmor(TSPlayer player, int itemID, int slot = -1)
@@ -44,7 +40,7 @@ namespace SpleefResurgence
             player.TPlayer.armor[slot].SetDefaults(itemID);
             player.TPlayer.armor[slot].stack = 1;
 
-            player.SendData(PacketTypes.PlayerSlot, null, player.Index, 59 + slot);
+            player.SendData(PacketTypes.PlayerSlot, null, player.Index, PlayerItemSlotID.Armor0 + slot);
         }
 
         public static void AddMiscEquip(TSPlayer player, int slot, int itemID)
@@ -52,7 +48,7 @@ namespace SpleefResurgence
             player.TPlayer.miscEquips[slot].SetDefaults(itemID);
             player.TPlayer.miscEquips[slot].stack = 1;
 
-            player.SendData(PacketTypes.PlayerSlot, null, player.Index, 89 + slot);
+            player.SendData(PacketTypes.PlayerSlot, null, player.Index, PlayerItemSlotID.Misc0 + slot);
         }
 
         public static void ClearPlayerEverything(TSPlayer player)
@@ -60,23 +56,23 @@ namespace SpleefResurgence
             for (int i = 0; i < player.TPlayer.inventory.Length; i++)
             {
                 player.TPlayer.inventory[i].SetDefaults(0);
-                player.SendData(PacketTypes.PlayerSlot, null, player.Index, i);
+                player.SendData(PacketTypes.PlayerSlot, null, player.Index, PlayerItemSlotID.Inventory0 + i);
             }
 
             for (int i = 0; i < 10; i++)
             {
                 player.TPlayer.armor[i].SetDefaults(0);
-                player.SendData(PacketTypes.PlayerSlot, null, player.Index, 59 + i);
+                player.SendData(PacketTypes.PlayerSlot, null, player.Index, PlayerItemSlotID.Armor0 + i);
             }
 
             for (int i = 0; i < player.TPlayer.miscEquips.Length; i++)
             {
                 player.TPlayer.miscEquips[i].SetDefaults(0);
-                player.SendData(PacketTypes.PlayerSlot, null, player.Index, 89 + i);
+                player.SendData(PacketTypes.PlayerSlot, null, player.Index, PlayerItemSlotID.Misc0 + i);
             }
 
             player.TPlayer.trashItem.SetDefaults(0);
-            player.SendData(PacketTypes.PlayerSlot, null, player.Index, 179);
+            player.SendData(PacketTypes.PlayerSlot, null, player.Index, PlayerItemSlotID.TrashItem);
         }
 
         public static void InventoryReset(CommandArgs args)
