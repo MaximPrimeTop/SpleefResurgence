@@ -101,6 +101,7 @@ namespace SpleefResurgence.Game
         public void Initialize()
         {
             Maps = GameConfig.MapJson.LoadMaps(Name);
+            MapNames = Maps.Select(m => m.Name).ToList();
         }
 
         public void TeleportPlayers(List<TSPlayer> players)
@@ -415,6 +416,8 @@ namespace SpleefResurgence.Game
             RoundCounter++;
         }
 
+
+        int suicideTimerCheckSeconds = 3;
         public void OnGetData(GetDataEventArgs args)
         {
             if (args.MsgID != PacketTypes.PlayerDeathV2)
@@ -451,7 +454,7 @@ namespace SpleefResurgence.Game
             {
                 SuicideTimer.Restart();
                 Commands.HandleCommand(TSPlayer.Server, $"{Arena.DefaultCustomLavariseCommand} stop");
-                Spleef.ResetTimer(ref timer, Arena.FillArena, 3000, false);
+                Spleef.ResetTimer(ref timer, Arena.FillArena, suicideTimerCheckSeconds * 1000, false);
             }
 
             if (PlaceCounter <= 0)
@@ -526,6 +529,44 @@ namespace SpleefResurgence.Game
                 score += "\n";
             }
             player.SendInfoMessage(score);
+        }
+    }
+
+    public class Duel
+    {
+        public SpleefGame Game { get; }
+
+        public Player Player1 { get; }
+        public Player Player2 { get; }
+
+        public int Player1Wins { get; private set; }
+        public int Player2Wins { get; private set; }
+
+        public int WinsRequired { get; }
+
+        public Duel (SpleefGame game, Player player1, Player player2, int winsRequired)
+        {
+            Game = game;
+            Player1 = player1;
+            Player2 = player2;
+            Player1Wins = 0;
+            Player2Wins = 0;
+            WinsRequired = winsRequired;
+        }
+
+        public void Ready()
+        {
+
+        }
+
+        public void Start()
+        {
+
+        }
+
+        public void End()
+        {
+
         }
     }
 }
