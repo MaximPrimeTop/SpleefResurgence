@@ -89,6 +89,10 @@ namespace SpleefResurgence
 
             Commands.ChatCommands.Add(new Command("spleef.game.hoster", GameCommands.GameCommand, "game"));
             Commands.ChatCommands.Add(new Command("spleef.game.user", GameCommands.JoinGame, "join", "j"));
+            Commands.ChatCommands.Add(new Command("spleef.game.user", GameDuelCommands.ChallengeDuel, "challenge", "duel"));
+            Commands.ChatCommands.Add(new Command("spleef.game.user", GameDuelCommands.Accept, "accept"));
+            Commands.ChatCommands.Add(new Command("spleef.game.user", GameDuelCommands.Decline, "decline"));
+
             /*
             Commands.ChatCommands.Add(new Command("spleef.game.hoster", spleefGame.TheGaming, "game"));
             Commands.ChatCommands.Add(new Command("spleef.game.user", spleefGame.JoinGame, "join", "j"));
@@ -155,6 +159,13 @@ namespace SpleefResurgence
                 Enabled = true
             };
             timer.Elapsed += handler;
+        }
+
+        public static string GetCoolUsername(TSPlayer player, bool withDisplayName = false)
+        {
+            if (withDisplayName && player.Account != null && player.Name != player.Account.Name)
+                return $"[c/ffffff:{player.Name} ({player.Account.Name})";
+            return $"[c/ffffff:{player.Name}]";
         }
 
         public static string statusLavariseTime;

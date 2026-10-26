@@ -7,7 +7,7 @@ namespace SpleefResurgence.Game
     {
         public static List<Duel> Duels = new();
 
-        public static Dictionary<int, TaskCompletionSource<bool>> confirmations;
+        public static Dictionary<int, TaskCompletionSource<bool>> confirmations = new();
         public static async void ChallengeDuel(CommandArgs args)
         {
             // /challenge <username>
@@ -29,20 +29,45 @@ namespace SpleefResurgence.Game
                 return;
             }
 
-            bool accepted = await ChallengeConfirm(player1, player2);
+            player2Name = Spleef.GetCoolUsername(player2, true);
+            player1.SendErrorMessage($"Challenged {player2Name}!");
+
+            try
+            {
+                bool accepted = await ChallengeConfirm(player1, player2);
+
+                if (accepted)
+                    player1.SendMessage("woah enter duel time !! (never cus it's not implemented yet)", Color.Aqua);
+                else
+                    player1.SendMessage("you got rejected baka", Color.IndianRed);
+            }
+            catch (TimeoutException)
+            {
+                TShock.Utils.Broadcast("took too long, ya basically got rejected....\nbaka", Color.IndianRed);
+            }
+            catch (ArgumentException)
+            {
+                player1.SendErrorMessage("they already have a pending challenge zzz");
+            }
+            catch(Exception ex)
+            {
+                TShock.Utils.Broadcast($"An unexpected error occurred: {ex.Message}", Color.IndianRed);
+                TShock.Log.ConsoleError($"{ex.StackTrace}");
+            }
         }
 
         public static async Task<bool> ChallengeConfirm(TSPlayer player1, TSPlayer player2)
-        {         
+        {
+            if (confirmations.ContainsKey(player2.Index))
+            {
+                throw new ArgumentException("already here");
+            }
+
             var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             confirmations[player2.Index] = tcs;
 
-            string player1Name;
-            if (player1.Account.Name == player1.Name)
-                player1Name = player1.Name;
-            else
-                player1Name = $"{player1.Name}({player2.Account.Name})";
+            string player1Name = Spleef.GetCoolUsername(player1, true);
 
             player2.SendMessage($"You have been challenged by {player1Name} to a duel! Type [c/00ff00:/accept] to accept or [c/ff0000:/decline] to decline.", Color.White);
 
@@ -51,21 +76,39 @@ namespace SpleefResurgence.Game
             var completed = await Task.WhenAny(timeout, tcs.Task);
 
             if (completed != tcs.Task)
-                return false;
+                throw new TimeoutException("took too long yo");
 
-            return await tcs.Task;
+            bool accepted = await tcs.Task;
+
+            confirmations.Remove(player2.Index);
+
+            return accepted;
         }
 
         public static void Accept(CommandArgs args)
         {
             if (confirmations.TryGetValue(args.Player.Index, out var tcs))
+            {
                 tcs.TrySetResult(true);
+                args.Player.SendSuccessMessage("thy hath accepted thy challenge");
+            }
+            else
+            {
+                args.Player.SendErrorMessage("what are you accepting stupi");
+            }
         }
 
         public static void Decline(CommandArgs args)
         {
             if (confirmations.TryGetValue(args.Player.Index, out var tcs))
+            {
                 tcs.TrySetResult(false);
+                args.Player.SendSuccessMessage("challenge declined, ya got scared or what?");
+            }
+            else
+            {
+                args.Player.SendErrorMessage("what are you declining stupi");
+            }
         }
     }
 }
