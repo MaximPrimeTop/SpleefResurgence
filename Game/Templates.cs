@@ -43,8 +43,10 @@ namespace SpleefResurgence.Game
 
             public static Arena LoadArena(string arenaName)
             {
-                string json = File.ReadAllText(
-                    Path.Combine(ArenaPath, arenaName, "arena.json"));
+                string path = Path.Combine(ArenaPath, arenaName, "arena.json");
+                if (!Path.Exists(path))
+                    return null;
+                string json = File.ReadAllText(path);
 
                 return JsonSerializer.Deserialize<Arena>(json)!;
             }

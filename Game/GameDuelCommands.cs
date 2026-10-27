@@ -8,6 +8,7 @@ namespace SpleefResurgence.Game
         public static List<Duel> Duels = new();
 
         public static Dictionary<int, TaskCompletionSource<bool>> confirmations = new();
+        public static Dictionary<string, TaskCompletionSource<bool>> confirmationsReady = new();
         public static async void ChallengeDuel(CommandArgs args)
         {
             // /challenge <username>
@@ -37,7 +38,10 @@ namespace SpleefResurgence.Game
                 bool accepted = await ChallengeConfirm(player1, player2);
 
                 if (accepted)
+                {
                     player1.SendMessage("woah enter duel time !! (never cus it's not implemented yet)", Color.Aqua);
+                    Duel game = new(new(player1), new(player2), 5);
+                }
                 else
                     player1.SendMessage("you got rejected baka", Color.IndianRed);
             }
@@ -108,6 +112,19 @@ namespace SpleefResurgence.Game
             else
             {
                 args.Player.SendErrorMessage("what are you declining stupi");
+            }
+        }
+
+        public static void Ready(CommandArgs args)
+        {
+            if (confirmationsReady.TryGetValue(args.Player.Account.Name, out var tcs))
+            {
+                tcs.TrySetResult(true);
+                args.Player.SendSuccessMessage("thy is ready");
+            }
+            else
+            {
+                args.Player.SendErrorMessage("aye");
             }
         }
     }

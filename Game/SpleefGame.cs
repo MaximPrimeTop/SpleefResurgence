@@ -15,7 +15,7 @@ namespace SpleefResurgence.Game
         public string Name;
         public int Score = 0;
         public string AccountName;
-        public float Elo;
+        public float Elo = 1000;
         public int Place = 0;
         public bool isIngame = true;
         public bool isAlive = false;
@@ -24,6 +24,11 @@ namespace SpleefResurgence.Game
             Name = name;
             AccountName = accountName;
             Elo = elo;
+        }
+        public Player(TSPlayer player)
+        {
+            Name = player.Name; 
+            AccountName = player.Account.Name;
         }
     }
 
@@ -78,6 +83,8 @@ namespace SpleefResurgence.Game
         public int Width { get; set; }
         public int Height { get; set; }
 
+        public bool is1v1 { get; set; }
+
         public string DefaultCustomLavariseCommand { get; set; } = "null";
 
         public List<string> MapNames { get; set; } = new();
@@ -88,7 +95,7 @@ namespace SpleefResurgence.Game
         [JsonIgnore]
         public List<Map> Maps;
 
-        public Arena(string name, int tilePositionX, int tilePositionY, int width, int height, List<string> mapNames)
+        public Arena(string name, int tilePositionX, int tilePositionY, int width, int height, List<string> mapNames, bool is1v1)
         {
             Name = name;
             TilePositionX = tilePositionX;
@@ -96,6 +103,7 @@ namespace SpleefResurgence.Game
             Width = width;
             Height = height;
             MapNames = mapNames;
+            this.is1v1 = is1v1;
         }
 
         public void Initialize()
@@ -306,6 +314,11 @@ namespace SpleefResurgence.Game
             Players.Add(new Player(name, accountName));
             TShock.Utils.Broadcast($"{name} has joined the game!", Color.Green);
             return;
+        }
+
+        public void AddPlayer(Player player)
+        {
+            AddPlayer(player.Name, player.AccountName);
         }
 
         public void RemovePlayer(string name, string accountName)
@@ -529,44 +542,6 @@ namespace SpleefResurgence.Game
                 score += "\n";
             }
             player.SendInfoMessage(score);
-        }
-    }
-
-    public class Duel
-    {
-        public SpleefGame Game { get; }
-
-        public Player Player1 { get; }
-        public Player Player2 { get; }
-
-        public int Player1Wins { get; private set; }
-        public int Player2Wins { get; private set; }
-
-        public int WinsRequired { get; }
-
-        public Duel (SpleefGame game, Player player1, Player player2, int winsRequired)
-        {
-            Game = game;
-            Player1 = player1;
-            Player2 = player2;
-            Player1Wins = 0;
-            Player2Wins = 0;
-            WinsRequired = winsRequired;
-        }
-
-        public void Ready()
-        {
-
-        }
-
-        public void Start()
-        {
-
-        }
-
-        public void End()
-        {
-
         }
     }
 }

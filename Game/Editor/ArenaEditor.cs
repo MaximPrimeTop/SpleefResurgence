@@ -169,7 +169,7 @@ namespace SpleefResurgence.Game.Editor
             {
                 if (args.Parameters.Count < 2)
                 {
-                    args.Player.SendErrorMessage("Usage: /arena new <arenaName>");
+                    args.Player.SendErrorMessage("Usage: /arena new <arenaName> [is1v1]");
                     return;
                 }
                 string arenaName = args.Parameters[1];
@@ -178,8 +178,26 @@ namespace SpleefResurgence.Game.Editor
                     args.Player.SendErrorMessage($"Arena {arenaName} already exists.");
                     return;
                 }
-
-                Arena arena = new(arenaName, 0, 0, 0, 0, new());
+                bool is1v1 = false;
+                if (args.Parameters.Count >= 3)
+                {
+                    switch (args.Parameters[2])
+                    {
+                        case "1":
+                        case "true":
+                            is1v1 = true;
+                            break;
+                        case "0":
+                        case "false":
+                            is1v1 = false;
+                            break;
+                        default:
+                            args.Player.SendErrorMessage($"not sure what you meant by {args.Parameters[2]}, for that field you can type 1, true, 0, false.");
+                            args.Player.SendErrorMessage("Usage: /arena new <arenaName> [is1v1]");
+                            return;
+                    }
+                }
+                Arena arena = new(arenaName, 0, 0, 0, 0, new(), is1v1);
                 GameConfig.ArenaJson.SaveArena(arena);
                 args.Player.SendSuccessMessage($"Created a new arena {arenaName}");
                 StartArenaEditing(player, arena);
@@ -558,7 +576,9 @@ namespace SpleefResurgence.Game.Editor
                 }
                 string mapName = args.Parameters[2];
                 string arenaName = args.Parameters[1];
-                if (!GameConfig.ArenaJson.ListArenaNames().Contains(arenaName))
+
+                var arena = GameConfig.ArenaJson.LoadArena(arenaName);
+                if (arena == null)
                 {
                     args.Player.SendErrorMessage($"Arena {arenaName} does not exist.");
                     return;
@@ -574,6 +594,8 @@ namespace SpleefResurgence.Game.Editor
                 
                 GameConfig.MapJson.SaveMap(map, arenaName);
                 args.Player.SendSuccessMessage($"Created a new map {mapName}");
+                if (arena.is1v1)
+                    args.Player.SendInfoMessage("This is a 1v1 arena. Make sure the map has at least 2 spawn points.");
                 StartMapEditing(player, map, arenaName);
                 return;
             }
