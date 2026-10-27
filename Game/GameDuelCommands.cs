@@ -40,7 +40,7 @@ namespace SpleefResurgence.Game
                 if (accepted)
                 {
                     player1.SendMessage("woah enter duel time !! (never cus it's not implemented yet)", Color.Aqua);
-                    Duel game = new(new(player1), new(player2), 5);
+                    Duel game = new(new(player1), new(player2), 3);
                 }
                 else
                     player1.SendMessage("you got rejected baka", Color.IndianRed);

@@ -125,9 +125,9 @@ namespace SpleefResurgence.Game
                 // will change this
                 int spawnX = (spawns[counter % spawns.Count].X) * 16;
                 int spawnY = (spawns[counter % spawns.Count].Y) * 16;
+                counter++;
 
                 player.Teleport(spawnX, spawnY);
-                player.SetBuff(BuffID.Webbed, 200);
             }
         }
         
@@ -171,13 +171,19 @@ namespace SpleefResurgence.Game
             Commands.HandleCommand(TSPlayer.Server, DefaultCustomLavariseCommand);
         }
 
+        private bool isBlockInsideArena(int x, int y)
+        {
+            //thing
+            return true;
+        }
+
         public void FillArena(object sender, ElapsedEventArgs args)
         {
             for (int i = TilePositionX; i < TilePositionX+Width; i++)
             {
                 for (int j = TilePositionY; j < TilePositionY+Height; j++)
                 {
-                    if (!Main.tile[i, j].active())
+                    if (!Main.tile[i, j].active() && isBlockInsideArena(i, j))
                     {
                         NetMessage.SendTileSquare(-1, i, j, 1);
                         WorldGen.PlaceLiquid(i, j, 1, 255);
@@ -239,6 +245,22 @@ namespace SpleefResurgence.Game
         private Stopwatch SuicideTimer = new();
         private Timer timer = new();
 
+        public class RoundResult
+        {
+            public bool isForced;
+            public string playerWonName;
+            public bool isSuicide;
+
+            public RoundResult(bool isForced, string playerWonName, bool isSuicide)
+            {
+                this.isForced = isForced;
+                this.playerWonName = playerWonName;
+                this.isSuicide = isSuicide;
+            }
+
+        }
+        private TaskCompletionSource<RoundResult> RoundEnd = new();
+        public Task<RoundResult> WaitForRoundEnd => RoundEnd.Task;
         public SpleefGame(Arena arena, string hosterName, bool isJoinable = true, bool isBettable = false)
         {
             isRound = false;
@@ -386,9 +408,11 @@ namespace SpleefResurgence.Game
                 InventoryEdit.AddItem(player, 0, 1, ItemID.CobaltPickaxe);
                 InventoryEdit.AddItem(player, 9, 1, ItemID.Binoculars);
                 InventoryEdit.AddItem(player, 40, 1, ItemID.CobaltPickaxe);
-                player.SetBuff(BuffID.Honey);
-                player.SetBuff(BuffID.Shine);
-                player.SetBuff(BuffID.NightOwl);
+                player.SetBuff(BuffID.Honey, 1000000);
+                player.SetBuff(BuffID.HeartLamp, 10000000);
+                player.SetBuff(BuffID.Shine, 1000000);
+                player.SetBuff(BuffID.NightOwl, 1000000);
+                player.SetBuff(BuffID.Campfire, 1000000);
 
                 if (SpleefUserSettings.GetSettings(player.Account.Name).GetPaintSprayer)
                 {
@@ -427,6 +451,8 @@ namespace SpleefResurgence.Game
             isRound = true;
             TShock.Utils.Broadcast($"Round {RoundCounter} started", Color.DarkSeaGreen);
             RoundCounter++;
+
+            players.ForEach(player => player.SetBuff(BuffID.Webbed, 200));
         }
 
 
@@ -497,6 +523,8 @@ namespace SpleefResurgence.Game
                 TShock.Utils.Broadcast($"Round {RoundCounter - 1} ended! {placements}", Color.LimeGreen);
             else
                 TShock.Utils.Broadcast($"Round {RoundCounter - 1} ended! It's a suicide so {placements}", Color.DarkRed);
+            RoundEnd.TrySetResult(new(false, RoundPlayers[0].AccountName, isSuicide));
+            RoundEnd = new();
             ServerApi.Hooks.NetGetData.Deregister(Spleef.Instance, OnGetData);
         }
 
@@ -504,6 +532,8 @@ namespace SpleefResurgence.Game
         {
             ServerApi.Hooks.NetGetData.Deregister(Spleef.Instance, OnGetData);
             isRound = false;
+            RoundEnd.TrySetResult(new(true, "", false));
+            RoundEnd = new();
         }
 
         public void EndGame()

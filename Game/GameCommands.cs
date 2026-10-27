@@ -332,7 +332,7 @@ namespace SpleefResurgence.Game
 
                     if (!Games.Exists(game => game.isPlayerHoster(args.Player)))
                     {
-                        args.Player.SendErrorMessage("You aren't a hoster in any of the maps!");
+                        args.Player.SendErrorMessage("You aren't a hoster in any of the games!");
                         return;
                     }
 
