@@ -1,6 +1,7 @@
 ﻿using Microsoft.Xna.Framework;
 using TShockAPI;
 using static SpleefResurgence.Game.GameConfig;
+using static SpleefResurgence.Game.SpleefGame;
 namespace SpleefResurgence.Game
 {
     public class GameCommands
@@ -317,6 +318,41 @@ namespace SpleefResurgence.Game
                         args.Player.SendErrorMessage("You aren't a hoster in any of the maps!");
                     break;
                 case "bet": // /game bet open/close/off/pay
+                    if (Games.Count == 0)
+                    {
+                        args.Player.SendErrorMessage("there's no game going on");
+                        return;
+                    }
+
+                    if (Games.Exists(game => game.isPlayerHoster(args.Player)))
+                    {
+                        SpleefGame gameToBet = Games.Find(game => game.isPlayerHoster(args.Player));
+
+                        switch (args.Parameters[1])
+                        {
+                            case "open":
+                                gameToBet.isBettable = true;
+                                gameToBet.betsLocked = false;
+                                TSPlayer.All.SendMessage("The bets have been opened! Start placing your bets with /bet!", Color.SeaShell);
+                                return;
+                            case "close":
+                                gameToBet.betsLocked = true;
+                                TSPlayer.All.SendMessage("The bets are closed now!", Color.SeaShell);
+                                return;
+                            case "off":
+                                gameToBet.isBettable = false;
+                                gameToBet.betsLocked = true;
+                                gameToBet.Bets.Clear();
+                                TSPlayer.All.SendMessage("The bets have been opened! Start placing your bets with /bet!", Color.SeaShell);
+                                return;
+                            case "pay":
+                                gameToBet.PayoutBets();
+                                return;
+                            default:
+                                args.Player.SendErrorMessage("/game bet open|close|off|pay");
+                                return;
+                        }
+                    }     
                     break;
                 case "host": // /game host <playername>
                     if (args.Parameters.Count < 2)
@@ -387,7 +423,7 @@ namespace SpleefResurgence.Game
                 return;
             }
 
-            if (game.Players.Exists(p => p.Name == args.Player.Name && p.isIngame))
+            if (game.isPlayerIngame(args.Player.Name)) 
             {
                 args.Player.SendErrorMessage("You are already in the game!");
                 return;
@@ -410,6 +446,103 @@ namespace SpleefResurgence.Game
                 return;
             }
             game.RemovePlayer(args.Player.Name, args.Player.Account.Name);
+        }
+
+        public static void Bet(CommandArgs args) // /bet [id] <list|check|add|remove> <username> <amount>
+        {
+            var gambler = args.Player;
+            var bettableGames = Games.Select(g => g.isBettable).ToList();
+
+            if (bettableGames.Count() == 0)
+            {
+                args.Player.SendErrorMessage("There are no games you can bet on!");
+                return;
+            }
+
+            int GameID;
+            switch (args.Parameters[0])
+            {
+                case "list":
+                case "check":
+                case "add":
+                case "remove":
+                    GameID = 0;
+                    break;
+                default:
+                    if (!int.TryParse(args.Parameters[0], out GameID) || GameID < 0 || GameID >= Games.Count)
+                    {
+                        args.Player.SendErrorMessage("Invalid game ID specified.");
+                        return;
+                    }
+                    args.Parameters.RemoveAt(0);
+                    break;
+
+            }
+
+            SpleefGame betGame = Games[GameID];
+
+            if (betGame.betsLocked)
+            {
+                args.Player.SendErrorMessage("You can't bet right now!");
+                return;
+            }
+
+            if (args.Parameters[0] == "list")
+            {
+                if (betGame.Bets.Count == 0)
+                {
+                    args.Player.SendInfoMessage("There are no bets!");
+                    return;
+                }
+                foreach (Bet bet in betGame.Bets)
+                    args.Player.SendInfoMessage($"{bet.gamblerUsername} - {bet.goat.Name} : {bet.amount} (+{bet.Payout})");
+                return;
+            }
+
+            if (betGame.isPlayerIngame(gambler.Name))
+            {
+                gambler.SendErrorMessage("Hey! You're in the game, you can't bet!");
+                return;
+            }
+
+            string gamblerUsername = gambler.Account.Name;
+
+            if (args.Parameters[0] == "check")
+            {
+                if (betGame.Bets.Count(b => b.gamblerUsername == gamblerUsername) == 0)
+                {
+                    gambler.SendInfoMessage("You don't have any bets!");
+                    return;
+                }
+                foreach (Bet bet in betGame.Bets.FindAll(b => b.gamblerUsername == gamblerUsername))
+                    gambler.SendInfoMessage($"{bet.goat} : {bet.amount} (+{bet.payout})");
+                return;
+            }
+
+            if (betGame.betsLocked)
+            {
+                gambler.SendErrorMessage("The bets are locked now!");
+                return;
+            }
+
+            if (args.Parameters[0] != "add" || args.Parameters[0] != "remove")
+            {
+                gambler.SendErrorMessage("uh wrong do /bet add/remove username amount");
+                return;
+            }
+
+            string goat = args.Parameters[1];
+            int amount = Convert.ToInt32(args.Parameters[2]);
+            if (args.Parameters[0] == "remove")
+                amount = -amount;
+
+            if (SpleefCoin.GetCoins(gambler.Account.Name) < betGame.GetAllBets(gambler.Account.Name) + amount)
+            {
+                gambler.SendErrorMessage("You can't bet more than you have!");
+                return;
+            }
+
+            betGame.SetBet(gambler, goat, amount);
         }
     }
 }

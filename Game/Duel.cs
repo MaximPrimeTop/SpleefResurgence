@@ -90,36 +90,37 @@ namespace SpleefResurgence.Game
             if (result.isForced)
             {
                 TShock.Utils.Broadcast("game was ended by a hoster or some shi", Color.White);
+                return;
             }
-            else
+
+            if (result.isSuicide)
             {
-                if (result.isSuicide)
-                    TShock.Utils.Broadcast("suicide dumasses", Color.White);
-                else
-                {
-                    if (result.playerWonName == Player1.AccountName)
-                        Player1Wins++;       
-                    else
-                        Player2Wins++;
-                    TShock.Utils.Broadcast($"{Player1.Name} won {Player1Wins} times out of {WinsRequired}", Color.White);
-                    TShock.Utils.Broadcast($"{Player2.Name} won {Player2Wins} times out of {WinsRequired}", Color.White);
-                    if (Player1Wins == WinsRequired)
-                    {
-                        End(Player1);
-                        return;
-                    }
-                    if (Player2Wins == WinsRequired)
-                    {
-                        End(Player2);
-                        return;
-                    }
-                    Ready();
-                }
+                TShock.Utils.Broadcast("suicide dumasses", Color.White);
+                return;
             }
+
+            if (result.playerWonName == Player1.AccountName)
+                Player1Wins++;
+            else
+                Player2Wins++;
+            TShock.Utils.Broadcast($"{Player1.Name} won {Player1Wins} times out of {WinsRequired}", Color.White);
+            TShock.Utils.Broadcast($"{Player2.Name} won {Player2Wins} times out of {WinsRequired}", Color.White);
+            if (Player1Wins == WinsRequired)
+            {
+                End(Player1);
+                return;
+            }
+            if (Player2Wins == WinsRequired)
+            {
+                End(Player2);
+                return;
+            }
+            Ready();
         }
 
         public void End(Player winner)
         {
+            // change elo here or smth
             Game.EndGame();
             TShock.Utils.Broadcast($"congrats yo {winner.Name} won a billion dolar", Color.LawnGreen);
             GameCommands.Games.Remove(Game);

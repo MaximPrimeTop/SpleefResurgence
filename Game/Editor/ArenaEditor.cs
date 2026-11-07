@@ -235,6 +235,7 @@ namespace SpleefResurgence.Game.Editor
                 args.Player.SendInfoMessage($"- Size: {arena.Width}x{arena.Height}");
                 args.Player.SendInfoMessage($"- Default lavarise command: {arena.DefaultCustomLavariseCommand}");
                 args.Player.SendInfoMessage($"- Maps: {string.Join(", ", arena.MapNames)}");
+                args.Player.SendInfoMessage($"- 1v1: {arena.is1v1}");
             }
             else if (args.Parameters[0] == "edit")
             {

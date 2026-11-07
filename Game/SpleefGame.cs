@@ -6,6 +6,7 @@ using Terraria;
 using Terraria.ID;
 using TerrariaApi.Server;
 using TShockAPI;
+using static SpleefResurgence.Game.SpleefGame;
 using static TShockAPI.GetDataHandlers;
 using Timer = System.Timers.Timer;
 namespace SpleefResurgence.Game
@@ -15,11 +16,12 @@ namespace SpleefResurgence.Game
         public string Name;
         public int Score = 0;
         public string AccountName;
-        public float Elo = 1000;
+        public double Elo = 1000;
         public int Place = 0;
+        public double BetPayout;
         public bool isIngame = true;
         public bool isAlive = false;
-        public Player(string name, string accountName, float elo = 1000f)
+        public Player(string name, string accountName, double elo = 1000f)
         {
             Name = name;
             AccountName = accountName;
@@ -231,15 +233,43 @@ namespace SpleefResurgence.Game
 
     public class SpleefGame
     {
+        public class Bet
+        {
+            public string gamblerUsername;
+            public int amount;
+            public Player goat;
+            public int payout => (int)Math.Round(amount* goat.BetPayout);
+            public Bet(string accName, int amount, Player goat)
+            {
+                gamblerUsername = accName;
+                this.amount = amount;
+                this.goat = goat;
+            }
+            public void Payout(bool win)
+            {
+                if (win)
+                {
+                    SpleefCoin.AddCoins(gamblerUsername, payout, false);
+                    TSPlayer.All.SendMessage($"{gamblerUsername} bet on {goat.Name} {amount} Spleef Coin(s) and won {payout}!", Color.Chocolate);
+                }
+                else
+                {
+                    SpleefCoin.AddCoins(gamblerUsername, -amount, false);
+                    TSPlayer.All.SendMessage($"{gamblerUsername} bet on {goat.Name} {amount} Spleef Coin(s) and lost their bet, what a loser.", Color.Aquamarine);
+                }
+            }
+        }
         public Arena Arena;
         public Dictionary<string, Gimmick> Gimmicks;
         public List<Player> Players = new();
         private List<Player> RoundPlayers = new();
+        public List<Bet> Bets = new();
         public List<string> Hosters;
         public int PlaceCounter = 0;
         public int RoundCounter = 1;
         public bool isJoinable;
         public bool isBettable;
+        public bool betsLocked = false;
         public bool isRound;
         private int CurrentMusicBoxID;
         private Stopwatch SuicideTimer = new();
@@ -378,6 +408,50 @@ namespace SpleefResurgence.Game
             }
         }
 
+        public int GetAllBets(string username)
+        {
+            int sum = 0;
+            foreach (Bet bet in Bets.FindAll(b => b.gamblerUsername == username))
+                sum += bet.amount;
+            return sum;
+        }
+
+        public void SetBet(TSPlayer gambler, string name, int amount)
+        {
+            var player = FindPlayer(name);
+            if (player != null)
+            {
+                if (Bets.Exists(b => b.gamblerUsername == gambler.Account.Name && b.goat == player))
+                {
+                    var bet = Bets.Find(b => b.gamblerUsername == gambler.Account.Name && b.goat == player);
+                    bet.amount += amount;
+                    if (bet.amount <= 0)
+                    {
+                        gambler.SendSuccessMessage("Removed your entire bet!");
+                        Bets.Remove(bet);
+                        return;
+                    }
+                    gambler.SendSuccessMessage($"Edited your bet on {name}! In total making it {bet.amount}! (+{bet.payout})");
+                }
+
+                var newbet = new Bet(gambler.Account.Name, amount, player);
+                Bets.Add(newbet);
+                gambler.SendSuccessMessage($"Made a bet on {newbet.goat} - {newbet.amount}! (+{newbet.payout})");
+            }
+        }
+
+        public void PayoutBets()
+        {
+            foreach (var bet in Bets)
+            {
+                if (bet.goat == Players[0])
+                    bet.Payout(true);
+                else
+                    bet.Payout(false);
+            }
+            Bets.Clear();
+        }
+
         private int GeneratePaintItemID()
         {
             Arena.CurrentPaint = (byte)Spleef.rnd.Next(31);
@@ -451,6 +525,7 @@ namespace SpleefResurgence.Game
             isRound = true;
             TShock.Utils.Broadcast($"Round {RoundCounter} started", Color.DarkSeaGreen);
             RoundCounter++;
+            betsLocked = true;
 
             players.ForEach(player => player.SetBuff(BuffID.Webbed, 200));
         }
@@ -540,6 +615,7 @@ namespace SpleefResurgence.Game
         {
             SpleefCoin.MigrateUsersToSpleefDatabase();
             Players.ForEach(p => SpleefCoin.AddCoins(p.AccountName, p.Score, false));
+            PayoutBets();
         }
 
         public void ShowScore(TSPlayer player)
