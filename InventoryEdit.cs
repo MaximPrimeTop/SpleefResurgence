@@ -134,6 +134,14 @@ namespace SpleefResurgence
             AddMiscEquip(plr, slot, itemID);
         }
 
+        public static bool hasBuff(TSPlayer player, int id)
+        {
+            foreach (var buffId in player.TPlayer.buffType)
+                if (buffId == id)
+                    return true;
+            return false;
+        }
+
         public static void ClearPlayerBuffs(TSPlayer player)
         {
             for (int i = 0; i < player.TPlayer.buffType.Length; i++)

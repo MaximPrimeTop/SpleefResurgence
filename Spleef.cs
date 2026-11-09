@@ -220,11 +220,16 @@ namespace SpleefResurgence
             {
                 if (player != null && player.Active && SpleefUserSettings.GetSettings(player.Name, false).GetBuffs)
                 {
-                    player.SetBuff(BuffID.Honey, 1000000000);
-                    player.SetBuff(BuffID.HeartLamp, 1000000000);
-                    player.SetBuff(BuffID.Campfire, 1000000000);
-                    player.SetBuff(BuffID.Shine, 1000000000);
-                    player.SetBuff(BuffID.NightOwl, 1000000000);
+                    if (!InventoryEdit.hasBuff(player, BuffID.Honey))
+                        player.SetBuff(BuffID.Honey, 1000000000);
+                    if (!InventoryEdit.hasBuff(player, BuffID.HeartLamp))
+                        player.SetBuff(BuffID.HeartLamp, 1000000000);
+                    if (!InventoryEdit.hasBuff(player, BuffID.Campfire))
+                        player.SetBuff(BuffID.Campfire, 1000000000);
+                    if (!InventoryEdit.hasBuff(player, BuffID.Shine))
+                        player.SetBuff(BuffID.Shine, 1000000000);
+                    if (!InventoryEdit.hasBuff(player, BuffID.NightOwl))
+                        player.SetBuff(BuffID.NightOwl, 1000000000);
                 }
             }
         }
