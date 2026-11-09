@@ -449,6 +449,31 @@ namespace SpleefResurgence.Game
             game.RemovePlayer(args.Player.Name, args.Player.Account.Name);
         }
 
+        public static void Score(CommandArgs args)
+        {
+            if (Games.Count == 0)
+            {
+                args.Player.SendErrorMessage("There is no game going on!");
+                return;
+            }
+
+            int gameId = 0;
+
+            if (Games.Exists(g => g.isPlayerIngame(args.Player.Name)))
+                gameId = Games.FindIndex(g => g.isPlayerIngame(args.Player.Name));
+
+            if (Games.Count > 1 && args.Parameters.Count > 0)
+            {
+                if (!int.TryParse(args.Parameters[0], out gameId) || gameId < 0 || gameId >= Games.Count)
+                {
+                    args.Player.SendErrorMessage("Invalid game ID specified.");
+                    return;
+                }
+            }
+
+            args.Player.SendInfoMessage(Games[gameId].ShowScore());
+        }
+
         public static void Bet(CommandArgs args) // /bet [id] <list|check|add|remove> <username> <amount>
         {
             var gambler = args.Player;
