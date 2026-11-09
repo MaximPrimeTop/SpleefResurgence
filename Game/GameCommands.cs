@@ -398,25 +398,33 @@ namespace SpleefResurgence.Game
                 return;
             }
 
-            if (Games.Exists(g => g.Players.Exists(p => p.Name == args.Player.Name && p.isIngame)))
+            if (Games.Exists(g => g.isPlayerIngame(args.Player.Name)))
             {
                 args.Player.SendErrorMessage("You are already in a game!");
                 return;
             }
 
-            if (Games.Count > 1 && args.Parameters.Count == 0)
-            {
-                args.Player.SendErrorMessage("There are multiple games available. Please specify which game you want to join.");
-                return;
-            }
-            string GameID = args.Parameters.Count > 0 && Games.Count == 1 ? args.Parameters[0] : "0";
+            int gameId = 0;
 
-            if (!int.TryParse(GameID, out int gameIndex) || gameIndex < 0 || gameIndex >= Games.Count)
+            if (Games.Exists(g => g.Players.Exists(p => p.Name == args.Player.Name && !p.isIngame)))
+                gameId = Games.FindIndex(g => g.Players.Exists(p => p.Name == args.Player.Name && !p.isIngame));
+
+            if (Games.Count > 1)
             {
-                args.Player.SendErrorMessage("Invalid game ID specified.");
-                return;
+                if (args.Parameters.Count == 0)
+                {
+                    args.Player.SendErrorMessage("There are multiple games available. Please specify which game you want to join.");
+                    return;
+                }
+
+                if (!int.TryParse(args.Parameters[0], out gameId) || gameId < 0 || gameId >= Games.Count)
+                {
+                    args.Player.SendErrorMessage("Invalid game ID specified.");
+                    return;
+                }
             }
-            SpleefGame game = Games[gameIndex];
+
+            SpleefGame game = Games[gameId];
 
             if (!game.isJoinable)
             {
