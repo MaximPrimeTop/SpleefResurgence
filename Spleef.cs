@@ -1,17 +1,14 @@
 ﻿using Microsoft.Xna.Framework;
+using SpleefResurgence.CustomCommands;
+using SpleefResurgence.Game;
+using SpleefResurgence.Game.Editor;
+using System.Timers;
 using Terraria;
+using Terraria.ID;
 using TerrariaApi.Server;
 using TShockAPI;
 using TShockAPI.Hooks;
-using System.Timers;
-using Terraria.ID;
-using Steamworks;
-using System.Reflection;
-using Terraria.DataStructures;
-using SpleefResurgence.Game;
-using SpleefResurgence.CustomCommands;
 using Timer = System.Timers.Timer;
-using SpleefResurgence.Game.Editor;
 namespace SpleefResurgence
 {
     [ApiVersion(2, 1)]
@@ -87,7 +84,7 @@ namespace SpleefResurgence
             Commands.ChatCommands.Add(new Command("spleef.customcommand", UserCommands.DeleteCustomCommand, "delcommand", "delc"));
             Commands.ChatCommands.Add(new Command("spleef.customcommand", UserCommands.ListCustomCommand, "listcommand", "listc"));
             Commands.ChatCommands.Add(new Command("spleef.customcommand", UserCommands.ListActiveCommand, "listactive", "lista"));
-            ServerApi.Hooks.GameUpdate.Register(this, CommandTracker.CommandUpdate);    
+            ServerApi.Hooks.GameUpdate.Register(this, CommandTracker.CommandUpdate);
 
 
             Commands.ChatCommands.Add(new Command("spleef.game.hoster", GameCommands.GameCommand, "game"));
@@ -141,7 +138,7 @@ namespace SpleefResurgence
             SpleefCoin.MigrateUsersToSpleefDatabase();
         }
 
-        public static int PaintIDtoItemID (byte id)
+        public static int PaintIDtoItemID(byte id)
         {
             if (id > 30)
                 return 0;
@@ -253,6 +250,6 @@ namespace SpleefResurgence
                 playerReloading.SendErrorMessage("There was an issue loading the config!");
                 TShock.Log.ConsoleError(ex.ToString());
             }
-        }     
+        }
     }
 }

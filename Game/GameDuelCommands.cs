@@ -53,7 +53,7 @@ namespace SpleefResurgence.Game
             {
                 player1.SendErrorMessage("they already have a pending challenge zzz");
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 TShock.Utils.Broadcast($"An unexpected error occurred: {ex.Message}", Color.IndianRed);
                 TShock.Log.ConsoleError($"{ex.StackTrace}");

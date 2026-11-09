@@ -1,5 +1,5 @@
-﻿using TShockAPI;
-using Microsoft.Xna.Framework;
+﻿using Microsoft.Xna.Framework;
+using TShockAPI;
 
 namespace SpleefResurgence.Game
 {

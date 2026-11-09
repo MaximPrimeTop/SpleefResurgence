@@ -1,15 +1,8 @@
-﻿using Terraria;
-using OTAPI;
-using TShockAPI;
+﻿using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Text.Json;
-using SpleefResurgence.Game;
-using Terraria.Enums;
-using ModFramework;
-using System.Linq;
+using Terraria;
 using Terraria.ID;
-using Terraria.Chat;
-using ZstdSharp;
+using TShockAPI;
 
 namespace SpleefResurgence;
 
@@ -34,7 +27,7 @@ public class Schematic
     public static Tile[] CopyArea(int x, int y, int width, int height)
     {
         Tile[] schematicArea = new Tile[width * height];
-        
+
         for (int i = 0; i < width; i++)
         {
             for (int j = 0; j < height; j++)
@@ -82,7 +75,7 @@ public class SchematicJson
         {
             return null;
         }
-        
+
         Schematic schematic = JsonSerializer.Deserialize<Schematic>(File.ReadAllText(schematicPath), Options);
         return schematic;
     }
@@ -111,7 +104,7 @@ public class SchematicJson
             return;
         }
 
-        string name = args.Parameters[0];   
+        string name = args.Parameters[0];
         int x = Convert.ToInt32(args.Parameters[1]);
         int y = Convert.ToInt32(args.Parameters[2]);
         int width = Convert.ToInt32(args.Parameters[3]);

@@ -1,7 +1,7 @@
-﻿using TShockAPI;
+﻿using System.Text.Json.Serialization;
 using Terraria;
 using Terraria.DataStructures;
-using System.Text.Json.Serialization;
+using TShockAPI;
 
 namespace SpleefResurgence.Game
 {
@@ -71,7 +71,7 @@ namespace SpleefResurgence.Game
             if (Slot == -1)
                 return $"ItemID: {ItemID}, Slot: -1 (first free slot)";
             else
-                return $"ItemID: {ItemID}, Slot: {Slot-2}";
+                return $"ItemID: {ItemID}, Slot: {Slot - 2}";
         }
 
         public GimmickAccessory(int itemID, int waitTime, int slot = -1)

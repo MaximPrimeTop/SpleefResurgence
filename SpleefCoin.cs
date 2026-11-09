@@ -1,15 +1,6 @@
-﻿using Microsoft.Xna.Framework;
-using Microsoft.Data.Sqlite;
-using System;
-using System.Collections.Generic;
-using System.Data;
-using System.IO;
-using System.Linq;
-using System.Text;
-using Terraria;
+﻿using Microsoft.Data.Sqlite;
+using Microsoft.Xna.Framework;
 using TShockAPI;
-using TShockAPI.DB;
-using NuGet.Protocol.Plugins;
 
 namespace SpleefResurgence
 {
@@ -72,7 +63,7 @@ namespace SpleefResurgence
         {
             var sql = $"UPDATE PlayerCoins SET Coins = Coins + @amount WHERE Username = @username";
 
-            using var connection = new SqliteConnection($"Data Source={DbPath}"); 
+            using var connection = new SqliteConnection($"Data Source={DbPath}");
             connection.Open();
 
             using var command = new SqliteCommand(sql, connection);
@@ -128,7 +119,7 @@ namespace SpleefResurgence
                 {
                     var coins = reader.GetInt32(1);
                     TShock.Log.ConsoleInfo($"{username} has {coins} Spleef Coins.");
-                    return coins;                      
+                    return coins;
                 }
             }
             return -1;
@@ -182,7 +173,7 @@ namespace SpleefResurgence
                     page = Convert.ToInt32(args.Parameters[0]);
 
                 i = (page - 1) * 10 + 1;
-                var sql = $"SELECT * FROM PlayerCoins ORDER BY Coins DESC LIMIT {(page-1)*10}, 10";
+                var sql = $"SELECT * FROM PlayerCoins ORDER BY Coins DESC LIMIT {(page - 1) * 10}, 10";
                 using var connection = new SqliteConnection($"Data Source={DbPath}");
                 connection.Open();
 
@@ -198,7 +189,7 @@ namespace SpleefResurgence
             }
         }
 
-        public static void TransferCoins (string sender, string receiver, int coins)
+        public static void TransferCoins(string sender, string receiver, int coins)
         {
             AddCoins(receiver, coins, false);
             AddCoins(sender, -coins, true);
@@ -212,7 +203,7 @@ namespace SpleefResurgence
             string receiver = args.Parameters[0];
             int coins = Convert.ToInt32(args.Parameters[1]);
 
-            if (coins <= 0) 
+            if (coins <= 0)
             {
                 args.Player.SendErrorMessage($"you can't transfer negative or 0 coins silly");
                 return;
@@ -260,7 +251,7 @@ namespace SpleefResurgence
                                 INSERT OR IGNORE INTO PlayerCoins (Username, Coins) VALUES (@Username, 0);
                                 INSERT OR IGNORE INTO PlayerSettings (Username, ShowScore, GetBuffs, ShowLavarise, Chatlavarise, GetMusicBox, GetPaint, BlockSpamDebug) VALUES (@Username, 1, 1, 1, 0, 1, 1, 0);
                                 INSERT OR IGNORE INTO PlayerStats (Username, ELO) VALUES (@Username, 0.0);";
-                            ;
+                        ;
 
                         using var insertCommand = new SqliteCommand(insertQuery, spleefConnection);
 

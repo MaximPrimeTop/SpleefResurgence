@@ -1,11 +1,5 @@
 ﻿using Microsoft.Data.Sqlite;
 using SpleefResurgence.Game;
-using Steamworks;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using TShockAPI;
 
 namespace SpleefResurgence
@@ -113,14 +107,14 @@ namespace SpleefResurgence
         public static void EditSettingsCommand(CommandArgs args)
         {
             string username = args.Player.Account.Name;
-            
+
             PlayerSettings userSettings = GetSettings(username);
 
 
             if (args.Parameters.Count <= 1)
             {
                 args.Player.SendInfoMessage("[c/00FFFF:Settings list:]");
-                
+
                 if (userSettings.ShowScore)
                     args.Player.SendInfoMessage($"[c/88E788:Show score is enabled!] Change it with /toggle showscore disable");
                 else

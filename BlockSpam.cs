@@ -1,6 +1,6 @@
-﻿using TShockAPI;
+﻿using System.Diagnostics;
 using TerrariaApi.Server;
-using System.Diagnostics;
+using TShockAPI;
 
 namespace SpleefResurgence;
 
@@ -43,7 +43,7 @@ public class BlockSpam
 
         public State spamState = 0;
 
-        public Tracker (string name, State spamState = State.Tracking, bool isTracking = true)
+        public Tracker(string name, State spamState = State.Tracking, bool isTracking = true)
         {
             this.name = name;
             BlockSpamTimer = new();
@@ -115,7 +115,7 @@ public class BlockSpam
             if (player != null && player.Active && player.IsLoggedIn && player.Account.Name != null && SpleefUserSettings.GetSettings(player.Account.Name).BlockSpamDebug)
                 player.SendData(PacketTypes.Status, UpdateTracking(), number2: 1);
     }
-    
+
     public void ToggleTrackingCommand(CommandArgs args)
     {
         var player = TSPlayer.FindByNameOrID(args.Parameters[0])[0];
@@ -185,7 +185,7 @@ public class BlockSpam
                     Trackers[player.Name].BlockSpamTimer.Start();
 
                 //if (!Trackers[player.Name].TotalBlockSpamTimer.IsRunning && spleefGame.isRound)
-                    //Trackers[player.Name].TotalBlockSpamTimer.Start();
+                //Trackers[player.Name].TotalBlockSpamTimer.Start();
             }
         }
     }

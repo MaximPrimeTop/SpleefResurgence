@@ -1,9 +1,4 @@
 ﻿using Microsoft.Data.Sqlite;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using TShockAPI;
 
 namespace SpleefResurgence
@@ -60,7 +55,7 @@ namespace SpleefResurgence
             args.Player.SendSuccessMessage($"{username} has {elo} ELO");
         }
 
-        public static void SetElo (string username, float elo)
+        public static void SetElo(string username, float elo)
         {
             var sql = $"UPDATE PlayerStats SET ELO = @elo WHERE Username = @username";
 
@@ -86,17 +81,17 @@ namespace SpleefResurgence
             args.Player.SendSuccessMessage($"Set {username}'s elo to {elo}");
         }
 
-        private static float final (float x, float y, float z)
+        private static float final(float x, float y, float z)
         {
             return (x * y * z);
         }
 
-        public static float prob (float x, float y)
+        public static float prob(float x, float y)
         {
             return 1 / (1 + (float)Math.Pow(10, (x - y) / 400));
         }
 
-        public static float EloAdd (float p1, float p2, float scale, int W)
+        public static float EloAdd(float p1, float p2, float scale, int W)
         {
             if (W == 1 && (p1 >= p2 || p1 < p2))
                 return final(p2, prob(p1, p2), scale);

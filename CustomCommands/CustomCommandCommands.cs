@@ -20,7 +20,7 @@ namespace SpleefResurgence.CustomCommands
             }
             string permission = "spleef.addcommand." + name;
             if (args.Parameters.Count > 1)
-                 permission = args.Parameters[1];
+                permission = args.Parameters[1];
             List<string> commandList = new();
             CustomCommand command = new(name, permission, commandList);
             command.ToJson();

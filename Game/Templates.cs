@@ -21,7 +21,7 @@ namespace SpleefResurgence.Game
                     ["normal"] = new GimmickNone()
                 });
             }
-    }
+        }
 
         public class ArenaJson
         {
@@ -110,7 +110,7 @@ namespace SpleefResurgence.Game
                 var maps = LoadMaps(arenaName);
                 return maps.FirstOrDefault(x => x.Name == mapName) ?? throw new Exception($"Map '{mapName}' not found in arena '{arenaName}'.");
             }
-                
+
             public static bool DeleteMap(string arenaName, string mapName)
             {
                 var maps = LoadMaps(arenaName);

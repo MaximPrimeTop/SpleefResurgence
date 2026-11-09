@@ -353,7 +353,7 @@ namespace SpleefResurgence.Game
                                 args.Player.SendErrorMessage("/game bet open|close|off|pay");
                                 return;
                         }
-                    }     
+                    }
                     break;
                 case "host": // /game host <playername>
                     if (args.Parameters.Count < 2)
@@ -424,7 +424,7 @@ namespace SpleefResurgence.Game
                 return;
             }
 
-            if (game.isPlayerIngame(args.Player.Name)) 
+            if (game.isPlayerIngame(args.Player.Name))
             {
                 args.Player.SendErrorMessage("You are already in the game!");
                 return;

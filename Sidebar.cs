@@ -1,7 +1,7 @@
-﻿using TShockAPI;
-using System.Timers;
-using Timer = System.Timers.Timer;
+﻿using System.Timers;
 using TerrariaApi.Server;
+using TShockAPI;
+using Timer = System.Timers.Timer;
 
 namespace SpleefResurgence
 {
@@ -122,8 +122,8 @@ namespace SpleefResurgence
         {
             // in the future some way to detect if the person's on mobile, prob like another toggle in the user settings
             string message = "";
-            foreach(var part in ActiveParts)
-                if(part.condition(player))
+            foreach (var part in ActiveParts)
+                if (part.condition(player))
                     message += part.message;
 
             if (!forced && prevSidebars.ContainsKey(player.Index) && message == prevSidebars[player.Index])

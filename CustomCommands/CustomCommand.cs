@@ -1,6 +1,6 @@
-﻿using Newtonsoft.Json;
+﻿using Microsoft.Xna.Framework;
+using Newtonsoft.Json;
 using TShockAPI;
-using Microsoft.Xna.Framework;
 
 namespace SpleefResurgence.CustomCommands
 {
@@ -162,7 +162,7 @@ namespace SpleefResurgence.CustomCommands
         public void List(TSPlayer player)
         {
             player.SendMessage($"List of commands for \"{Name}\"", Color.DarkGreen);
-            string Commands = string.Join("\n", CommandList.Select((command, i) => $"{i+1}. {command}").ToList());
+            string Commands = string.Join("\n", CommandList.Select((command, i) => $"{i + 1}. {command}").ToList());
             player.SendInfoMessage(Commands);
         }
 

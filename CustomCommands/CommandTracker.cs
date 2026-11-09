@@ -1,6 +1,6 @@
-﻿using TShockAPI;
+﻿using System.Diagnostics;
 using Terraria.ID;
-using System.Diagnostics;
+using TShockAPI;
 namespace SpleefResurgence.CustomCommands
 {
     public class CommandTracker
@@ -19,7 +19,7 @@ namespace SpleefResurgence.CustomCommands
         {
 
             public bool isExecuting = false;
-            public string Name; 
+            public string Name;
             public Queue<string> CommandQueue = new();
             public Stopwatch WaitStopwatch = new();
             public double WaitTimeSeconds = 0;
@@ -89,7 +89,7 @@ namespace SpleefResurgence.CustomCommands
                 {
                     List<string> cmds = cmdLine.Split(' ').ToList();
                     switch (cmds[0])
-                    {               
+                    {
                         case "wait": // BIG REMINDER THAT WAITING DOESNT WORK WITHOUT A PLAYER ONLINE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                             WaitTimeSeconds = double.Parse(cmds[1]);
                             WaitStopwatch.Restart();
@@ -243,7 +243,7 @@ namespace SpleefResurgence.CustomCommands
                     command.Player.SendSuccessMessage($"Finished command: {command.Name}");
 
                     Spleef.ActiveCommands.Remove(command);
-                    if (command.hasParent)                
+                    if (command.hasParent)
                         command.Parent.Continue();
                     i--;
                     continue;

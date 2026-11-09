@@ -27,7 +27,7 @@ namespace SpleefResurgence.Game
         }
         public Player(TSPlayer player)
         {
-            Name = player.Name; 
+            Name = player.Name;
             AccountName = player.Account.Name;
         }
     }
@@ -130,7 +130,7 @@ namespace SpleefResurgence.Game
                 player.Teleport(spawnX, spawnY);
             }
         }
-        
+
         public bool[,] GetAirTiles()
         {
             bool[,] airTiles = new bool[Width, Height];
@@ -146,7 +146,7 @@ namespace SpleefResurgence.Game
             }
             return airTiles;
         }
-        
+
         public void PasteMap()
         {
             if (CurrentMap == null || CurrentMap.SchematicName == null || CurrentMap.SchematicName == "")
@@ -179,9 +179,9 @@ namespace SpleefResurgence.Game
 
         public void FillArena(object sender, ElapsedEventArgs args)
         {
-            for (int i = TilePositionX; i < TilePositionX+Width; i++)
+            for (int i = TilePositionX; i < TilePositionX + Width; i++)
             {
-                for (int j = TilePositionY; j < TilePositionY+Height; j++)
+                for (int j = TilePositionY; j < TilePositionY + Height; j++)
                 {
                     if (!Main.tile[i, j].active() && isBlockInsideArena(i, j))
                     {
@@ -236,7 +236,7 @@ namespace SpleefResurgence.Game
             public string gamblerUsername;
             public int amount;
             public Player goat;
-            public int payout => (int)Math.Round(amount* goat.BetPayout);
+            public int payout => (int)Math.Round(amount * goat.BetPayout);
             public Bet(string accName, int amount, Player goat)
             {
                 gamblerUsername = accName;
@@ -314,7 +314,7 @@ namespace SpleefResurgence.Game
 
         public bool isPlayerHoster(TSPlayer player)
         {
-            return player == null|| Hosters.Contains(player.Account.Name);
+            return player == null || Hosters.Contains(player.Account.Name);
         }
 
         public readonly int[] MusicBoxIDs = { 562, 1600, 564, 1601, 1596, 1602, 1603, 1604, 4077, 4079, 1597, 566, 1964, 1610, 568, 569, 570, 1598, 2742, 571, 573, 3237, 1605, 1608, 567, 572, 574,
@@ -528,7 +528,7 @@ namespace SpleefResurgence.Game
             gimmicks.ForEach(gimmick => gimmick.Apply(players));
             if (Arena.CurrentMap.AdditionalGimmicks != null && Arena.CurrentMap.AdditionalGimmicks.Count > 0)
                 Arena.CurrentMap.AdditionalGimmicks.ForEach(gimmick => gimmick.Apply(players));
- 
+
             ServerApi.Hooks.NetGetData.Register(Spleef.Instance, OnGetData);
             isRound = true;
             TShock.Utils.Broadcast($"Round {RoundCounter} started", Color.DarkSeaGreen);
@@ -556,7 +556,7 @@ namespace SpleefResurgence.Game
                 return;
 
             var gamePlayer = Players.Find(p => p.AccountName == plr.Account.Name);
-            
+
             if (gamePlayer == null || !gamePlayer.isAlive)
                 return;
 
@@ -594,7 +594,7 @@ namespace SpleefResurgence.Game
             RoundPlayers = RoundPlayers.OrderBy(p => p.Place).ToList();
             bool isSuicide = SuicideTimer.Elapsed.TotalSeconds <= 3;
             int[] rewards = rewardTable.FirstOrDefault(r => RoundPlayers.Count >= r.Key.min && RoundPlayers.Count <= r.Key.max).Value.ToArray();
-            
+
             if (isSuicide)
                 rewards[0] = rewards[1];
 
@@ -640,17 +640,17 @@ namespace SpleefResurgence.Game
                     score += $"[c/FF8559:{p.Name} : {p.Score}] ";
                     switch (p.Place)
                     {
-                        case 1: 
+                        case 1:
                             score += "[i:4601]";
                             break;
-                        case 2: 
+                        case 2:
                             score += "[i:4600]";
                             break;
-                        case 3: 
+                        case 3:
                             score += "[i:4599]";
                             break;
-                        default: 
-                            score += "[i:321]"; 
+                        default:
+                            score += "[i:321]";
                             break;
                     }
                 }

@@ -128,7 +128,7 @@ namespace SpleefResurgence.Game.Editor
                         return;
                     }
                     if (stack < 1 || stack > 9999)
-                    {                         
+                    {
                         args.Player.SendErrorMessage("Stack must be between 1 and 9999.");
                         return;
                     }
@@ -143,7 +143,7 @@ namespace SpleefResurgence.Game.Editor
                         args.Player.SendErrorMessage("Slot must be between 1 and 58 or be -1.");
                         return;
                     }
-                    
+
                     var gimmickItem = new GimmickItem(itemID, waitTime, stack);
                     GameConfig.GimmickJson.SaveGimmick(name, gimmickItem);
                     args.Player.SendSuccessMessage($"Gimmick '{name}' of type 'item' created successfully.");
@@ -225,7 +225,7 @@ namespace SpleefResurgence.Game.Editor
                         return;
                     }
                     if (buffWaitTime < 0)
-                    {                         
+                    {
                         args.Player.SendErrorMessage("stop making waittime negative yo");
                         return;
                     }
@@ -328,7 +328,7 @@ namespace SpleefResurgence.Game.Editor
                 args.Player.SendErrorMessage($"Gimmick '{name}' not found.");
                 return;
             }
-            
+
             args.Player.SendInfoMessage($"Gimmick Info for '{name}':");
             args.Player.SendInfoMessage($"Type: {gimmick.GetType().Name.Remove(0, 7)}");
             args.Player.SendInfoMessage($"Details: {gimmick.GetInfo()}");

@@ -1,8 +1,8 @@
-﻿using TerrariaApi.Server;
-using TShockAPI;
-using Terraria.ID;
+﻿using Microsoft.Xna.Framework;
 using Terraria;
-using Microsoft.Xna.Framework;
+using Terraria.ID;
+using TerrariaApi.Server;
+using TShockAPI;
 namespace SpleefResurgence.Game.Editor
 {
     public class ArenaEditor
@@ -348,7 +348,7 @@ namespace SpleefResurgence.Game.Editor
                         editor.Mode = EditMode.GimmickEdit;
                         GimmickAddStep(text, editor, player, mapToEdit, arenaName);
                         return;
-                    }          
+                    }
                 }
                 else if (editor.Mode == EditMode.MapEditSpawnAdd)
                 {
@@ -592,7 +592,7 @@ namespace SpleefResurgence.Game.Editor
                 }
 
                 Map map = new(mapName, "", player.Account.Name, RiseType.Lava, new(), new());
-                
+
                 GameConfig.MapJson.SaveMap(map, arenaName);
                 args.Player.SendSuccessMessage($"Created a new map {mapName}");
                 if (arena.is1v1)
@@ -663,7 +663,7 @@ namespace SpleefResurgence.Game.Editor
             else
             {
                 player.SendErrorMessage("idfk what you said");
-            }   
+            }
         }
 
         private void OnTileEdit(object sender, GetDataHandlers.TileEditEventArgs args)
@@ -705,7 +705,7 @@ namespace SpleefResurgence.Game.Editor
                 return;
             }
 
-            if (args.Text == "undo" && 
+            if (args.Text == "undo" &&
                 (PlayerEditors[args.Who].Mode == EditMode.MapEditSpawnAdd ||
                 PlayerEditors[args.Who].Mode == EditMode.MapEditSpawnEdit ||
                 PlayerEditors[args.Who].Mode == EditMode.MapEditSpawnMoving))

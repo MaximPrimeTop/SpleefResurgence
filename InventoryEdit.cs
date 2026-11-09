@@ -1,5 +1,5 @@
-﻿using TShockAPI;
-using Terraria.ID;
+﻿using Terraria.ID;
+using TShockAPI;
 namespace SpleefResurgence
 {
     public class InventoryEdit

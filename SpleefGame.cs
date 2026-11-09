@@ -1,13 +1,4 @@
-﻿using Microsoft.Xna.Framework;
-using Terraria;
-using Terraria.ID;
-using TerrariaApi.Server;
-using TShockAPI;
-using System.Diagnostics;
-using System.Security.Cryptography.X509Certificates;
-using TShockAPI.Hooks;
-
-namespace SpleefResurgence
+﻿namespace SpleefResurgence
 {
     public class SpleeGame
     {
