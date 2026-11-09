@@ -16,7 +16,7 @@ namespace SpleefResurgence
     {
         public static Spleef Instance { get; private set; }
         private readonly SpleeGame spleeGame;
-        private readonly BlockSpam blockSpam;
+        private readonly BlockSpam blockSpam = new();
         private readonly ArenaEditor arenaEditor = new();
         private readonly GimmickEditor gimmickEditor = new();
         private readonly Sidebar sidebar = new();
@@ -35,7 +35,6 @@ namespace SpleefResurgence
         {
             Instance = this;
             //spleefGame = new SpleefGame(this);
-            blockSpam = new BlockSpam(this, spleeGame);
             //spleefGame.SetBlockSpam(blockSpam);
         }
 
@@ -77,6 +76,8 @@ namespace SpleefResurgence
 
             arenaEditor.Initialize();
             gimmickEditor.Initialize();
+
+            blockSpam.Initialize();
 
             sidebar.Initialize();
 

@@ -71,6 +71,7 @@ namespace SpleefResurgence
             {
                 priority = 2;
                 message = "";
+                AddPart(this);
             }
         }
 

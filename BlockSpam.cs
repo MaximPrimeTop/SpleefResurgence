@@ -12,20 +12,17 @@ enum State
 }
 
 public class BlockSpam
-{
-    private readonly Spleef pluginInstance;
-    private readonly SpleeGame spleefGame;
-
+{   
     private readonly Dictionary<string, Tracker> Trackers = new();
 
-    public BlockSpam(Spleef plugin, SpleeGame spleefGame)
+    Sidebar.BlockSpamDebugSidebar sidebar = new();
+
+    public void Initialize()
     {
-        this.pluginInstance = plugin;
-        this.spleefGame = spleefGame;
-        ServerApi.Hooks.NetGetData.Register(pluginInstance, OnTileEdit);
-        ServerApi.Hooks.GameUpdate.Register(pluginInstance, CombinedUpdate);
-        ServerApi.Hooks.ServerJoin.Register(pluginInstance, OnPlayerJoin);
-        ServerApi.Hooks.ServerLeave.Register(pluginInstance, OnPlayerLeave);
+        ServerApi.Hooks.NetGetData.Register(Spleef.Instance, OnTileEdit);
+        ServerApi.Hooks.GameUpdate.Register(Spleef.Instance, CombinedUpdate);
+        ServerApi.Hooks.ServerJoin.Register(Spleef.Instance, OnPlayerJoin);
+        ServerApi.Hooks.ServerLeave.Register(Spleef.Instance, OnPlayerLeave);
     }
 
     private void CombinedUpdate(EventArgs args)
@@ -93,7 +90,7 @@ public class BlockSpam
 
     private string UpdateTracking()
     {
-        string res = "\n\n\n\n\n\n\n\n\n\n\n\n";
+        string res = "";
         foreach (var tracker in Trackers)
         {
             string name = tracker.Value.name;
@@ -111,9 +108,7 @@ public class BlockSpam
 
     private void OnWorldUpdate()
     {
-        foreach (TSPlayer player in TShock.Players)
-            if (player != null && player.Active && player.IsLoggedIn && player.Account.Name != null && SpleefUserSettings.GetSettings(player.Account.Name).BlockSpamDebug)
-                player.SendData(PacketTypes.Status, UpdateTracking(), number2: 1);
+        sidebar.message = UpdateTracking();
     }
 
     public void ToggleTrackingCommand(CommandArgs args)
@@ -121,28 +116,15 @@ public class BlockSpam
         var player = TSPlayer.FindByNameOrID(args.Parameters[0])[0];
 
         if (!Trackers.ContainsKey(player.Name))
-        {
             ToggleTracking(player, true, true);
-        }
         else if (args.Parameters.Count == 1)
-        {
             ToggleTracking(player, true, false);
-        }
+        else if (args.Parameters[1] == "start")
+            ToggleTracking(player, true, false);
+        else if (args.Parameters[1] == "stop")
+            ToggleTracking(player, false, false);
         else
-        {
-            if (args.Parameters[1] == "start")
-            {
-                ToggleTracking(player, true, false);
-            }
-            else if (args.Parameters[1] == "stop")
-            {
-                ToggleTracking(player, false, false);
-            }
-            else
-            {
-                args.Player.SendErrorMessage("start or stop idio");
-            }
-        }
+            args.Player.SendErrorMessage("start or stop idio");
     }
 
     public void ToggleTracking(TSPlayer player, bool track, bool isNew)
