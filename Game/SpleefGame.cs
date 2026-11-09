@@ -6,8 +6,6 @@ using Terraria;
 using Terraria.ID;
 using TerrariaApi.Server;
 using TShockAPI;
-using static SpleefResurgence.Game.SpleefGame;
-using static TShockAPI.GetDataHandlers;
 using Timer = System.Timers.Timer;
 namespace SpleefResurgence.Game
 {
@@ -274,7 +272,7 @@ namespace SpleefResurgence.Game
         private int CurrentMusicBoxID;
         private Stopwatch SuicideTimer = new();
         private Timer timer = new();
-
+        private Timer scoreTimer = new();
         public class RoundResult
         {
             public bool isForced;
@@ -291,6 +289,10 @@ namespace SpleefResurgence.Game
         }
         private TaskCompletionSource<RoundResult> RoundEnd = new();
         public Task<RoundResult> WaitForRoundEnd => RoundEnd.Task;
+
+        private Sidebar.ScoreSidebar scoreSidebar = new();
+        private Sidebar.RoundSidebar roundSidebar = new();
+
         public SpleefGame(Arena arena, string hosterName, bool isJoinable = true, bool isBettable = false)
         {
             isRound = false;
@@ -302,6 +304,12 @@ namespace SpleefResurgence.Game
             this.isBettable = isBettable;
             RoundCounter = 1;
             Hosters = new() { hosterName };
+            Spleef.ResetTimer(ref scoreTimer, UpdateScoreSidebar, 1000);
+        }
+
+        private void UpdateScoreSidebar(object sender, ElapsedEventArgs e)
+        {
+            scoreSidebar.message = ShowScore();
         }
 
         public bool isPlayerHoster(TSPlayer player)
@@ -526,6 +534,7 @@ namespace SpleefResurgence.Game
             TShock.Utils.Broadcast($"Round {RoundCounter} started", Color.DarkSeaGreen);
             RoundCounter++;
             betsLocked = true;
+            roundSidebar.message = $"[c/8FBC8F:Round {RoundCounter}]\n";
 
             players.ForEach(player => player.SetBuff(BuffID.Webbed, 200));
         }
@@ -616,9 +625,11 @@ namespace SpleefResurgence.Game
             SpleefCoin.MigrateUsersToSpleefDatabase();
             Players.ForEach(p => SpleefCoin.AddCoins(p.AccountName, p.Score, false));
             PayoutBets();
+            scoreSidebar.Kill();
+            roundSidebar.Kill();
         }
 
-        public void ShowScore(TSPlayer player)
+        public string ShowScore()
         {
             Players = Players.OrderByDescending(p => p.Score).ToList();
             string score = "[c/FF1493:Game score:]\n";
@@ -647,7 +658,7 @@ namespace SpleefResurgence.Game
                     score += $"[c/898989:{p.Name} : {p.Score}]";
                 score += "\n";
             }
-            player.SendInfoMessage(score);
+            return score;
         }
     }
 }

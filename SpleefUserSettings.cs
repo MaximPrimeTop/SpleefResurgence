@@ -1,4 +1,5 @@
 ﻿using Microsoft.Data.Sqlite;
+using SpleefResurgence.Game;
 using Steamworks;
 using System;
 using System.Collections.Generic;
@@ -70,8 +71,19 @@ namespace SpleefResurgence
             transaction.Commit();
         }
 
-        public static PlayerSettings GetSettings(string username)
+        public static PlayerSettings GetSettings(string username, bool isAccountName = true)
         {
+            if (!isAccountName)
+            {
+                if (SpleefGame.isPlayerOnline(username, out var player))
+                    if (player.IsLoggedIn && player.Account.Name != null)
+                        username = player.Account.Name;
+                    else
+                        return new();
+                else
+                    return null;
+            }
+
             var sql = "SELECT * FROM PlayerSettings WHERE Username = @username";
             using var connection = new SqliteConnection($"Data Source={DbPath}");
             connection.Open();

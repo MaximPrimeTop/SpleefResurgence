@@ -22,7 +22,7 @@ namespace SpleefResurgence
         private readonly BlockSpam blockSpam;
         private readonly ArenaEditor arenaEditor = new();
         private readonly GimmickEditor gimmickEditor = new();
-
+        private readonly Sidebar sidebar = new();
         public static Random rnd = new();
 
         public static readonly int[] MusicBoxIDs = { 562, 1600, 564, 1601, 1596, 1602, 1603, 1604, 4077, 4079, 1597, 566, 1964, 1610, 568, 569, 570, 1598, 2742, 571, 573, 3237, 1605, 1608, 567, 572, 574,
@@ -41,6 +41,7 @@ namespace SpleefResurgence
             blockSpam = new BlockSpam(this, spleeGame);
             //spleefGame.SetBlockSpam(blockSpam);
         }
+
 
         public static List<CustomCommand> CustomCommands = new();
         public static List<CommandTracker.ExecutingCommand> ActiveCommands = new();
@@ -79,6 +80,8 @@ namespace SpleefResurgence
 
             arenaEditor.Initialize();
             gimmickEditor.Initialize();
+
+            sidebar.Initialize();
 
             Commands.ChatCommands.Add(new Command("spleef.customcommand", UserCommands.AddCustomCommand, "addcommand", "addc"));
             Commands.ChatCommands.Add(new Command("spleef.customcommand", UserCommands.DeleteCustomCommand, "delcommand", "delc"));
@@ -217,7 +220,7 @@ namespace SpleefResurgence
         {
             foreach (TSPlayer player in TShock.Players)
             {
-                if (player != null && player.Active && player.IsLoggedIn && player.Account.Name != null && SpleefUserSettings.GetSettings(player.Account.Name).GetBuffs)
+                if (player != null && player.Active && SpleefUserSettings.GetSettings(player.Name, false).GetBuffs)
                 {
                     player.SetBuff(BuffID.Honey, 1000000000);
                     player.SetBuff(BuffID.HeartLamp, 1000000000);

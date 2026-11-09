@@ -270,7 +270,8 @@ namespace SpleefResurgence.Game
                     }
 
                     var thegame = Games[0];
-                    thegame.ShowScore(TSPlayer.All);
+
+                    TShock.Utils.Broadcast(thegame.ShowScore(), Color.White);
                     break;
                 case "edit": // /game edit score/payout <playername> <amount>
                     if (Games.Count == 0)
