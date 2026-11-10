@@ -277,7 +277,6 @@ namespace SpleefResurgence.Game
         private int CurrentMusicBoxID;
         private Stopwatch SuicideTimer = new();
         private Timer timer = new();
-        private Timer scoreTimer = new();
         public class RoundResult
         {
             public bool isForced;
@@ -309,10 +308,11 @@ namespace SpleefResurgence.Game
             this.isBettable = isBettable;
             RoundCounter = 1;
             Hosters = new() { hosterName };
-            Spleef.ResetTimer(ref scoreTimer, UpdateScoreSidebar, 1000);
+            ServerApi.Hooks.ServerLeave.Register(Spleef.Instance, OnPlayerLeave);
+            ServerApi.Hooks.GameUpdate.Register(Spleef.Instance, UpdateScoreSidebar);
         }
 
-        private void UpdateScoreSidebar(object sender, ElapsedEventArgs e)
+        private void UpdateScoreSidebar(EventArgs args)
         {
             scoreSidebar.message = ShowScore();
         }
@@ -558,6 +558,22 @@ namespace SpleefResurgence.Game
             });
         }
 
+        private void PlayerCountCheck()
+        {
+            if (PlaceCounter == 1)
+            {
+                SuicideTimer.Restart();
+                Commands.HandleCommand(TSPlayer.Server, $"{Arena.DefaultCustomLavariseCommand} stop");
+                Spleef.ResetTimer(ref timer, Arena.FillArena, suicideTimerCheckSeconds * 1000, false);
+            }
+
+            if (PlaceCounter <= 0)
+            {
+                SuicideTimer.Stop();
+                Arena.PasteMap();
+                StopRound();
+            }
+        }
 
         int suicideTimerCheckSeconds = 3;
         public void OnGetData(GetDataEventArgs args)
@@ -592,18 +608,34 @@ namespace SpleefResurgence.Game
             if (SpleefUserSettings.GetSettings(plr.Account.Name).GetMusicBox)
                 InventoryEdit.AddArmor(plr, CurrentMusicBoxID);
 
-            if (PlaceCounter == 1)
+            PlayerCountCheck();
+        }
+
+        private void OnPlayerLeave(LeaveEventArgs args)
+        {
+            int playerID = args.Who;
+            var tsplayer = TShock.Players[playerID];
+            if (!isRound)
             {
-                SuicideTimer.Restart();
-                Commands.HandleCommand(TSPlayer.Server, $"{Arena.DefaultCustomLavariseCommand} stop");
-                Spleef.ResetTimer(ref timer, Arena.FillArena, suicideTimerCheckSeconds * 1000, false);
+                Commands.HandleCommand(tsplayer, "/l");
+                return;
             }
 
-            if (PlaceCounter <= 0)
+            var player = FindPlayer(tsplayer.Name);
+
+            if (player.isAlive)
             {
-                SuicideTimer.Stop();
-                Arena.PasteMap();
-                StopRound();
+                player.isAlive = false;
+                player.isIngame = false;
+                player.Place = PlaceCounter;
+                PlaceCounter--;
+                TShock.Utils.Broadcast($"{player.Name} has left the game midround! What a stinker...", Color.LightYellow);
+                PlayerCountCheck();
+            }
+            else
+            {
+                player.isIngame = false;
+                TSPlayer.All.SendMessage($"{player.Name} has left the game midround! But he died so it's alright.", Color.LightYellow);
             }
         }
 
