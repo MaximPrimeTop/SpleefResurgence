@@ -8,13 +8,14 @@ namespace SpleefResurgence.Game
     {
         public static List<SpleefGame> Games = new();
 
-        public static void GameCommand(CommandArgs args)
+        public static void GameCommand(CommandArgs args) // i think this needs a rewrite for it to properly work with multiple games zzz
         {
             if (args.Parameters.Count < 1)
             {
                 args.Player.SendErrorMessage("erm no");
                 return;
             }
+
             switch (args.Parameters[0])
             {
                 case "help":

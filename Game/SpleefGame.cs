@@ -534,7 +534,7 @@ namespace SpleefResurgence.Game
             TShock.Utils.Broadcast($"Round {RoundCounter} started", Color.DarkSeaGreen);
             RoundCounter++;
             betsLocked = true;
-            roundSidebar.message = $"[c/8FBC8F:Round {RoundCounter}]\n";
+            roundSidebar.message = $"[c/8FBC8F:Round {RoundCounter}]\nmap info\ngimmicks info";
 
             players.ForEach(player => player.SetBuff(BuffID.Webbed, 200));
         }
@@ -638,20 +638,25 @@ namespace SpleefResurgence.Game
                 if (p.isIngame)
                 {
                     score += $"[c/FF8559:{p.Name} : {p.Score}] ";
-                    switch (p.Place)
+                    if (p.isAlive)
+                        score += "[i:58]";
+                    else
                     {
-                        case 1:
-                            score += "[i:4601]";
-                            break;
-                        case 2:
-                            score += "[i:4600]";
-                            break;
-                        case 3:
-                            score += "[i:4599]";
-                            break;
-                        default:
-                            score += "[i:321]";
-                            break;
+                        switch (p.Place)
+                        {
+                            case 1:
+                                score += "[i:4601]";
+                                break;
+                            case 2:
+                                score += "[i:4600]";
+                                break;
+                            case 3:
+                                score += "[i:4599]";
+                                break;
+                            default:
+                                score += "[i:321]";
+                                break;
+                        }
                     }
                 }
                 else

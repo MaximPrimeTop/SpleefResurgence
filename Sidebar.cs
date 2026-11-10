@@ -93,7 +93,7 @@ namespace SpleefResurgence
 
             public RoundSidebar()
             {
-                priority = 4;
+                priority = 3; // same priority as the score so make sure to initialize it after the score sidebar
                 message = "";
                 AddPart(this);
             }
@@ -132,7 +132,6 @@ namespace SpleefResurgence
 
             prevSidebars[player.Index] = message;
             player.SendData(PacketTypes.Status, message, number2: 3);
-            player.SendInfoMessage($"Sent {message} to you");
         }
 
         private int forcedTickCounter = 0;
