@@ -272,6 +272,7 @@ namespace SpleefResurgence.Game
         public int RoundCounter = 1;
         public bool isJoinable;
         public bool isBettable;
+        public bool is1v1;
         public bool betsLocked = false;
         public bool isRound;
         private int CurrentMusicBoxID;
@@ -297,7 +298,7 @@ namespace SpleefResurgence.Game
         private Sidebar.ScoreSidebar scoreSidebar = new();
         private Sidebar.RoundSidebar roundSidebar = new();
 
-        public SpleefGame(Arena arena, string hosterName, bool isJoinable = true, bool isBettable = false)
+        public SpleefGame(Arena arena, string hosterName, bool isJoinable = true, bool isBettable = false, bool is1v1 = false)
         {
             isRound = false;
             Arena = arena;
@@ -306,6 +307,7 @@ namespace SpleefResurgence.Game
             Players = new();
             this.isJoinable = isJoinable;
             this.isBettable = isBettable;
+            this.is1v1 = is1v1;
             RoundCounter = 1;
             Hosters = new() { hosterName };
             ServerApi.Hooks.ServerLeave.Register(Spleef.Instance, OnPlayerLeave);

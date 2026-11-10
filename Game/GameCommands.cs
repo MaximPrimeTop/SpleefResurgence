@@ -455,6 +455,13 @@ namespace SpleefResurgence.Game
                 args.Player.SendErrorMessage("You are not in any game!");
                 return;
             }
+
+            if (game.is1v1)
+            {
+                args.Player.SendErrorMessage("You can't leave a duel! Do /forfeit instead.");
+                return;
+            }
+
             game.RemovePlayer(args.Player.Name, args.Player.Account.Name);
         }
 

@@ -40,7 +40,8 @@ namespace SpleefResurgence.Game
                 if (accepted)
                 {
                     player1.SendMessage("woah enter duel time !! (never cus it's not implemented yet)", Color.Aqua);
-                    Duel game = new(new(player1), new(player2), 3);
+                    Duel duel = new(new(player1), new(player2), 3);
+                    Duels.Add(duel);
                 }
                 else
                     player1.SendMessage("you got rejected baka", Color.IndianRed);
@@ -126,6 +127,30 @@ namespace SpleefResurgence.Game
             {
                 args.Player.SendErrorMessage("aye");
             }
+        }
+
+        public static void Forfeit(CommandArgs args)
+        {
+            if (!Duels.Exists(d => d.Game.isPlayerIngame(args.Player.Name)))
+            {
+                args.Player.SendErrorMessage("you aren't in any duel");
+                return;
+            }
+
+            var duel = Duels.Find(d => d.Game.isPlayerIngame(args.Player.Name));
+
+            if (duel.Game.isRound)
+            {
+                args.Player.SendErrorMessage("wait till the round ends buckaroo");
+                return;
+            }
+
+            var player = duel.Game.FindPlayer(args.Player.Name);
+            TShock.Utils.Broadcast($"won by forfeit", Color.LawnGreen);
+            if (player == duel.Player1)
+                duel.End(duel.Player2);
+            else
+                duel.End(duel.Player1);
         }
     }
 }

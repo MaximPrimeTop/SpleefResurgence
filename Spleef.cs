@@ -96,6 +96,7 @@ namespace SpleefResurgence
             Commands.ChatCommands.Add(new Command("spleef.game.user", GameDuelCommands.Accept, "accept"));
             Commands.ChatCommands.Add(new Command("spleef.game.user", GameDuelCommands.Decline, "decline"));
             Commands.ChatCommands.Add(new Command("spleef.game.user", GameDuelCommands.Ready, "ready"));
+            Commands.ChatCommands.Add(new Command("spleef.game.user", GameDuelCommands.Forfeit, "forfeit"));
             /*
             Commands.ChatCommands.Add(new Command("spleef.game.hoster", spleefGame.TheGaming, "game"));
             Commands.ChatCommands.Add(new Command("spleef.game.user", spleefGame.JoinGame, "join", "j"));

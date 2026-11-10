@@ -30,7 +30,6 @@ namespace SpleefResurgence.Game
             Initialize();
         }
 
-
         public void Initialize()
         {
             List<Arena> validArenas = new();
@@ -43,7 +42,7 @@ namespace SpleefResurgence.Game
 
             var randomArena = validArenas[Spleef.rnd.Next(validArenas.Count)];
 
-            Game = new(randomArena, "duel", false, false);
+            Game = new(randomArena, "duel", false, false, true);
             GameCommands.Games.Add(Game);
             Game.AddPlayer(Player1);
             Game.AddPlayer(Player2);
@@ -124,6 +123,7 @@ namespace SpleefResurgence.Game
             Game.EndGame();
             TShock.Utils.Broadcast($"congrats yo {winner.Name} won a billion dolar", Color.LawnGreen);
             GameCommands.Games.Remove(Game);
+            GameDuelCommands.Duels.Remove(this);
         }
     }
 }
