@@ -141,7 +141,12 @@ namespace SpleefResurgence.CustomCommands
                     List(args.Player);
                     return;
                 default:
-                    ExecuteCommands(player, args.Parameters);
+                    if (CommandList.Count == 0)
+                    {
+                        player.SendErrorMessage("The command is empty!");
+                        return;
+                    }
+                    CommandTracker.ExecuteNewCommand(Name, CommandList, player, args.Parameters);
                     return;
             }
         }
@@ -171,11 +176,6 @@ namespace SpleefResurgence.CustomCommands
             List<CommandTracker.ExecutingCommand> allCommands = Spleef.ActiveCommands.FindAll(c => c.Name == Name).ToList();
             foreach (var command in allCommands)
                 command.Stop();
-        }
-
-        public void ExecuteCommands(TSPlayer player, List<string> parameters)
-        {
-            CommandTracker.ExecuteNewCommand(Name, CommandList, player, parameters);
         }
     }
 }
