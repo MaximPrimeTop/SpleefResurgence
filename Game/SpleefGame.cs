@@ -60,10 +60,11 @@ namespace SpleefResurgence.Game
         public string SchematicName { get; set; }
         public string OwnerName { get; set; }
         public RiseType RiseType { get; set; }
+        public string AnnounceText { get; set; }
         public List<ArenaSpawn> Spawns { get; set; }
         public List<Gimmick> AdditionalGimmicks { get; set; }
 
-        public Map(string name, string schematicName, string ownerName, RiseType riseType, List<ArenaSpawn> spawns, List<Gimmick> additionalGimmicks)
+        public Map(string name, string schematicName, string ownerName, RiseType riseType, List<ArenaSpawn> spawns, List<Gimmick> additionalGimmicks, string announceText = "")
         {
             Name = name;
             SchematicName = schematicName;
@@ -71,6 +72,10 @@ namespace SpleefResurgence.Game
             RiseType = riseType;
             Spawns = spawns;
             AdditionalGimmicks = additionalGimmicks;
+            if (announceText == "")
+                AnnounceText = $"[i:776] [c/00FFFF:{Name} arena] [i:776]";
+            else
+                AnnounceText = announceText;
         }
     }
 
@@ -527,7 +532,8 @@ namespace SpleefResurgence.Game
 
             SetDefaultPlayerShi(players, gimmicks);
 
-            roundSidebar.message = $"[c/8FBC8F:Round {RoundCounter}]\nmap info\n";
+            TShock.Utils.Broadcast(Arena.CurrentMap.AnnounceText, Color.White);
+            roundSidebar.message = $"[c/8FBC8F:Round {RoundCounter}]\n{Arena.CurrentMap.AnnounceText}\n";
 
             foreach (var gimmick in gimmicks)
             {
