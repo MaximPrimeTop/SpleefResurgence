@@ -330,9 +330,7 @@ namespace SpleefResurgence.Game.Editor
             }
 
             args.Player.SendInfoMessage($"Gimmick Info for '{name}':");
-            args.Player.SendInfoMessage($"Type: {gimmick.GetType().Name.Remove(0, 7)}");
-            args.Player.SendInfoMessage($"Details: {gimmick.GetInfo()}");
-            args.Player.SendInfoMessage($"Wait Time: {gimmick.WaitTime}s");
+            args.Player.SendInfoMessage(gimmick.GetFullInfo());
         }
     }
 }

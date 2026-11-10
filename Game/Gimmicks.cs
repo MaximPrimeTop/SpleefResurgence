@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using Microsoft.Xna.Framework;
+using System.Text.Json.Serialization;
 using Terraria;
 using Terraria.DataStructures;
 using TShockAPI;
@@ -10,18 +11,38 @@ namespace SpleefResurgence.Game
     {
         public int WaitTime { get; set; }
 
-        public async void Apply(List<TSPlayer> players)
+        public string AnnounceText { get; set; }
+
+        public string TimedAnnounceText { get; set; }
+
+        public async void Apply(List<TSPlayer> players, bool isSilent = false)
         {
             if (players == null || players.Count == 0)
                 return;
+            if (!isSilent)
+                TShock.Utils.Broadcast(AnnounceText, Color.White);
             if (WaitTime != 0)
+            {
                 await Task.Delay(WaitTime);
+                if (!isSilent)
+                    TShock.Utils.Broadcast(TimedAnnounceText, Color.White);
+            }
             Action(players);
         }
 
         public abstract void Action(List<TSPlayer> players);
 
         public abstract string GetInfo();
+
+        public string GetFullInfo()
+        {
+            return
+                $"Type: {this.GetType().Name.Remove(0, 7)}\n" +
+                $"Details: {GetInfo()}\n" +
+                $"Wait Time: {WaitTime}s\n" +
+                $"Announce text: {AnnounceText}\n" +
+                $"Times announce text: {TimedAnnounceText}";
+        }
     }
 
     public class GimmickNone : Gimmick
@@ -31,6 +52,8 @@ namespace SpleefResurgence.Game
         public GimmickNone()
         {
             WaitTime = 0;
+            AnnounceText = "[i:776] [c/00FFFF:Normal round] [i:776]";
+            TimedAnnounceText = "And... nothing happened";
         }
     }
 
@@ -50,12 +73,20 @@ namespace SpleefResurgence.Game
                 return $"ItemID: {ItemID}, Stack: {Stack}, Slot: {Slot}";
         }
 
-        public GimmickItem(int itemID, int waitTime, int stack = 1, int slot = -1)
+        public GimmickItem(int itemID, int waitTime, int stack = 1, int slot = -1, string announceText = "", string timedAnnounceText = "")
         {
             ItemID = itemID;
             Stack = stack;
             WaitTime = waitTime;
             Slot = slot;
+            if (announceText == "")
+                AnnounceText = $"[i:{itemID}] [c/00FFFF:{TShock.Utils.GetItemById(itemID).Name} round] [i:{itemID}]";
+            else
+                AnnounceText = announceText;
+            if (timedAnnounceText == "")
+                TimedAnnounceText = $"[i:{itemID}] [c/FF1493:{TShock.Utils.GetItemById(itemID).Name}s have been given out!] [i:{itemID}]";
+            else
+                TimedAnnounceText = timedAnnounceText;
         }
     }
 
@@ -74,11 +105,19 @@ namespace SpleefResurgence.Game
                 return $"ItemID: {ItemID}, Slot: {Slot - 2}";
         }
 
-        public GimmickAccessory(int itemID, int waitTime, int slot = -1)
+        public GimmickAccessory(int itemID, int waitTime, int slot = -1, string announceText = "", string timedAnnounceText = "")
         {
             ItemID = itemID;
             Slot = slot;
             WaitTime = waitTime;
+            if (announceText == "")
+                AnnounceText = $"[i:{itemID}] [c/00FFFF:{TShock.Utils.GetItemById(itemID).Name} round] [i:{itemID}]";
+            else
+                AnnounceText = announceText;
+            if (timedAnnounceText == "")
+                TimedAnnounceText = $"[i:{itemID}] [c/FF1493:{TShock.Utils.GetItemById(itemID).Name}s have been given out! Check your accessories!] [i:{itemID}]";
+            else
+                TimedAnnounceText = timedAnnounceText;
         }
     }
 
@@ -91,11 +130,19 @@ namespace SpleefResurgence.Game
 
         public override string GetInfo() => $"BuffID: {BuffID}, BuffDuration: {BuffDuration} seconds";
 
-        public GimmickBuff(int buffID, int buffDuration, int waitTime)
+        public GimmickBuff(int buffID, int buffDuration, int waitTime, string announceText = "", string timedAnnounceText = "")
         {
             BuffID = buffID;
             BuffDuration = buffDuration;
             WaitTime = waitTime;
+            if (announceText == "")
+                AnnounceText = $"[c/00FFFF:{TShock.Utils.GetBuffName(buffID)} round]";
+            else
+                AnnounceText = announceText;
+            if (timedAnnounceText == "")
+                TimedAnnounceText = $"[c/FF1493:You were buffed with {TShock.Utils.GetBuffName(buffID)}!]";
+            else
+                TimedAnnounceText = timedAnnounceText;
         }
     }
 
@@ -108,10 +155,18 @@ namespace SpleefResurgence.Game
 
         public override string GetInfo() => $"ItemID: {ItemID}";
 
-        public GimmickMount(int itemID, int waitTime)
+        public GimmickMount(int itemID, int waitTime, string announceText = "", string timedAnnounceText = "")
         {
             ItemID = itemID;
             WaitTime = waitTime;
+            if (announceText == "")
+                AnnounceText = $"[i:{itemID}] [c/00FFFF:{TShock.Utils.GetItemById(itemID).Name} round] [i:{itemID}]";
+            else
+                AnnounceText = announceText;
+            if (timedAnnounceText == "")
+                TimedAnnounceText = $"[i:{itemID}] [c/FF1493:{TShock.Utils.GetItemById(itemID).Name}s have been given out! Check your accessories!] [i:{itemID}]";
+            else
+                TimedAnnounceText = timedAnnounceText;
         }
     }
 
@@ -136,13 +191,21 @@ namespace SpleefResurgence.Game
 
         public override string GetInfo() => $"MobID: {MobID}, MobAmount: {MobAmount}, SpawnTileX: {MobSpawnTileX}, SpawnTileY: {MobSpawnTileY}";
 
-        public GimmickMob(int mobID, int mobAmount, int waitTime, int mobSpawnTileX, int mobSpawnTileY)
+        public GimmickMob(int mobID, int mobAmount, int waitTime, int mobSpawnTileX, int mobSpawnTileY, string announceText = "", string timedAnnounceText = "")
         {
             MobID = mobID;
             MobAmount = mobAmount;
             MobSpawnTileX = mobSpawnTileX;
             MobSpawnTileY = mobSpawnTileY;
             WaitTime = waitTime;
+            if (announceText == "")
+                AnnounceText = $"[i:[c/00FFFF:mob round]";
+            else
+                AnnounceText = announceText;
+            if (timedAnnounceText == "")
+                TimedAnnounceText = $"[c/FF1493:<insert mob name> has been spawned in! :fear:]";
+            else
+                TimedAnnounceText = timedAnnounceText;
         }
     }
 }

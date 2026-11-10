@@ -479,9 +479,8 @@ namespace SpleefResurgence.Game
             return SongName;
         }
 
-        private void SetDefaultPlayerShi(List<TSPlayer> players)
+        private void SetDefaultPlayerShi(List<TSPlayer> players, List<Gimmick> gimmicks)
         {
-            string SongName = GenerateMusicBoxName();
             int paintItemID = GeneratePaintItemID();
             players.ForEach(player =>
             {
@@ -502,15 +501,18 @@ namespace SpleefResurgence.Game
                     InventoryEdit.AddItem(player, 20, 9999, paintItemID);
                 }
                 if (SpleefUserSettings.GetSettings(player.Account.Name).GetMusicBox)
-                {
                     InventoryEdit.AddArmor(player, CurrentMusicBoxID);
-                    player.SendMessage($"[i:{CurrentMusicBoxID}] Playing {SongName} [i:{CurrentMusicBoxID}]", Color.LightPink);
-                }
             });
         }
 
         public void StartRound(List<Gimmick> gimmicks, string mapName)
         {
+            TShock.Utils.Broadcast($"Round {RoundCounter} started", Color.DarkSeaGreen);
+            ServerApi.Hooks.NetGetData.Register(Spleef.Instance, OnGetData);
+            isRound = true;
+            RoundCounter++;
+            betsLocked = true;
+
             RoundPlayers = Players.FindAll(p => p.isIngame);
             PlaceCounter = RoundPlayers.Count;
 
@@ -523,20 +525,31 @@ namespace SpleefResurgence.Game
             Arena.TeleportPlayers(players);
             Arena.StartRise();
 
-            SetDefaultPlayerShi(players);
+            SetDefaultPlayerShi(players, gimmicks);
 
-            gimmicks.ForEach(gimmick => gimmick.Apply(players));
-            if (Arena.CurrentMap.AdditionalGimmicks != null && Arena.CurrentMap.AdditionalGimmicks.Count > 0)
-                Arena.CurrentMap.AdditionalGimmicks.ForEach(gimmick => gimmick.Apply(players));
+            roundSidebar.message = $"[c/8FBC8F:Round {RoundCounter}]\nmap info\n";
 
-            ServerApi.Hooks.NetGetData.Register(Spleef.Instance, OnGetData);
-            isRound = true;
-            TShock.Utils.Broadcast($"Round {RoundCounter} started", Color.DarkSeaGreen);
-            RoundCounter++;
-            betsLocked = true;
-            roundSidebar.message = $"[c/8FBC8F:Round {RoundCounter}]\nmap info\ngimmicks info";
+            foreach (var gimmick in gimmicks)
+            {
+                gimmick.Apply(players);
+                roundSidebar.message += gimmick.AnnounceText + "\n";
+            }
+            if (Arena.CurrentMap.AdditionalGimmicks.Count > 0)
+            {
+                foreach (var gimmick in Arena.CurrentMap.AdditionalGimmicks)
+                {
+                    gimmick.Apply(players);
+                    roundSidebar.message += gimmick.AnnounceText + "\n";
+                }
+            }
 
-            players.ForEach(player => player.SetBuff(BuffID.Webbed, 200));
+            string SongName = GenerateMusicBoxName();
+
+            players.ForEach(player =>
+            {
+                player.SetBuff(BuffID.Webbed, 200);
+                player.SendMessage($"[i:{CurrentMusicBoxID}] Playing {SongName} [i:{CurrentMusicBoxID}]", Color.LightPink);
+            });
         }
 
 
